@@ -1,13 +1,13 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Markdown } from '@/components/common/Markdown';
 import { CitationList } from '@/components/common/CitationList';
 import { searchCareer, type SearchResult } from '@/lib/api/search';
 
-export default function SearchPage() {
+function SearchContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
   const [isLoading, setIsLoading] = useState(true);
@@ -90,5 +90,20 @@ export default function SearchPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto px-4 py-16 text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-teal-500" />
+          <p className="text-slate-500">검색 중...</p>
+        </div>
+      }
+    >
+      <SearchContent />
+    </Suspense>
   );
 }

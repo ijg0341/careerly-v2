@@ -26,8 +26,11 @@ export function Markdown({ content, className = '' }: MarkdownProps) {
             />
           ),
           // Custom code block handling
-          code: ({ node, inline, className, children, ...props }) => {
-            if (inline) {
+          code: ({ node, className, children, ...props }: any) => {
+            const match = /language-(\w+)/.exec(className || '');
+            const isInline = !match;
+
+            if (isInline) {
               return (
                 <code
                   className="bg-slate-100 text-teal-600 px-1.5 py-0.5 rounded text-sm font-mono"
