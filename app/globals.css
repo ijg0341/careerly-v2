@@ -7,6 +7,12 @@
   --color-background: #ffffff;
   --color-foreground: #171717;
 
+  /* Coral (Custom Brand Color) */
+  --color-coral-100: #ffedee;
+  --color-coral-400: #f39b8e;
+  --color-coral-500: #ef7b6a;
+  --color-coral-600: #ed6653;
+
   /* Shadows */
   --shadow-sm: 0px 2px 4px 0px rgba(100, 116, 139, 0.1);
   --shadow-md: 0px 4px 6px 0px rgba(100, 116, 139, 0.12);
@@ -50,9 +56,21 @@
   input[type='submit'],
   input[type='reset'],
   select,
+  label[for],
   [role='button'],
-  [onclick] {
-    cursor: pointer;
+  [role='checkbox'],
+  [role='radio'],
+  [role='switch'],
+  [onclick],
+  [tabindex]:not([tabindex='-1']) {
+    cursor: pointer !important;
+  }
+
+  /* Ensure all button-like elements have pointer cursor */
+  button *,
+  a *,
+  [role='button'] * {
+    cursor: pointer !important;
   }
 }
 
@@ -108,6 +126,91 @@
   }
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes zoomOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+@keyframes slideInFromTop {
+  from {
+    transform: translateY(-8px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    transform: translateY(8px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-8px);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(8px);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
 }
@@ -115,6 +218,92 @@
 .animate-fade-in-up {
   animation: fadeInUp 0.6s ease-out forwards;
 }
+
+.animate-in {
+  animation-duration: 0.2s;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+
+.animate-out {
+  animation-duration: 0.2s;
+  animation-timing-function: ease-in;
+  animation-fill-mode: both;
+}
+
+.fade-in-0 {
+  animation-name: fadeIn;
+}
+
+.fade-out-0 {
+  animation-name: fadeOut;
+}
+
+.zoom-in-95 {
+  animation-name: zoomIn;
+}
+
+.zoom-out-95 {
+  animation-name: zoomOut;
+}
+
+.slide-in-from-top-2 {
+  animation-name: slideInFromTop;
+}
+
+.slide-in-from-bottom-2 {
+  animation-name: slideInFromBottom;
+}
+
+.slide-in-from-left-2 {
+  animation-name: slideInFromLeft;
+}
+
+.slide-in-from-right-2 {
+  animation-name: slideInFromRight;
+}
+
+/* Popover animations with data attributes */
+[data-state='open'][data-side='bottom'],
+[data-state='open'][data-side='top'],
+[data-state='open'][data-side='left'],
+[data-state='open'][data-side='right'] {
+  animation: fadeIn 0.2s ease-out, zoomIn 0.2s ease-out;
+}
+
+[data-state='closed'][data-side='bottom'],
+[data-state='closed'][data-side='top'],
+[data-state='closed'][data-side='left'],
+[data-state='closed'][data-side='right'] {
+  animation: fadeOut 0.2s ease-in, zoomOut 0.2s ease-in;
+}
+
+/* Directional slide animations for Popover */
+[data-state='open'][data-side='bottom'] {
+  animation: fadeIn 0.2s ease-out, zoomIn 0.2s ease-out, slideInFromTop 0.2s ease-out;
+}
+
+[data-state='open'][data-side='top'] {
+  animation: fadeIn 0.2s ease-out, zoomIn 0.2s ease-out, slideInFromBottom 0.2s ease-out;
+}
+
+[data-state='open'][data-side='left'] {
+  animation: fadeIn 0.2s ease-out, zoomIn 0.2s ease-out, slideInFromRight 0.2s ease-out;
+}
+
+[data-state='open'][data-side='right'] {
+  animation: fadeIn 0.2s ease-out, zoomIn 0.2s ease-out, slideInFromLeft 0.2s ease-out;
+}
+
+/* Tooltip animations */
+[data-state='open'].animate-in {
+  animation-name: fadeIn, zoomIn;
+}
+
+[data-state='closed'].animate-out {
+  animation-name: fadeOut, zoomOut;
+}
+
 
 /* ===========================
    Component Layer
