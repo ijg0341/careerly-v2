@@ -35,6 +35,26 @@ export function Header() {
         {/* Right Navigation */}
         <nav className="flex items-center gap-2">
           <Link
+            href="/design-guide"
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+            title="디자인 가이드"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+              />
+            </svg>
+            <span>가이드</span>
+          </Link>
+          <Link
             href="/history"
             className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
             title="검색 히스토리"
