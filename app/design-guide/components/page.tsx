@@ -2,90 +2,82 @@
 
 import * as React from 'react';
 import { TabNav } from '@/components/design-guide/TabNav';
+import { ComponentTabNav } from '@/components/design-guide/ComponentTabNav';
 import { ComponentShowcase } from '@/components/design-guide/ComponentShowcase';
 import { QuickNav } from '@/components/design-guide/QuickNav';
 import { Button } from '@/components/ui/button';
 import { IconButton } from '@/components/ui/icon-button';
-import { Link } from '@/components/ui/link';
-import { Badge } from '@/components/ui/badge';
-import { Chip } from '@/components/ui/chip';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Popover, PopoverContent, PopoverTrigger, PopoverClose } from '@/components/ui/popover';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { Kbd } from '@/components/ui/kbd';
-import { Spinner } from '@/components/ui/spinner';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Progress } from '@/components/ui/progress';
-import { VisuallyHidden } from '@/components/ui/visually-hidden';
-import {
-  Heart,
-  Share2,
-  Bookmark,
-  Search,
-  X,
-  ChevronDown,
-  TrendingUp,
-  Sparkles,
-  AlertCircle,
-  Filter,
-  SortAsc,
-  Play,
-  Settings,
-  User,
-} from 'lucide-react';
+import { Heart, Bookmark, Search, X, Settings, Share2, MoreHorizontal, Clock } from 'lucide-react';
 import { Label } from '@/components/ui/label';
+import { SearchInline } from '@/components/ui/search-inline';
+import { SearchComposeInput } from '@/components/ui/search-compose-input';
+import { CategoryTabs } from '@/components/ui/category-tabs';
+import { TagBar } from '@/components/ui/tag-bar';
+import { SortControl, SortValue } from '@/components/ui/sort-control';
+import { FilterGroup } from '@/components/ui/filter-group';
+import { ActionBar } from '@/components/ui/action-bar';
+import { LoadMore } from '@/components/ui/load-more';
+import { InterestSelectorPanel, InterestCategory } from '@/components/ui/interest-selector-panel';
+import { DiscoverCategoryTabs } from '@/components/ui/discover-category-tabs';
+import { Code, Palette, Briefcase, Rocket, Database, Globe } from 'lucide-react';
 
 export default function ComponentsPage() {
-  const [chipSelected, setChipSelected] = React.useState(false);
-  const [chips, setChips] = React.useState(['React', 'TypeScript', 'Next.js']);
   const [switchChecked, setSwitchChecked] = React.useState(false);
   const [checkboxChecked, setCheckboxChecked] = React.useState(false);
   const [radioValue, setRadioValue] = React.useState('popular');
   const [selectValue, setSelectValue] = React.useState('');
   const [sliderValue, setSliderValue] = React.useState([50]);
-  const [progress, setProgress] = React.useState(13);
-  const [popoverOpen, setPopoverOpen] = React.useState(false);
+  const [searchValue, setSearchValue] = React.useState('');
+  const [composeValue, setComposeValue] = React.useState('');
+  const [composeLoading, setComposeLoading] = React.useState(false);
+  const [categoryTabActive, setCategoryTabActive] = React.useState('all');
+  const [activeTags, setActiveTags] = React.useState<string[]>([]);
+  const [sortValue, setSortValue] = React.useState<SortValue>('trending');
+  const [filterValues, setFilterValues] = React.useState<Record<string, string | string[] | boolean>>({
+    categories: [],
+    period: '',
+    showImages: false,
+    showSummary: false,
+  });
+  const [loadMoreHasMore, setLoadMoreHasMore] = React.useState(true);
+  const [loadMoreLoading, setLoadMoreLoading] = React.useState(false);
+  const [selectedInterests, setSelectedInterests] = React.useState<string[]>(['tech', 'design']);
+  const [discoverTab, setDiscoverTab] = React.useState('recommended');
 
-  React.useEffect(() => {
-    const timer = setTimeout(() => setProgress(66), 500);
-    return () => clearTimeout(timer);
-  }, []);
+  const interestCategories: InterestCategory[] = [
+    { id: 'tech', label: '기술', icon: <Code className="h-4 w-4" /> },
+    { id: 'design', label: '디자인', icon: <Palette className="h-4 w-4" /> },
+    { id: 'business', label: '비즈니스', icon: <Briefcase className="h-4 w-4" /> },
+    { id: 'startup', label: '스타트업', icon: <Rocket className="h-4 w-4" /> },
+    { id: 'data', label: '데이터', icon: <Database className="h-4 w-4" /> },
+    { id: 'global', label: '글로벌', icon: <Globe className="h-4 w-4" /> },
+  ];
 
   const navItems = [
     { id: 'button', label: 'Button' },
     { id: 'icon-button', label: 'IconButton' },
-    { id: 'link', label: 'Link' },
-    { id: 'badge', label: 'Badge' },
-    { id: 'chip', label: 'Chip' },
-    { id: 'avatar', label: 'Avatar' },
-    { id: 'tooltip', label: 'Tooltip' },
-    { id: 'popover', label: 'Popover' },
-    { id: 'dropdown-menu', label: 'DropdownMenu' },
     { id: 'input', label: 'Input' },
+    { id: 'search-inline', label: 'SearchInline' },
+    { id: 'search-compose-input', label: 'SearchComposeInput' },
+    { id: 'category-tabs', label: 'CategoryTabs' },
+    { id: 'tag-bar', label: 'TagBar' },
+    { id: 'sort-control', label: 'SortControl' },
+    { id: 'filter-group', label: 'FilterGroup' },
+    { id: 'action-bar', label: 'ActionBar' },
     { id: 'radio', label: 'Radio / RadioGroup' },
     { id: 'checkbox', label: 'Checkbox' },
     { id: 'switch', label: 'Switch' },
     { id: 'select', label: 'Select' },
     { id: 'slider', label: 'Slider' },
-    { id: 'kbd', label: 'Kbd' },
-    { id: 'spinner', label: 'Spinner' },
-    { id: 'skeleton', label: 'Skeleton' },
-    { id: 'progress', label: 'ProgressBar' },
-    { id: 'visually-hidden', label: 'VisuallyHidden' },
+    { id: 'load-more', label: 'LoadMore' },
+    { id: 'interest-selector-panel', label: 'InterestSelectorPanel' },
+    { id: 'discover-category-tabs', label: 'DiscoverCategoryTabs' },
   ];
 
   return (
@@ -100,750 +92,686 @@ export default function ComponentsPage() {
           </p>
         </div>
 
+        <ComponentTabNav />
+
+        <div className="mt-6 mb-4">
+          <h2 className="text-2xl font-bold text-slate-900">Inputs & Controls</h2>
+          <p className="text-slate-600 mt-1">
+            사용자 입력과 제어를 위한 컴포넌트 - 버튼, 입력 필드, 선택기 등
+          </p>
+        </div>
+
         <div className="flex gap-8">
           {/* Main Content */}
           <div className="flex-1 space-y-8">
-          {/* Button */}
-          <ComponentShowcase
-            title="Button"
-            description="액션을 트리거하는 기본 버튼 컴포넌트"
-            usageContext="카드 CTA, 더 보기, 팔로우/북마크, 정렬 적용"
-          >
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">Variants (Slate Primary)</p>
-                <div className="flex flex-wrap gap-3">
-                  <Button variant="solid">Solid Button</Button>
-                  <Button variant="outline">Outline Button</Button>
-                  <Button variant="ghost">Ghost Button</Button>
-                  <Button variant="link">Link Button</Button>
+            {/* Button */}
+            <ComponentShowcase
+              title="Button"
+              description="액션을 트리거하는 기본 버튼 컴포넌트"
+              usageContext="카드 CTA, 더 보기, 팔로우/북마크, 정렬 적용"
+            >
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Variants (Slate Primary)</p>
+                  <div className="flex flex-wrap gap-3">
+                    <Button variant="solid">Solid Button</Button>
+                    <Button variant="outline">Outline Button</Button>
+                    <Button variant="ghost">Ghost Button</Button>
+                    <Button variant="link">Link Button</Button>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Coral Accent</p>
+                  <div className="flex flex-wrap gap-3">
+                    <Button variant="coral">Coral Button</Button>
+                    <Button variant="coral">
+                      <Heart className="mr-2 h-4 w-4" />
+                      좋아요
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Sizes</p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button size="sm">Small</Button>
+                    <Button size="md">Medium</Button>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">With Icons</p>
+                  <div className="flex flex-wrap gap-3">
+                    <Button>
+                      <Heart className="mr-2 h-4 w-4" />
+                      좋아요
+                    </Button>
+                    <Button variant="outline">
+                      <Bookmark className="mr-2 h-4 w-4" />
+                      북마크
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">States</p>
+                  <div className="flex flex-wrap gap-3">
+                    <Button disabled>Disabled</Button>
+                  </div>
                 </div>
               </div>
+            </ComponentShowcase>
 
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">Coral Accent</p>
-                <div className="flex flex-wrap gap-3">
-                  <Button variant="coral">Coral Button</Button>
-                  <Button variant="coral">
-                    <Heart className="mr-2 h-4 w-4" />
-                    좋아요
-                  </Button>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">Sizes</p>
-                <div className="flex flex-wrap items-center gap-3">
-                  <Button size="sm">Small</Button>
-                  <Button size="md">Medium</Button>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">With Icons</p>
-                <div className="flex flex-wrap gap-3">
-                  <Button>
-                    <Heart className="mr-2 h-4 w-4" />
-                    좋아요
-                  </Button>
-                  <Button variant="outline">
-                    <Bookmark className="mr-2 h-4 w-4" />
-                    북마크
-                  </Button>
-                  <Button variant="outline">
-                    더 보기
-                    <ChevronDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">States</p>
-                <div className="flex flex-wrap gap-3">
-                  <Button disabled>Disabled</Button>
-                  <Button>
-                    <Spinner size="sm" color="white" className="mr-2" />
-                    Loading
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </ComponentShowcase>
-
-          {/* IconButton */}
-          <ComponentShowcase
-            title="IconButton"
-            description="아이콘만 있는 버튼 컴포넌트"
-            usageContext="카드 우측 상단 액션(공유/북마크), 정렬 아이콘 토글"
-          >
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">Variants (Slate Primary)</p>
-                <div className="flex flex-wrap gap-3">
-                  <IconButton variant="solid" aria-label="Like">
-                    <Heart className="h-5 w-5" />
-                  </IconButton>
-                  <IconButton variant="outline" aria-label="Share">
-                    <Share2 className="h-5 w-5" />
-                  </IconButton>
-                  <IconButton variant="ghost" aria-label="More options">
-                    <Settings className="h-5 w-5" />
-                  </IconButton>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">Coral Accent</p>
-                <div className="flex flex-wrap gap-3">
-                  <IconButton variant="coral" aria-label="Like with coral">
-                    <Heart className="h-5 w-5" />
-                  </IconButton>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">Sizes</p>
-                <div className="flex flex-wrap items-center gap-3">
-                  <IconButton size="sm" aria-label="Small">
-                    <Heart className="h-4 w-4" />
-                  </IconButton>
-                  <IconButton size="md" aria-label="Medium">
-                    <Heart className="h-5 w-5" />
-                  </IconButton>
-                  <IconButton size="lg" aria-label="Large">
-                    <Heart className="h-6 w-6" />
-                  </IconButton>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">Pressed State</p>
-                <div className="flex flex-wrap gap-3">
-                  <IconButton pressed={false} aria-label="Not pressed">
-                    <Bookmark className="h-5 w-5" />
-                  </IconButton>
-                  <IconButton pressed aria-label="Pressed">
-                    <Bookmark className="h-5 w-5 fill-current" />
-                  </IconButton>
-                </div>
-              </div>
-            </div>
-          </ComponentShowcase>
-
-          {/* Link */}
-          <ComponentShowcase
-            title="Link"
-            description="내부 및 외부 링크 컴포넌트"
-            usageContext="카드 타이틀, 출처 이동, 푸터"
-          >
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">Variants (Slate Primary)</p>
-                <div className="flex flex-col gap-3">
-                  <Link href="#" variant="default">
-                    Default Link (underlined)
-                  </Link>
-                  <Link href="#" variant="subtle">
-                    Subtle Link
-                  </Link>
-                  <Link href="#" variant="nav">
-                    Navigation Link
-                  </Link>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">Coral Accent</p>
-                <Link href="#" variant="coral">
-                  Coral Link for Special Actions
-                </Link>
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">External Link</p>
-                <Link href="https://example.com" external>
-                  External Link with Icon
-                </Link>
-              </div>
-            </div>
-          </ComponentShowcase>
-
-          {/* Badge */}
-          <ComponentShowcase
-            title="Badge"
-            description="작고 강조된 라벨 컴포넌트"
-            usageContext="카테고리/인기/신규 라벨"
-          >
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">Tones (Slate Primary)</p>
-                <div className="flex flex-wrap gap-3">
-                  <Badge tone="default">Default</Badge>
-                  <Badge tone="slate">Slate Dark</Badge>
-                  <Badge tone="success">Success</Badge>
-                  <Badge tone="warning">Warning</Badge>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">Coral Accent</p>
-                <div className="flex flex-wrap gap-3">
-                  <Badge tone="coral">Coral Badge</Badge>
-                  <Badge tone="coral" icon={<TrendingUp />}>
-                    인기
-                  </Badge>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">With Icons</p>
-                <div className="flex flex-wrap gap-3">
-                  <Badge tone="slate" icon={<TrendingUp />}>
-                    추천
-                  </Badge>
-                  <Badge tone="success" icon={<Sparkles />}>
-                    신규
-                  </Badge>
-                  <Badge tone="warning" icon={<AlertCircle />}>
-                    주의
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          </ComponentShowcase>
-
-          {/* Chip */}
-          <ComponentShowcase
-            title="Chip"
-            description="토픽/태그 선택 컴포넌트"
-            usageContext="상단 태그바, 추천 질의"
-          >
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">Selectable (Slate Primary)</p>
-                <div className="flex flex-wrap gap-2">
-                  <Chip selected={chipSelected} onToggle={() => setChipSelected(!chipSelected)}>
-                    React
-                  </Chip>
-                  <Chip>TypeScript</Chip>
-                  <Chip>Next.js</Chip>
-                  <Chip>TailwindCSS</Chip>
-                </div>
-                <p className="text-xs text-slate-500 mt-2">선택된 칩은 Slate 다크 색상으로 표시됩니다</p>
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">Dismissible</p>
-                <div className="flex flex-wrap gap-2">
-                  {chips.map((chip, index) => (
-                    <Chip
-                      key={chip}
-                      dismissible
-                      onDismiss={() => {
-                        const newChips = [...chips];
-                        newChips.splice(index, 1);
-                        setChips(newChips);
-                      }}
-                    >
-                      {chip}
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </ComponentShowcase>
-
-          {/* Avatar */}
-          <ComponentShowcase
-            title="Avatar"
-            description="사용자/소스 썸네일 컴포넌트"
-            usageContext="소스 아이덴티티, 작성자 정보"
-          >
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">Sizes</p>
-                <div className="flex flex-wrap items-end gap-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-                    <AvatarFallback>CN</AvatarFallback>
-                  </Avatar>
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-                    <AvatarFallback>CN</AvatarFallback>
-                  </Avatar>
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-                    <AvatarFallback>CN</AvatarFallback>
-                  </Avatar>
-                  <Avatar className="h-16 w-16">
-                    <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-                    <AvatarFallback>CN</AvatarFallback>
-                  </Avatar>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">Fallback</p>
-                <div className="flex flex-wrap gap-3">
-                  <Avatar>
-                    <AvatarFallback>JD</AvatarFallback>
-                  </Avatar>
-                  <Avatar>
-                    <AvatarFallback>
-                      <User className="h-5 w-5" />
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
-              </div>
-            </div>
-          </ComponentShowcase>
-
-          {/* Tooltip */}
-          <ComponentShowcase
-            title="Tooltip"
-            description="마우스오버 설명 컴포넌트"
-            usageContext="아이콘 버튼, 정렬/필터 아이콘"
-          >
-            <TooltipProvider delayDuration={200}>
-              <div className="flex flex-wrap gap-4">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <IconButton variant="ghost" aria-label="Like">
+            {/* IconButton */}
+            <ComponentShowcase
+              title="IconButton"
+              description="아이콘만 있는 버튼 컴포넌트"
+              usageContext="카드 우측 상단 액션(공유/북마크), 정렬 아이콘 토글"
+            >
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Variants (Slate Primary)</p>
+                  <div className="flex flex-wrap gap-3">
+                    <IconButton variant="solid" aria-label="Like">
                       <Heart className="h-5 w-5" />
                     </IconButton>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>좋아요</p>
-                  </TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <IconButton variant="ghost" aria-label="Share">
-                      <Share2 className="h-5 w-5" />
+                    <IconButton variant="outline" aria-label="Bookmark">
+                      <Bookmark className="h-5 w-5" />
                     </IconButton>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>공유하기</p>
-                  </TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline">Hover me</Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>더 많은 정보를 보려면 클릭하세요</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            </TooltipProvider>
-          </ComponentShowcase>
-
-          {/* Popover */}
-          <ComponentShowcase
-            title="Popover"
-            description="경량 오버레이 컴포넌트"
-            usageContext="퀵필터, 소팅 옵션"
-          >
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline">
-                  <Filter className="mr-2 h-4 w-4" />
-                  필터
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80" sideOffset={8}>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold mb-2">필터 옵션</h4>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="filter1" />
-                        <label htmlFor="filter1" className="text-sm">
-                          카테고리 1
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="filter2" />
-                        <label htmlFor="filter2" className="text-sm">
-                          카테고리 2
-                        </label>
-                      </div>
-                    </div>
+                    <IconButton variant="ghost" aria-label="More options">
+                      <Settings className="h-5 w-5" />
+                    </IconButton>
                   </div>
-                  <PopoverClose asChild>
-                    <Button className="w-full">적용</Button>
-                  </PopoverClose>
                 </div>
-              </PopoverContent>
-            </Popover>
-            <p className="text-xs text-slate-500 mt-2">
-              💡 Popover는 외부 클릭이나 ESC 키로 닫을 수 있습니다
-            </p>
-          </ComponentShowcase>
 
-          {/* DropdownMenu */}
-          <ComponentShowcase
-            title="DropdownMenu"
-            description="다중 옵션 선택 메뉴"
-            usageContext="정렬(인기/최신), 공유 메뉴"
-          >
-            <div className="flex gap-4">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline">
-                    <SortAsc className="mr-2 h-4 w-4" />
-                    정렬
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuLabel>정렬 기준</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>인기순</DropdownMenuItem>
-                  <DropdownMenuItem>최신순</DropdownMenuItem>
-                  <DropdownMenuItem>오래된순</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Coral Accent</p>
+                  <div className="flex flex-wrap gap-3">
+                    <IconButton variant="coral" aria-label="Like with coral">
+                      <Heart className="h-5 w-5" />
+                    </IconButton>
+                  </div>
+                </div>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <IconButton variant="ghost" aria-label="Share">
-                    <Share2 className="h-5 w-5" />
-                  </IconButton>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem>Twitter에 공유</DropdownMenuItem>
-                  <DropdownMenuItem>Facebook에 공유</DropdownMenuItem>
-                  <DropdownMenuItem>링크 복사</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </ComponentShowcase>
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Sizes</p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <IconButton size="sm" aria-label="Small">
+                      <Heart className="h-4 w-4" />
+                    </IconButton>
+                    <IconButton size="md" aria-label="Medium">
+                      <Heart className="h-5 w-5" />
+                    </IconButton>
+                    <IconButton size="lg" aria-label="Large">
+                      <Heart className="h-6 w-6" />
+                    </IconButton>
+                  </div>
+                </div>
 
-          {/* Input */}
-          <ComponentShowcase title="Input" description="텍스트 입력 컴포넌트" usageContext="내부 검색, 필터 값 입력">
-            <div className="space-y-4 max-w-md">
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">Default</p>
-                <Input placeholder="검색어를 입력하세요..." />
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">With Icons</p>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input className="pl-10" placeholder="검색..." />
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Pressed State</p>
+                  <div className="flex flex-wrap gap-3">
+                    <IconButton pressed={false} aria-label="Not pressed">
+                      <Bookmark className="h-5 w-5" />
+                    </IconButton>
+                    <IconButton pressed aria-label="Pressed">
+                      <Bookmark className="h-5 w-5 fill-current" />
+                    </IconButton>
+                  </div>
                 </div>
               </div>
+            </ComponentShowcase>
 
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">With Clear Button</p>
-                <div className="relative">
-                  <Input className="pr-10" placeholder="입력하세요..." defaultValue="텍스트" />
-                  <button className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <X className="h-4 w-4 text-slate-400 hover:text-slate-600" />
-                  </button>
+            {/* Input */}
+            <ComponentShowcase title="Input" description="텍스트 입력 컴포넌트" usageContext="내부 검색, 필터 값 입력">
+              <div className="space-y-4 max-w-md">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Default</p>
+                  <Input placeholder="검색어를 입력하세요..." />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">With Icons</p>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input className="pl-10" placeholder="검색..." />
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">With Clear Button</p>
+                  <div className="relative">
+                    <Input className="pr-10" placeholder="입력하세요..." defaultValue="텍스트" />
+                    <button className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <X className="h-4 w-4 text-slate-400 hover:text-slate-600" />
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Disabled</p>
+                  <Input disabled placeholder="비활성화됨" />
                 </div>
               </div>
+            </ComponentShowcase>
 
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">Disabled</p>
-                <Input disabled placeholder="비활성화됨" />
-              </div>
-            </div>
-          </ComponentShowcase>
-
-          {/* Radio */}
-          <ComponentShowcase
-            title="Radio / RadioGroup"
-            description="단일 선택 컴포넌트"
-            usageContext="정렬(단일), 표시 밀도 선택"
-          >
-            <div className="space-y-4">
-              <RadioGroup value={radioValue} onValueChange={setRadioValue}>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="popular" id="popular" />
-                  <Label htmlFor="popular">인기순</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="latest" id="latest" />
-                  <Label htmlFor="latest">최신순</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="oldest" id="oldest" />
-                  <Label htmlFor="oldest">오래된순</Label>
-                </div>
-              </RadioGroup>
-              <p className="text-sm text-slate-600">선택: {radioValue}</p>
-            </div>
-          </ComponentShowcase>
-
-          {/* Checkbox */}
-          <ComponentShowcase
-            title="Checkbox"
-            description="다중 선택 컴포넌트"
-            usageContext="다중 카테고리 필터"
-          >
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="cat1"
-                    checked={checkboxChecked}
-                    onCheckedChange={(checked) => setCheckboxChecked(checked === true)}
+            {/* SearchInline */}
+            <ComponentShowcase
+              title="SearchInline"
+              description="페이지 내 소형 검색 컴포넌트"
+              usageContext="Discover 상단 서브 검색"
+            >
+              <div className="space-y-4 max-w-md">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Default</p>
+                  <SearchInline
+                    value={searchValue}
+                    onChange={setSearchValue}
+                    onSubmit={(value) => console.log('Search:', value)}
+                    placeholder="검색어를 입력하세요..."
                   />
-                  <label htmlFor="cat1" className="text-sm font-medium leading-none cursor-pointer">
-                    카테고리 1
-                  </label>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="cat2" />
-                  <label htmlFor="cat2" className="text-sm font-medium leading-none cursor-pointer">
-                    카테고리 2
-                  </label>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">With Custom Icon</p>
+                  <SearchInline
+                    leadingIcon={<Search className="h-4 w-4 text-coral-500" />}
+                    placeholder="커스텀 아이콘..."
+                  />
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="cat3" />
-                  <label htmlFor="cat3" className="text-sm font-medium leading-none cursor-pointer">
-                    카테고리 3
-                  </label>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Disabled</p>
+                  <SearchInline disabled placeholder="비활성화됨" />
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="cat4" disabled />
-                  <label htmlFor="cat4" className="text-sm font-medium leading-none text-slate-400">
-                    비활성화
-                  </label>
+
+                <p className="text-sm text-slate-600">현재 검색어: {searchValue || '(없음)'}</p>
+              </div>
+            </ComponentShowcase>
+
+            {/* SearchComposeInput */}
+            <ComponentShowcase
+              title="SearchComposeInput"
+              description="AI 검색을 위한 멀티라인 입력 컴포넌트"
+              usageContext="index 페이지 메인 검색창"
+            >
+              <div className="space-y-4 max-w-2xl">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Default with All Actions</p>
+                  <SearchComposeInput
+                    value={composeValue}
+                    onChange={setComposeValue}
+                    onSubmit={(value) => {
+                      console.log('Submit:', value);
+                      setComposeLoading(true);
+                      setTimeout(() => {
+                        setComposeLoading(false);
+                        setComposeValue('');
+                      }, 2000);
+                    }}
+                    loading={composeLoading}
+                    placeholder="궁금한 커리어 정보를 검색해보세요..."
+                    actions={{ voice: true, fileUpload: true, modelSelect: true }}
+                    onVoiceClick={() => console.log('Voice clicked')}
+                    onFileUploadClick={() => console.log('File upload clicked')}
+                    onModelSelectClick={() => console.log('Model select clicked')}
+                  />
                 </div>
-              </div>
-            </div>
-          </ComponentShowcase>
 
-          {/* Switch */}
-          <ComponentShowcase
-            title="Switch"
-            description="ON/OFF 설정 토글"
-            usageContext="요약만 보기, 이미지 포함"
-          >
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Switch id="summary" checked={switchChecked} onCheckedChange={setSwitchChecked} />
-                <Label htmlFor="summary">요약만 보기</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch id="images" />
-                <Label htmlFor="images">이미지 포함</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch id="disabled" disabled />
-                <Label htmlFor="disabled" className="text-slate-400">
-                  비활성화
-                </Label>
-              </div>
-            </div>
-          </ComponentShowcase>
-
-          {/* Select */}
-          <ComponentShowcase
-            title="Select"
-            description="단일 선택 드롭다운"
-            usageContext="기간(24h/7d/30d) 선택"
-          >
-            <div className="max-w-xs space-y-4">
-              <Select value={selectValue} onValueChange={setSelectValue}>
-                <SelectTrigger>
-                  <SelectValue placeholder="기간 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="24h">지난 24시간</SelectItem>
-                  <SelectItem value="7d">지난 7일</SelectItem>
-                  <SelectItem value="30d">지난 30일</SelectItem>
-                  <SelectItem value="all">전체</SelectItem>
-                </SelectContent>
-              </Select>
-              {selectValue && <p className="text-sm text-slate-600">선택: {selectValue}</p>}
-            </div>
-          </ComponentShowcase>
-
-          {/* Slider */}
-          <ComponentShowcase
-            title="Slider"
-            description="연속 값 선택 컴포넌트"
-            usageContext="길이/인기 임계값(선택적)"
-          >
-            <div className="max-w-md space-y-4">
-              <div>
-                <div className="flex justify-between mb-2">
-                  <Label>인기도 임계값</Label>
-                  <span className="text-sm text-slate-600">{sliderValue[0]}%</span>
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">With Limited Actions</p>
+                  <SearchComposeInput
+                    placeholder="음성 입력만 가능..."
+                    actions={{ voice: true, fileUpload: false, modelSelect: false }}
+                    onVoiceClick={() => console.log('Voice clicked')}
+                  />
                 </div>
-                <Slider value={sliderValue} onValueChange={setSliderValue} max={100} step={1} />
-              </div>
-            </div>
-          </ComponentShowcase>
 
-          {/* Kbd */}
-          <ComponentShowcase title="Kbd" description="키보드 단축키 힌트" usageContext="키보드 단축키 안내">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <span className="text-sm">검색 열기:</span>
-                <Kbd keys={['⌘', 'K']} />
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm">검색:</span>
-                <Kbd keys="/" />
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm">도움말:</span>
-                <Kbd keys="?" />
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm">저장:</span>
-                <Kbd keys={['Ctrl', 'S']} />
-              </div>
-            </div>
-          </ComponentShowcase>
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Loading State</p>
+                  <SearchComposeInput
+                    value="검색 중인 내용"
+                    loading={true}
+                    placeholder="검색 중..."
+                  />
+                </div>
 
-          {/* Spinner */}
-          <ComponentShowcase title="Spinner" description="진행 표시 로더" usageContext="버튼 로딩, 카드 로딩">
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">Sizes</p>
-                <div className="flex flex-wrap items-end gap-4">
-                  <Spinner size="sm" />
-                  <Spinner size="md" />
-                  <Spinner size="lg" />
-                  <Spinner size="xl" />
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Auto Focus</p>
+                  <SearchComposeInput
+                    autoFocus
+                    placeholder="자동 포커스..."
+                  />
+                </div>
+
+                <div className="p-4 bg-slate-50 rounded-lg space-y-2 text-sm text-slate-600">
+                  <p><strong>키보드 단축키:</strong></p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Enter: 검색 실행</li>
+                    <li>Shift + Enter: 줄바꿈</li>
+                  </ul>
+                  <p className="mt-3"><strong>현재 입력값:</strong> {composeValue || '(없음)'}</p>
                 </div>
               </div>
+            </ComponentShowcase>
 
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">Colors</p>
-                <div className="flex flex-wrap gap-4">
-                  <Spinner color="default" />
-                  <Spinner color="brand" />
-                  <div className="bg-slate-900 p-4 rounded">
-                    <Spinner color="white" />
+            {/* CategoryTabs */}
+            <ComponentShowcase
+              title="CategoryTabs"
+              description="카테고리 전환 탭 컴포넌트"
+              usageContext="주제 상단"
+            >
+              <div className="space-y-4">
+                <CategoryTabs
+                  items={[
+                    { id: 'all', label: '전체', count: 128 },
+                    { id: 'tech', label: '기술', count: 45 },
+                    { id: 'design', label: '디자인', count: 32 },
+                    { id: 'business', label: '비즈니스', count: 51 },
+                  ]}
+                  activeId={categoryTabActive}
+                  onChange={setCategoryTabActive}
+                />
+                <p className="text-sm text-slate-600">선택된 탭: {categoryTabActive}</p>
+              </div>
+            </ComponentShowcase>
+
+            {/* TagBar */}
+            <ComponentShowcase
+              title="TagBar"
+              description="토픽 태그 스크롤 바"
+              usageContext="헤더 하단/본문 상단"
+            >
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Scrollable (Default)</p>
+                  <TagBar
+                    tags={['React', 'TypeScript', 'Next.js', 'Tailwind', 'Node.js', 'GraphQL', 'Docker', 'AWS']}
+                    activeTags={activeTags}
+                    onToggle={(tag) => {
+                      setActiveTags((prev) =>
+                        prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+                      );
+                    }}
+                    scrollable={true}
+                  />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Wrapped</p>
+                  <TagBar
+                    tags={['Python', 'Java', 'C++', 'Go']}
+                    activeTags={activeTags}
+                    onToggle={(tag) => {
+                      setActiveTags((prev) =>
+                        prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+                      );
+                    }}
+                    scrollable={false}
+                  />
+                </div>
+
+                <p className="text-sm text-slate-600">활성 태그: {activeTags.join(', ') || '(없음)'}</p>
+              </div>
+            </ComponentShowcase>
+
+            {/* SortControl */}
+            <ComponentShowcase
+              title="SortControl"
+              description="정렬 선택 컴포넌트"
+              usageContext="그리드/피드 상단"
+            >
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Dropdown (Default)</p>
+                  <SortControl value={sortValue} onChange={setSortValue} variant="dropdown" />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Radio Group</p>
+                  <SortControl value={sortValue} onChange={setSortValue} variant="radio" />
+                </div>
+
+                <p className="text-sm text-slate-600">선택: {sortValue}</p>
+              </div>
+            </ComponentShowcase>
+
+            {/* FilterGroup */}
+            <ComponentShowcase
+              title="FilterGroup"
+              description="필터 묶음 컴포넌트"
+              usageContext="우측 사이드(또는 Popover)"
+            >
+              <div className="max-w-md">
+                <FilterGroup
+                  sections={[
+                    {
+                      id: 'categories',
+                      title: '카테고리',
+                      type: 'checkbox',
+                      options: [
+                        { id: 'tech', label: '기술' },
+                        { id: 'design', label: '디자인' },
+                        { id: 'business', label: '비즈니스' },
+                      ],
+                    },
+                    {
+                      id: 'period',
+                      title: '기간',
+                      type: 'select',
+                      options: [
+                        { id: '24h', label: '지난 24시간' },
+                        { id: '7d', label: '지난 7일' },
+                        { id: '30d', label: '지난 30일' },
+                      ],
+                    },
+                    {
+                      id: 'settings',
+                      title: '설정',
+                      type: 'switch',
+                      options: [
+                        { id: 'showImages', label: '이미지 포함' },
+                        { id: 'showSummary', label: '요약만 보기' },
+                      ],
+                    },
+                  ]}
+                  values={filterValues}
+                  onChange={(sectionId, value) => {
+                    setFilterValues((prev) => ({ ...prev, [sectionId]: value }));
+                  }}
+                  onReset={() => {
+                    setFilterValues({
+                      categories: [],
+                      period: '',
+                      showImages: false,
+                      showSummary: false,
+                    });
+                  }}
+                />
+              </div>
+            </ComponentShowcase>
+
+            {/* ActionBar */}
+            <ComponentShowcase
+              title="ActionBar"
+              description="카드 내 작은 액션 버튼 모음"
+              usageContext="북마크/공유/더보기"
+            >
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Default</p>
+                  <ActionBar
+                    actions={[
+                      { id: 'bookmark', icon: <Bookmark className="h-5 w-5" />, label: '북마크' },
+                      { id: 'share', icon: <Share2 className="h-5 w-5" />, label: '공유' },
+                      { id: 'more', icon: <MoreHorizontal className="h-5 w-5" />, label: '더보기' },
+                    ]}
+                    onAction={(id) => console.log('Action:', id)}
+                  />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">With Pressed State</p>
+                  <ActionBar
+                    actions={[
+                      { id: 'like', icon: <Heart className="h-5 w-5" />, label: '좋아요', pressed: true },
+                      { id: 'bookmark', icon: <Bookmark className="h-5 w-5" />, label: '북마크', pressed: false },
+                    ]}
+                    onAction={(id) => console.log('Action:', id)}
+                  />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Small Size</p>
+                  <ActionBar
+                    actions={[
+                      { id: 'bookmark', icon: <Bookmark className="h-4 w-4" />, label: '북마크' },
+                      { id: 'share', icon: <Share2 className="h-4 w-4" />, label: '공유' },
+                    ]}
+                    onAction={(id) => console.log('Action:', id)}
+                    size="sm"
+                  />
+                </div>
+              </div>
+            </ComponentShowcase>
+
+            {/* Radio */}
+            <ComponentShowcase
+              title="Radio / RadioGroup"
+              description="단일 선택 컴포넌트"
+              usageContext="정렬(단일), 표시 밀도 선택"
+            >
+              <div className="space-y-4">
+                <RadioGroup value={radioValue} onValueChange={setRadioValue}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="popular" id="popular" />
+                    <Label htmlFor="popular">인기순</Label>
                   </div>
-                </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="latest" id="latest" />
+                    <Label htmlFor="latest">최신순</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="oldest" id="oldest" />
+                    <Label htmlFor="oldest">오래된순</Label>
+                  </div>
+                </RadioGroup>
+                <p className="text-sm text-slate-600">선택: {radioValue}</p>
               </div>
+            </ComponentShowcase>
 
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">In Button</p>
-                <Button disabled>
-                  <Spinner size="sm" color="white" className="mr-2" />
-                  Loading...
-                </Button>
-              </div>
-            </div>
-          </ComponentShowcase>
-
-          {/* Skeleton */}
-          <ComponentShowcase
-            title="Skeleton"
-            description="콘텐츠 자리 표시자"
-            usageContext="카드, 리스트 항목, 썸네일"
-          >
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">Text</p>
+            {/* Checkbox */}
+            <ComponentShowcase
+              title="Checkbox"
+              description="다중 선택 컴포넌트"
+              usageContext="다중 카테고리 필터"
+            >
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">Card</p>
-                <div className="border border-slate-200 rounded-lg p-4 space-y-3">
-                  <Skeleton className="h-40 w-full rounded" />
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3">Avatar + Text</p>
-                <div className="flex items-center space-x-4">
-                  <Skeleton className="h-12 w-12 rounded-full" />
-                  <div className="space-y-2 flex-1">
-                    <Skeleton className="h-4 w-1/2" />
-                    <Skeleton className="h-3 w-1/3" />
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="cat1"
+                      checked={checkboxChecked}
+                      onCheckedChange={(checked) => setCheckboxChecked(checked === true)}
+                    />
+                    <label htmlFor="cat1" className="text-sm font-medium leading-none cursor-pointer">
+                      카테고리 1
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="cat2" />
+                    <label htmlFor="cat2" className="text-sm font-medium leading-none cursor-pointer">
+                      카테고리 2
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="cat3" />
+                    <label htmlFor="cat3" className="text-sm font-medium leading-none cursor-pointer">
+                      카테고리 3
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="cat4" disabled />
+                    <label htmlFor="cat4" className="text-sm font-medium leading-none text-slate-400">
+                      비활성화
+                    </label>
                   </div>
                 </div>
               </div>
-            </div>
-          </ComponentShowcase>
+            </ComponentShowcase>
 
-          {/* Progress */}
-          <ComponentShowcase
-            title="ProgressBar"
-            description="진행률 표시 컴포넌트"
-            usageContext="배치/페치 진행(옵션)"
-          >
-            <div className="max-w-md space-y-4">
-              <div>
-                <div className="flex justify-between mb-2">
-                  <Label>진행률</Label>
-                  <span className="text-sm text-slate-600">{progress}%</span>
+            {/* Switch */}
+            <ComponentShowcase
+              title="Switch"
+              description="ON/OFF 설정 토글"
+              usageContext="요약만 보기, 이미지 포함"
+            >
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Switch id="summary" checked={switchChecked} onCheckedChange={setSwitchChecked} />
+                  <Label htmlFor="summary">요약만 보기</Label>
                 </div>
-                <Progress value={progress} />
-              </div>
-              <div>
-                <div className="flex justify-between mb-2">
-                  <Label>완료됨</Label>
-                  <span className="text-sm text-slate-600">100%</span>
+                <div className="flex items-center space-x-2">
+                  <Switch id="images" />
+                  <Label htmlFor="images">이미지 포함</Label>
                 </div>
-                <Progress value={100} />
+                <div className="flex items-center space-x-2">
+                  <Switch id="disabled" disabled />
+                  <Label htmlFor="disabled" className="text-slate-400">
+                    비활성화
+                  </Label>
+                </div>
               </div>
-            </div>
-          </ComponentShowcase>
+            </ComponentShowcase>
 
-          {/* VisuallyHidden */}
-          <ComponentShowcase
-            title="VisuallyHidden"
-            description="시각적으로 숨겨진 접근성 텍스트"
-            usageContext="아이콘 버튼 대체 라벨, 스크린리더 지원"
-          >
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-slate-600 mb-3">
-                  이 컴포넌트는 스크린리더에는 읽히지만 시각적으로는 표시되지 않습니다.
-                </p>
-                <IconButton aria-label="Play video">
-                  <VisuallyHidden>Play video</VisuallyHidden>
-                  <Play className="h-5 w-5" />
-                </IconButton>
+            {/* Select */}
+            <ComponentShowcase
+              title="Select"
+              description="단일 선택 드롭다운"
+              usageContext="기간(24h/7d/30d) 선택"
+            >
+              <div className="max-w-xs space-y-4">
+                <Select value={selectValue} onValueChange={setSelectValue}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="기간 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="24h">지난 24시간</SelectItem>
+                    <SelectItem value="7d">지난 7일</SelectItem>
+                    <SelectItem value="30d">지난 30일</SelectItem>
+                    <SelectItem value="all">전체</SelectItem>
+                  </SelectContent>
+                </Select>
+                {selectValue && <p className="text-sm text-slate-600">선택: {selectValue}</p>}
               </div>
+            </ComponentShowcase>
 
-              <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
-                <code className="text-xs">
-                  {`<IconButton>
-  <VisuallyHidden>Play video</VisuallyHidden>
-  <Play />
-</IconButton>`}
-                </code>
+            {/* Slider */}
+            <ComponentShowcase
+              title="Slider"
+              description="연속 값 선택 컴포넌트"
+              usageContext="길이/인기 임계값(선택적)"
+            >
+              <div className="max-w-md space-y-4">
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <Label>인기도 임계값</Label>
+                    <span className="text-sm text-slate-600">{sliderValue[0]}%</span>
+                  </div>
+                  <Slider value={sliderValue} onValueChange={setSliderValue} max={100} step={1} />
+                </div>
               </div>
-            </div>
-          </ComponentShowcase>
+            </ComponentShowcase>
 
-          <div className="mt-12 p-6 bg-white border border-slate-200 rounded-lg">
-            <h2 className="text-xl font-bold text-slate-900 mb-4">컴포넌트 사용 가이드</h2>
-            <div className="space-y-3 text-sm text-slate-700">
-              <p>• 모든 컴포넌트는 Tailwind CSS와 디자인 토큰을 기반으로 제작되었습니다.</p>
-              <p>• 컴포넌트 제목을 클릭하면 이름이 클립보드에 복사됩니다.</p>
-              <p>• 각 컴포넌트는 접근성(a11y)을 고려하여 설계되었습니다.</p>
-              <p>• Props와 variants를 통해 다양한 스타일과 동작을 제어할 수 있습니다.</p>
+            {/* LoadMore */}
+            <ComponentShowcase
+              title="LoadMore"
+              description="페이지네이션/더보기 컴포넌트"
+              usageContext="FeedList 하단"
+            >
+              <div className="space-y-4 border border-slate-200 rounded-lg p-4 bg-slate-50">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Has More Items</p>
+                  <LoadMore
+                    hasMore={loadMoreHasMore}
+                    loading={loadMoreLoading}
+                    onLoadMore={() => {
+                      setLoadMoreLoading(true);
+                      setTimeout(() => {
+                        setLoadMoreLoading(false);
+                        setLoadMoreHasMore(false);
+                      }, 2000);
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Loading State</p>
+                  <LoadMore hasMore={true} loading={true} onLoadMore={() => {}} />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">End of List</p>
+                  <LoadMore hasMore={false} loading={false} onLoadMore={() => {}} />
+                </div>
+              </div>
+            </ComponentShowcase>
+
+            {/* InterestSelectorPanel */}
+            <ComponentShowcase
+              title="InterestSelectorPanel"
+              description="관심사 선택 패널"
+              usageContext="Discover 개인화, 온보딩"
+            >
+              <div className="max-w-lg">
+                <InterestSelectorPanel
+                  categories={interestCategories}
+                  selectedCategories={selectedInterests}
+                  onToggle={(categoryId) => {
+                    setSelectedInterests((prev) =>
+                      prev.includes(categoryId)
+                        ? prev.filter((id) => id !== categoryId)
+                        : [...prev, categoryId]
+                    );
+                  }}
+                  onSave={(selectedIds) => {
+                    console.log('Saved interests:', selectedIds);
+                  }}
+                />
+              </div>
+            </ComponentShowcase>
+
+            {/* DiscoverCategoryTabs */}
+            <ComponentShowcase
+              title="DiscoverCategoryTabs"
+              description="Discover 카테고리 탭"
+              usageContext="Discover 페이지 상단 탐색"
+            >
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Default Tabs</p>
+                  <DiscoverCategoryTabs
+                    activeId={discoverTab}
+                    onChange={setDiscoverTab}
+                  />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">With Custom Tabs</p>
+                  <DiscoverCategoryTabs
+                    tabs={[
+                      { id: 'all', label: '전체', count: 128 },
+                      { id: 'tech', label: '기술', count: 45 },
+                      { id: 'design', label: '디자인', count: 32 },
+                      { id: 'business', label: '비즈니스', count: 51 },
+                    ]}
+                    activeId={discoverTab}
+                    onChange={setDiscoverTab}
+                    showCounts={true}
+                  />
+                </div>
+
+                <p className="text-sm text-slate-600">선택된 탭: {discoverTab}</p>
+              </div>
+            </ComponentShowcase>
+
+            <div className="mt-12 p-6 bg-white border border-slate-200 rounded-lg">
+              <h2 className="text-xl font-bold text-slate-900 mb-4">Inputs & Controls 가이드</h2>
+              <div className="space-y-3 text-sm text-slate-700">
+                <p>• 모든 입력 컴포넌트는 접근성(a11y)을 고려하여 설계되었습니다.</p>
+                <p>• 키보드 조작과 스크린리더를 지원합니다.</p>
+                <p>• 각 컴포넌트는 disabled 상태를 지원합니다.</p>
+                <p>• Form 라이브러리(React Hook Form 등)와 호환됩니다.</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Sidebar Navigation */}
-        <aside className="w-64 shrink-0 hidden lg:block">
-          <QuickNav items={navItems} />
-        </aside>
-      </div>
+          {/* Sidebar Navigation */}
+          <aside className="w-64 shrink-0 hidden lg:block">
+            <QuickNav items={navItems} />
+          </aside>
+        </div>
       </div>
     </div>
   );

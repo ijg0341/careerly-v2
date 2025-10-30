@@ -31,26 +31,24 @@ export function ComponentShowcase({ title, description, usageContext, children, 
 
   return (
     <div id={sectionId} className="border border-slate-200 rounded-lg bg-white shadow-sm scroll-mt-24">
-      <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <button
-              onClick={handleCopy}
-              className="group flex items-center gap-2 text-left hover:text-coral-500 transition-colors"
-            >
-              <h3 className="text-lg font-bold text-slate-900 group-hover:text-coral-500">{title}</h3>
-              {copied ? (
-                <Check className="h-4 w-4 text-emerald-500" />
-              ) : (
-                <Copy className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-              )}
-            </button>
-            <p className="text-sm text-slate-600 mt-1">{description}</p>
-            <p className="text-xs text-slate-500 mt-2">
-              <span className="font-semibold">사용처:</span> {usageContext}
-            </p>
-          </div>
+      <div className="border-b border-slate-200 bg-slate-50 px-6 py-3">
+        <div className="flex items-center justify-between gap-4">
+          <button
+            onClick={handleCopy}
+            className="group flex items-center gap-2 text-left hover:text-coral-500 transition-colors min-w-0 flex-1"
+          >
+            <h3 className="text-lg font-bold text-slate-900 group-hover:text-coral-500 shrink-0">{title}</h3>
+            <span className="text-sm text-slate-600 truncate">{description}</span>
+            {copied ? (
+              <Check className="h-4 w-4 text-emerald-500 shrink-0" />
+            ) : (
+              <Copy className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+            )}
+          </button>
         </div>
+        <p className="text-xs text-slate-500 mt-1.5">
+          <span className="font-semibold">사용처:</span> {usageContext}
+        </p>
       </div>
       <div className="p-6">{children}</div>
     </div>

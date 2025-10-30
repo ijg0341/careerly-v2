@@ -1,9 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { ReactQueryProvider } from '@/components/providers/ReactQueryProvider';
-import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
-import { Main } from '@/components/layout/Main';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { Toaster } from 'sonner';
 
 export const metadata: Metadata = {
@@ -20,11 +18,7 @@ export default function RootLayout({
     <html lang="ko">
       <body className="antialiased">
         <ReactQueryProvider>
-          <div className="flex flex-col min-h-screen">
-            <Header />
-            <Main>{children}</Main>
-            <Footer />
-          </div>
+          <AppLayout>{children}</AppLayout>
           <Toaster position="top-center" />
         </ReactQueryProvider>
       </body>
