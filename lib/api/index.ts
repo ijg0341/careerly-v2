@@ -58,7 +58,9 @@ export {
   getFollowers,
   getFollowing,
   getMySavedPosts,
+  getRecommendedFollowers,
 } from './services/user.service';
+export type { RecommendedFollower } from './services/user.service';
 
 // Discover Service
 export {
@@ -79,6 +81,8 @@ export {
   getPosts,
   getPost,
   getPopularPosts,
+  getTopPosts,
+  getRecommendedPosts,
   createPost,
   updatePost,
   patchPost,
@@ -91,6 +95,7 @@ export {
   isPostSaved,
   viewPost,
 } from './services/posts.service';
+export type { TopPostsPeriod } from './services/posts.service';
 
 // Comments Service
 export {
@@ -163,6 +168,7 @@ export {
   useFollowing,
   useMySavedPosts,
   useInfiniteMySavedPosts,
+  useRecommendedFollowers,
   userKeys,
 } from './hooks/queries/useUser';
 
@@ -190,6 +196,8 @@ export {
   usePost,
   useInfinitePosts,
   usePopularPosts,
+  useTopPosts,
+  useRecommendedPosts,
   usePostLikeStatus,
   usePostSaveStatus,
   postsKeys,

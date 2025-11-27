@@ -2,7 +2,7 @@
  * 사용자 관련 API 서비스
  */
 
-import { authClient, handleApiError } from '../clients/rest-client';
+import { authClient, publicClient, handleApiError } from '../clients/rest-client';
 import type { User } from '../types/rest.types';
 import type { PaginatedPostResponse } from '../types/posts.types';
 
@@ -133,6 +133,33 @@ export async function getMySavedPosts(page?: number): Promise<PaginatedPostRespo
   try {
     const params = page ? { page } : {};
     const response = await authClient.get<PaginatedPostResponse>('/api/v1/users/me/saved-posts/', { params });
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 추천 팔로워 타입
+ */
+export interface RecommendedFollower {
+  id: number;
+  name: string;
+  image_url: string | null;
+  headline: string | null;
+  mutual_count: number | null; // friends of friends인 경우에만 있음
+  follower_count: number;
+}
+
+/**
+ * 추천 팔로워 조회
+ * - 로그인 사용자: friends of friends 알고리즘
+ * - 비로그인: popular authors (최근 30일 좋아요 많은 포스트 작성자)
+ */
+export async function getRecommendedFollowers(limit: number = 10): Promise<RecommendedFollower[]> {
+  try {
+    const params = { limit };
+    const response = await publicClient.get<RecommendedFollower[]>('/api/v1/users/recommended/', { params });
     return response.data;
   } catch (error) {
     throw handleApiError(error);

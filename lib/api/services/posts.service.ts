@@ -5,6 +5,7 @@
 import { publicClient, authClient, handleApiError } from '../clients/rest-client';
 import type {
   Post,
+  PostListItem,
   PostCreateRequest,
   PostUpdateRequest,
   PaginatedPostResponse,
@@ -180,6 +181,43 @@ export async function isPostSaved(postId: number): Promise<boolean> {
 export async function viewPost(postId: number): Promise<void> {
   try {
     await authClient.post(`/api/v1/posts/${postId}/view/`);
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * Top Posts 기간별 타입
+ */
+export type TopPostsPeriod = 'daily' | 'weekly' | 'monthly';
+
+/**
+ * Top Posts 조회 (기간별 인기 게시물)
+ * engagement score: (likes × 3) + (saves × 2) + (views × 0.1)
+ */
+export async function getTopPosts(
+  period: TopPostsPeriod = 'weekly',
+  limit: number = 10
+): Promise<PostListItem[]> {
+  try {
+    const params = { period, limit };
+    const response = await publicClient.get<PostListItem[]>('/api/v1/posts/top/', { params });
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 추천 포스트 조회
+ * - 로그인 사용자: 팔로잉하는 사람의 포스트 (최근 7일, 참여도 순)
+ * - 비로그인/팔로잉 없음: 글로벌 트렌딩 포스트
+ */
+export async function getRecommendedPosts(limit: number = 10): Promise<PostListItem[]> {
+  try {
+    const params = { limit };
+    const response = await publicClient.get<PostListItem[]>('/api/v1/posts/recommended/', { params });
+    return response.data;
   } catch (error) {
     throw handleApiError(error);
   }

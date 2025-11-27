@@ -10,11 +10,12 @@ import { Chip } from '@/components/ui/chip';
 import { Button } from '@/components/ui/button';
 import { RecommendedPostsPanel } from '@/components/ui/recommended-posts-panel';
 import { RecommendedFollowersPanel } from '@/components/ui/recommended-followers-panel';
+import { TopPostsPanel } from '@/components/ui/top-posts-panel';
 import { LoadMore } from '@/components/ui/load-more';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { MessageSquare, Users, X, ExternalLink, Loader2, PenSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useInfinitePosts, useInfiniteQuestions, useLikePost, useUnlikePost, useSavePost, useUnsavePost, usePopularPosts, useCurrentUser } from '@/lib/api';
+import { useInfinitePosts, useInfiniteQuestions, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useRecommendedPosts, useRecommendedFollowers, useCurrentUser } from '@/lib/api';
 import { QnaDetail } from '@/components/ui/qna-detail';
 import type { QuestionListItem, PaginatedPostResponse, PaginatedQuestionResponse } from '@/lib/api';
 import { useStore } from '@/hooks/useStore';
@@ -723,11 +724,17 @@ function CommunityPageContent() {
     isFetchingNextPage: isFetchingNextQuestions
   } = useInfiniteQuestions();
 
-  // Popular Posts
+  // Recommended Posts (팔로잉 기반 또는 글로벌 트렌딩)
   const {
-    data: popularPostsData,
-    isLoading: isLoadingPopularPosts,
-  } = usePopularPosts(5);
+    data: recommendedPostsData,
+    isLoading: isLoadingRecommendedPosts,
+  } = useRecommendedPosts(5);
+
+  // Recommended Followers (friends of friends 또는 popular authors)
+  const {
+    data: recommendedFollowersData,
+    isLoading: isLoadingRecommendedFollowers,
+  } = useRecommendedFollowers(5);
 
   // Mutations
   const likePost = useLikePost();
@@ -865,11 +872,11 @@ function CommunityPageContent() {
       ? hasNextQuestions
       : hasNextPosts || hasNextQuestions;
 
-  // Transform popular posts data for RecommendedPostsPanel
+  // Transform recommended posts data for RecommendedPostsPanel
   const recommendedPosts = React.useMemo(() => {
-    if (!popularPostsData?.results) return mockRecommendedPosts;
+    if (!recommendedPostsData || recommendedPostsData.length === 0) return mockRecommendedPosts;
 
-    return popularPostsData.results.map((post) => ({
+    return recommendedPostsData.map((post) => ({
       id: post.id.toString(),
       title: post.title || post.description.substring(0, 50) + '...',
       author: {
@@ -879,7 +886,21 @@ function CommunityPageContent() {
       likeCount: post.like_count,
       href: `/community/post/${post.id}`,
     }));
-  }, [popularPostsData]);
+  }, [recommendedPostsData]);
+
+  // Transform recommended followers data for RecommendedFollowersPanel
+  const recommendedFollowers = React.useMemo(() => {
+    if (!recommendedFollowersData || recommendedFollowersData.length === 0) return mockRecommendedFollowers;
+
+    return recommendedFollowersData.map((follower) => ({
+      id: follower.id.toString(),
+      name: follower.name,
+      image_url: follower.image_url || undefined,
+      headline: follower.headline || undefined,
+      isFollowing: false, // TODO: 팔로잉 상태 확인 API 필요
+      href: `/profile/${follower.id}`,
+    }));
+  }, [recommendedFollowersData]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
@@ -1069,15 +1090,18 @@ function CommunityPageContent() {
       {/* Right Sidebar */}
       <aside className="lg:col-span-3">
         <div className="space-y-4 pt-16">
-          {/* Recommended Posts */}
+          {/* Top Posts (인기글 - 주간/월간) */}
+          <TopPostsPanel maxItems={10} />
+
+          {/* Recommended Posts (추천 포스트) */}
           <RecommendedPostsPanel
             posts={recommendedPosts}
             maxItems={5}
           />
 
-          {/* Recommended Followers */}
+          {/* Recommended Followers (추천 팔로워) */}
           <RecommendedFollowersPanel
-            followers={mockRecommendedFollowers}
+            followers={recommendedFollowers}
             maxItems={5}
             onFollow={(userId) => console.log('Follow:', userId)}
             onUnfollow={(userId) => console.log('Unfollow:', userId)}

@@ -12,7 +12,9 @@ import {
   getFollowers,
   getFollowing,
   getMySavedPosts,
+  getRecommendedFollowers,
 } from '../../services/user.service';
+import type { RecommendedFollower } from '../../services/user.service';
 import { getCurrentUser } from '../../services/auth.service';
 import type { User } from '../../types/rest.types';
 import type { PaginatedPostResponse } from '../../types/posts.types';
@@ -31,6 +33,7 @@ export const userKeys = {
   followers: (userId: string) => [...userKeys.detail(userId), 'followers'] as const,
   following: (userId: string) => [...userKeys.detail(userId), 'following'] as const,
   savedPosts: (page?: number) => [...userKeys.all, 'savedPosts', page] as const,
+  recommended: (limit?: number) => [...userKeys.all, 'recommended', { limit }] as const,
 };
 
 /**
@@ -152,5 +155,23 @@ export function useInfiniteMySavedPosts() {
       }
       return undefined;
     },
+  });
+}
+
+/**
+ * 추천 팔로워 조회 훅
+ * - 로그인 사용자: friends of friends 알고리즘 (mutual_count 포함)
+ * - 비로그인: popular authors (최근 30일 좋아요 많은 포스트 작성자)
+ */
+export function useRecommendedFollowers(
+  limit: number = 10,
+  options?: Omit<UseQueryOptions<RecommendedFollower[], Error>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery<RecommendedFollower[], Error>({
+    queryKey: userKeys.recommended(limit),
+    queryFn: () => getRecommendedFollowers(limit),
+    staleTime: 10 * 60 * 1000, // 10분
+    gcTime: 30 * 60 * 1000, // 30분
+    ...options,
   });
 }

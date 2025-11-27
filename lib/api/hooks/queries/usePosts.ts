@@ -5,8 +5,9 @@
 'use client';
 
 import { useQuery, useInfiniteQuery, UseQueryOptions, UseInfiniteQueryOptions } from '@tanstack/react-query';
-import { getPosts, getPost, getPopularPosts, isPostLiked, isPostSaved } from '../../services/posts.service';
-import type { Post, PaginatedPostResponse } from '../../types/posts.types';
+import { getPosts, getPost, getPopularPosts, getTopPosts, getRecommendedPosts, isPostLiked, isPostSaved } from '../../services/posts.service';
+import type { TopPostsPeriod } from '../../services/posts.service';
+import type { Post, PostListItem, PaginatedPostResponse } from '../../types/posts.types';
 
 /**
  * Posts 쿼리 키
@@ -16,6 +17,8 @@ export const postsKeys = {
   lists: () => [...postsKeys.all, 'list'] as const,
   list: (page?: number) => [...postsKeys.lists(), { page }] as const,
   popular: (limit?: number) => [...postsKeys.all, 'popular', { limit }] as const,
+  top: (period: TopPostsPeriod, limit?: number) => [...postsKeys.all, 'top', { period, limit }] as const,
+  recommended: (limit?: number) => [...postsKeys.all, 'recommended', { limit }] as const,
   details: () => [...postsKeys.all, 'detail'] as const,
   detail: (id: number) => [...postsKeys.details(), id] as const,
   likeStatus: (id: number) => [...postsKeys.all, 'like-status', id] as const,
@@ -120,6 +123,42 @@ export function usePopularPosts(
     queryKey: postsKeys.popular(limit),
     queryFn: () => getPopularPosts(limit),
     staleTime: 5 * 60 * 1000, // 5분 (인기 포스트는 자주 변하지 않음)
+    gcTime: 15 * 60 * 1000, // 15분
+    ...options,
+  });
+}
+
+/**
+ * Top 게시물 조회 훅 (기간별)
+ * - engagement score: (likes × 3) + (saves × 2) + (views × 0.1)
+ */
+export function useTopPosts(
+  period: TopPostsPeriod = 'weekly',
+  limit: number = 10,
+  options?: Omit<UseQueryOptions<PostListItem[], Error>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery<PostListItem[], Error>({
+    queryKey: postsKeys.top(period, limit),
+    queryFn: () => getTopPosts(period, limit),
+    staleTime: 10 * 60 * 1000, // 10분 (기간별 인기글은 더 오래 캐싱)
+    gcTime: 30 * 60 * 1000, // 30분
+    ...options,
+  });
+}
+
+/**
+ * 추천 포스트 조회 훅
+ * - 로그인 사용자: 팔로잉하는 사람의 포스트
+ * - 비로그인: 글로벌 트렌딩 포스트
+ */
+export function useRecommendedPosts(
+  limit: number = 10,
+  options?: Omit<UseQueryOptions<PostListItem[], Error>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery<PostListItem[], Error>({
+    queryKey: postsKeys.recommended(limit),
+    queryFn: () => getRecommendedPosts(limit),
+    staleTime: 5 * 60 * 1000, // 5분
     gcTime: 15 * 60 * 1000, // 15분
     ...options,
   });
