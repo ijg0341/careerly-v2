@@ -167,7 +167,12 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
 
         {/* Header - User Profile */}
         <div className="flex items-start justify-between mb-2">
-          <div className="flex items-start gap-3">
+          <Link
+            href={`/profile/${userProfile.id}`}
+            variant="nav"
+            className="flex items-start gap-3 hover:opacity-80 transition-opacity"
+            onClick={(e) => e.stopPropagation()}
+          >
             <Avatar className="h-10 w-10">
               <AvatarImage src={userProfile.image_url} alt={userProfile.name || '사용자'} />
               <AvatarFallback>{userProfile.name?.charAt(0) || '?'}</AvatarFallback>
@@ -180,7 +185,7 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
                 <p className="text-sm text-slate-600">{userProfile.headline}</p>
               )}
             </div>
-          </div>
+          </Link>
 
           {/* More Actions */}
           {onMore && (

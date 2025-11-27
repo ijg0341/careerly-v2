@@ -342,19 +342,31 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
               {comments.map((comment) => (
                 <div key={comment.id} className="p-2 pb-3 pt-3">
                 <div className="flex items-start gap-2">
-                  <Avatar className="h-10 w-10 flex-shrink-0">
-                    <AvatarImage src={comment.userImage} alt={comment.userName} />
-                    <AvatarFallback>{comment.userName.charAt(0)}</AvatarFallback>
-                  </Avatar>
+                  <a
+                    href={`/profile/${comment.userId}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="hover:opacity-80 transition-opacity flex-shrink-0"
+                  >
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={comment.userImage} alt={comment.userName} />
+                      <AvatarFallback>{comment.userName.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                  </a>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between mb-1">
                       <div className="flex-1">
-                        <span className="font-semibold text-slate-900 text-sm">
-                          {comment.userName}
-                        </span>
-                        {comment.userHeadline && (
-                          <p className="text-xs text-slate-600">{comment.userHeadline}</p>
-                        )}
+                        <a
+                          href={`/profile/${comment.userId}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="hover:opacity-80 transition-opacity"
+                        >
+                          <span className="font-semibold text-slate-900 text-sm">
+                            {comment.userName}
+                          </span>
+                          {comment.userHeadline && (
+                            <p className="text-xs text-slate-600">{comment.userHeadline}</p>
+                          )}
+                        </a>
                       </div>
                       <div className="flex items-center gap-3 ml-2 flex-shrink-0">
                         <button

@@ -78,6 +78,7 @@ export {
 export {
   getPosts,
   getPost,
+  getPopularPosts,
   createPost,
   updatePost,
   patchPost,
@@ -188,6 +189,7 @@ export {
   usePosts,
   usePost,
   useInfinitePosts,
+  usePopularPosts,
   usePostLikeStatus,
   usePostSaveStatus,
   postsKeys,

@@ -5,7 +5,7 @@
 'use client';
 
 import { useQuery, useInfiniteQuery, UseQueryOptions, UseInfiniteQueryOptions } from '@tanstack/react-query';
-import { getPosts, getPost, isPostLiked, isPostSaved } from '../../services/posts.service';
+import { getPosts, getPost, getPopularPosts, isPostLiked, isPostSaved } from '../../services/posts.service';
 import type { Post, PaginatedPostResponse } from '../../types/posts.types';
 
 /**
@@ -15,6 +15,7 @@ export const postsKeys = {
   all: ['posts'] as const,
   lists: () => [...postsKeys.all, 'list'] as const,
   list: (page?: number) => [...postsKeys.lists(), { page }] as const,
+  popular: (limit?: number) => [...postsKeys.all, 'popular', { limit }] as const,
   details: () => [...postsKeys.all, 'detail'] as const,
   detail: (id: number) => [...postsKeys.details(), id] as const,
   likeStatus: (id: number) => [...postsKeys.all, 'like-status', id] as const,
@@ -104,6 +105,22 @@ export function usePostSaveStatus(
     enabled: !!postId && postId > 0,
     staleTime: 1 * 60 * 1000, // 1분
     gcTime: 5 * 60 * 1000, // 5분
+    ...options,
+  });
+}
+
+/**
+ * 인기 게시물 조회 훅 (좋아요 순)
+ */
+export function usePopularPosts(
+  limit: number = 5,
+  options?: Omit<UseQueryOptions<PaginatedPostResponse, Error>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery<PaginatedPostResponse, Error>({
+    queryKey: postsKeys.popular(limit),
+    queryFn: () => getPopularPosts(limit),
+    staleTime: 5 * 60 * 1000, // 5분 (인기 포스트는 자주 변하지 않음)
+    gcTime: 15 * 60 * 1000, // 15분
     ...options,
   });
 }

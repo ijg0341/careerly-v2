@@ -7,6 +7,7 @@ import { SidebarRail } from '@/components/ui/sidebar-rail';
 import { LoginModal, SignupModal } from '@/components/auth';
 import { MessageSquare, Sparkles, Users, Settings, LogIn, LogOut } from 'lucide-react';
 import { useCurrentUser, useLogout } from '@/lib/api';
+import { useStore } from '@/hooks/useStore';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -17,8 +18,10 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   const searchParams = useSearchParams();
   const isDrawerMode = searchParams.get('drawer') === 'true';
 
-  const [isLoginModalOpen, setIsLoginModalOpen] = React.useState(false);
   const [isSignupModalOpen, setIsSignupModalOpen] = React.useState(false);
+
+  // Get modal state from Zustand store
+  const { isLoginModalOpen, openLoginModal, closeLoginModal } = useStore();
 
   // 로그인 상태 확인
   const { data: currentUser, isLoading: isUserLoading } = useCurrentUser();
@@ -28,13 +31,8 @@ function AppLayoutContent({ children }: AppLayoutProps) {
     },
   });
 
-  const handleOpenLogin = () => {
-    setIsSignupModalOpen(false);
-    setIsLoginModalOpen(true);
-  };
-
   const handleOpenSignup = () => {
-    setIsLoginModalOpen(false);
+    closeLoginModal();
     setIsSignupModalOpen(true);
   };
 
@@ -72,51 +70,55 @@ function AppLayoutContent({ children }: AppLayoutProps) {
             ],
             account: currentUser
               ? {
-                  name: currentUser.name,
-                  email: currentUser.email,
-                  avatar: currentUser.image_url,
-                  fallback: currentUser.name?.charAt(0) || 'U',
-                  path: '/profile',
-                }
+                name: currentUser.name,
+                email: currentUser.email,
+                avatar: currentUser.image_url,
+                fallback: currentUser.name?.charAt(0) || 'U',
+                path: '/profile',
+              }
               : undefined,
             ctas: !currentUser
               ? [
-                  {
-                    label: '로그인',
-                    icon: LogIn,
-                    variant: 'coral',
-                    onClick: handleOpenLogin,
-                  },
-                ]
+                {
+                  label: '로그인',
+                  icon: LogIn,
+                  variant: 'coral',
+                  onClick: openLoginModal,
+                },
+              ]
               : [
-                  {
-                    label: '로그아웃',
-                    icon: LogOut,
-                    variant: 'outline',
-                    onClick: handleLogout,
-                  },
-                ],
+                {
+                  label: '로그아웃',
+                  icon: LogOut,
+                  variant: 'outline',
+                  onClick: handleLogout,
+                },
+              ],
           }}
         />
       )}
 
       {/* Main Content - With left padding for sidebar (removed in drawer mode) */}
       <main className={isDrawerMode ? 'min-h-screen' : 'pl-20 min-h-screen'}>
-        <div className="container mx-auto px-4 py-6 max-w-[1280px]">
-          {children}
-        </div>
+        {pathname === '/community/new/post' ? (
+          children
+        ) : (
+          <div className="container mx-auto px-4 py-6 max-w-[1280px]">
+            {children}
+          </div>
+        )}
       </main>
 
       {/* Auth Modals */}
       <LoginModal
         isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
+        onClose={closeLoginModal}
         onSignupClick={handleOpenSignup}
       />
       <SignupModal
         isOpen={isSignupModalOpen}
         onClose={() => setIsSignupModalOpen(false)}
-        onLoginClick={handleOpenLogin}
+        onLoginClick={openLoginModal}
       />
     </div>
   );

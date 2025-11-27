@@ -274,24 +274,36 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
             </div>
             <div className="p-2 pb-3 pt-3 border-b border-slate-200">
               <div className="flex items-start gap-2">
-                <Avatar className="h-10 w-10 flex-shrink-0">
-                  <AvatarImage
-                    src={acceptedAnswer.userImage}
-                    alt={acceptedAnswer.userName}
-                  />
-                  <AvatarFallback>{acceptedAnswer.userName?.charAt(0) || '?'}</AvatarFallback>
-                </Avatar>
+                <a
+                  href={`/profile/${acceptedAnswer.userId}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="hover:opacity-80 transition-opacity flex-shrink-0"
+                >
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage
+                      src={acceptedAnswer.userImage}
+                      alt={acceptedAnswer.userName}
+                    />
+                    <AvatarFallback>{acceptedAnswer.userName?.charAt(0) || '?'}</AvatarFallback>
+                  </Avatar>
+                </a>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between mb-1">
                     <div className="flex-1">
-                      <span className="font-semibold text-slate-900 text-sm">
-                        {acceptedAnswer.userName || '알 수 없음'}
-                      </span>
-                      {acceptedAnswer.userHeadline && (
-                        <p className="text-xs text-slate-600">
-                          {acceptedAnswer.userHeadline}
-                        </p>
-                      )}
+                      <a
+                        href={`/profile/${acceptedAnswer.userId}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="hover:opacity-80 transition-opacity"
+                      >
+                        <span className="font-semibold text-slate-900 text-sm">
+                          {acceptedAnswer.userName || '알 수 없음'}
+                        </span>
+                        {acceptedAnswer.userHeadline && (
+                          <p className="text-xs text-slate-600">
+                            {acceptedAnswer.userHeadline}
+                          </p>
+                        )}
+                      </a>
                     </div>
                     <div className="flex items-center gap-3 ml-2 flex-shrink-0">
                       <button
@@ -412,21 +424,33 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
                 .map((answer) => (
                   <div key={answer.id} className="p-2 pb-3 pt-3">
                   <div className="flex items-start gap-2">
-                    <Avatar className="h-10 w-10 flex-shrink-0">
-                      <AvatarImage src={answer.userImage} alt={answer.userName} />
-                      <AvatarFallback>{answer.userName?.charAt(0) || '?'}</AvatarFallback>
-                    </Avatar>
+                    <a
+                      href={`/profile/${answer.userId}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="hover:opacity-80 transition-opacity flex-shrink-0"
+                    >
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={answer.userImage} alt={answer.userName} />
+                        <AvatarFallback>{answer.userName?.charAt(0) || '?'}</AvatarFallback>
+                      </Avatar>
+                    </a>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between mb-1">
                         <div className="flex-1">
-                          <span className="font-semibold text-slate-900 text-sm">
-                            {answer.userName || '알 수 없음'}
-                          </span>
-                          {answer.userHeadline && (
-                            <p className="text-xs text-slate-600">
-                              {answer.userHeadline}
-                            </p>
-                          )}
+                          <a
+                            href={`/profile/${answer.userId}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="hover:opacity-80 transition-opacity"
+                          >
+                            <span className="font-semibold text-slate-900 text-sm">
+                              {answer.userName || '알 수 없음'}
+                            </span>
+                            {answer.userHeadline && (
+                              <p className="text-xs text-slate-600">
+                                {answer.userHeadline}
+                              </p>
+                            )}
+                          </a>
                         </div>
                         <div className="flex items-center gap-3 ml-2 flex-shrink-0">
                           <button

@@ -24,6 +24,19 @@ export async function getPosts(page?: number): Promise<PaginatedPostResponse> {
 }
 
 /**
+ * 인기 게시물 조회 (좋아요 순)
+ */
+export async function getPopularPosts(limit: number = 5): Promise<PaginatedPostResponse> {
+  try {
+    const params = { ordering: '-like_count', page_size: limit };
+    const response = await publicClient.get<PaginatedPostResponse>('/api/v1/posts/', { params });
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
  * 게시물 상세 조회
  */
 export async function getPost(id: number): Promise<Post> {

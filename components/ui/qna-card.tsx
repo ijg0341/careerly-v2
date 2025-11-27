@@ -108,7 +108,11 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
 
         {/* Author Profile */}
         {author && (
-          <div className="flex items-center gap-3 mb-3">
+          <Link
+            href={`/profile/${author.id}`}
+            className="flex items-center gap-3 mb-3 hover:opacity-80 transition-opacity"
+            onClick={(e) => e.stopPropagation()}
+          >
             <Avatar className="h-10 w-10">
               <AvatarImage src={author.image_url || ''} alt={author.name} />
               <AvatarFallback>{author.name?.charAt(0) || '?'}</AvatarFallback>
@@ -119,7 +123,7 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
                 <span className="text-xs text-slate-500">{author.headline}</span>
               )}
             </div>
-          </div>
+          </Link>
         )}
 
         {/* Title */}

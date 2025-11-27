@@ -13,6 +13,11 @@ interface AppStore {
   addRecentQuery: (query: string) => void;
   clearRecentQueries: () => void;
   setTheme: (theme: 'light' | 'dark') => void;
+
+  // Auth modal state (not persisted)
+  isLoginModalOpen: boolean;
+  openLoginModal: () => void;
+  closeLoginModal: () => void;
 }
 
 export const useStore = create<AppStore>()(
@@ -33,9 +38,18 @@ export const useStore = create<AppStore>()(
         }),
       clearRecentQueries: () => set({ recentQueries: [] }),
       setTheme: (theme) => set({ theme }),
+
+      // Auth modal (not persisted)
+      isLoginModalOpen: false,
+      openLoginModal: () => set({ isLoginModalOpen: true }),
+      closeLoginModal: () => set({ isLoginModalOpen: false }),
     }),
     {
       name: 'careerly-storage',
+      partialize: (state) => ({
+        theme: state.theme,
+        recentQueries: state.recentQueries,
+      }), // isLoginModalOpen excluded from persistence
     }
   )
 );

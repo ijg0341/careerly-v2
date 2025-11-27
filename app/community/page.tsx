@@ -7,15 +7,17 @@ import { CommunityFeedCard } from '@/components/ui/community-feed-card';
 import { QnaCard } from '@/components/ui/qna-card';
 import { PromotionCard } from '@/components/ui/promotion-card';
 import { Chip } from '@/components/ui/chip';
+import { Button } from '@/components/ui/button';
 import { RecommendedPostsPanel } from '@/components/ui/recommended-posts-panel';
 import { RecommendedFollowersPanel } from '@/components/ui/recommended-followers-panel';
 import { LoadMore } from '@/components/ui/load-more';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { MessageSquare, Users, X, ExternalLink, Loader2 } from 'lucide-react';
+import { MessageSquare, Users, X, ExternalLink, Loader2, PenSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useInfinitePosts, useInfiniteQuestions, useLikePost, useUnlikePost, useSavePost, useUnsavePost } from '@/lib/api';
+import { useInfinitePosts, useInfiniteQuestions, useLikePost, useUnlikePost, useSavePost, useUnsavePost, usePopularPosts, useCurrentUser } from '@/lib/api';
 import { QnaDetail } from '@/components/ui/qna-detail';
 import type { QuestionListItem, PaginatedPostResponse, PaginatedQuestionResponse } from '@/lib/api';
+import { useStore } from '@/hooks/useStore';
 
 // Mock data for sections that don't have APIs yet
 const mockFeedDataBackup = [
@@ -463,7 +465,7 @@ const mockPromotionData = [
   },
 ];
 
-// Mock recommended posts data
+// Mock recommended posts data (fallback only - real data comes from usePopularPosts hook)
 const mockRecommendedPosts = [
   {
     id: '1',
@@ -682,6 +684,10 @@ function CommunityPageContent() {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [selectedContent, setSelectedContent] = React.useState<SelectedContent | null>(null);
 
+  // Get current user and login modal state
+  const { data: user } = useCurrentUser();
+  const { openLoginModal } = useStore();
+
   // URL과 상태 동기화
   React.useEffect(() => {
     setContentFilter(currentTab);
@@ -716,6 +722,12 @@ function CommunityPageContent() {
     hasNextPage: hasNextQuestions,
     isFetchingNextPage: isFetchingNextQuestions
   } = useInfiniteQuestions();
+
+  // Popular Posts
+  const {
+    data: popularPostsData,
+    isLoading: isLoadingPopularPosts,
+  } = usePopularPosts(5);
 
   // Mutations
   const likePost = useLikePost();
@@ -753,6 +765,15 @@ function CommunityPageContent() {
       unsavePost.mutate(postId);
     } else {
       savePost.mutate(postId);
+    }
+  };
+
+  // 글쓰기 버튼 핸들러
+  const handleWriteClick = () => {
+    if (user) {
+      router.push('/community/new/post');
+    } else {
+      openLoginModal();
     }
   };
 
@@ -844,6 +865,22 @@ function CommunityPageContent() {
       ? hasNextQuestions
       : hasNextPosts || hasNextQuestions;
 
+  // Transform popular posts data for RecommendedPostsPanel
+  const recommendedPosts = React.useMemo(() => {
+    if (!popularPostsData?.results) return mockRecommendedPosts;
+
+    return popularPostsData.results.map((post) => ({
+      id: post.id.toString(),
+      title: post.title || post.description.substring(0, 50) + '...',
+      author: {
+        name: post.author?.name || '알 수 없음',
+        image_url: post.author?.image_url,
+      },
+      likeCount: post.like_count,
+      href: `/community/post/${post.id}`,
+    }));
+  }, [popularPostsData]);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
       {/* Main Content */}
@@ -888,6 +925,14 @@ function CommunityPageContent() {
                     팔로잉
                   </Chip>
                 </div>
+                <Button
+                  variant="coral"
+                  onClick={handleWriteClick}
+                  className="flex items-center gap-2"
+                >
+                  <PenSquare className="h-4 w-4" />
+                  글쓰기
+                </Button>
               </div>
             </div>
           </div>
@@ -1026,7 +1071,7 @@ function CommunityPageContent() {
         <div className="space-y-4 pt-16">
           {/* Recommended Posts */}
           <RecommendedPostsPanel
-            posts={mockRecommendedPosts}
+            posts={recommendedPosts}
             maxItems={5}
           />
 

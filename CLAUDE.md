@@ -102,7 +102,6 @@ if (error) {
 `.env.local`:
 ```bash
 NEXT_PUBLIC_API_BASE_URL=https://staging-gateway.careerly.co.kr
-NEXT_PUBLIC_GRAPH_API_HOST=https://graph-staging.careerly.co.kr/graphql
 ```
 
 ## 🚫 금지 사항
