@@ -1,7 +1,7 @@
 /**
- * Careerly Agent API 서비스
- * AI 채팅 및 질의응답 기능
- * CORS 우회를 위해 Next.js API Route 프록시 사용
+ * Careerly Chat API 서비스
+ * Next.js API Route를 통한 Django Backend 프록시
+ * CORS 우회 및 httpOnly 쿠키 기반 인증
  */
 
 import axios from 'axios';
@@ -11,37 +11,32 @@ import type {
   ChatResponse,
   ChatSearchResult,
   ChatCitation,
-  HealthResponse,
   ApiVersion,
   ChatComparisonResult,
 } from '../types/chat.types';
 
 /**
- * Axios 인스턴스 생성 (프록시 사용)
- * /api/agent-chat 엔드포인트를 통해 Agent API 호출
+ * Chat API용 클라이언트 (Next.js 프록시 사용)
  */
-const agentClient = axios.create({
-  baseURL: '/api/agent-chat', // Next.js API Route 프록시
-  timeout: 300000, // 5분 (Agent API는 처리 시간이 길 수 있음)
+const chatClient = axios.create({
+  baseURL: '/api/chat',
+  timeout: 300000, // 5분 (AI 응답 시간 고려)
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // httpOnly 쿠키 전송
 });
 
 /**
- * Chat API 호출 (프록시를 통해)
+ * Chat API 호출 (Next.js 프록시를 통해 Django Backend)
  * @param request - Chat 요청 객체
- * @param version - API 버전 (v1, v3, v4) - 선택사항
  * @returns Chat 응답
  */
 export async function sendChatMessage(
-  request: ChatRequest,
-  version?: ApiVersion
+  request: ChatRequest
 ): Promise<ChatResponse> {
   try {
-    // 버전 쿼리 파라미터 추가
-    const params = version ? { version } : {};
-    const response = await agentClient.post<ChatResponse>('', request, { params });
+    const response = await chatClient.post<ChatResponse>('', request);
     return response.data;
   } catch (error) {
     throw handleApiError(error);
@@ -52,9 +47,9 @@ export async function sendChatMessage(
  * Chat API 호출 (기존 SearchResult 형식으로 변환)
  * 기존 UI 컴포넌트와 호환되도록 변환
  * @param query - 사용자 질문
- * @param userId - 사용자 ID (선택사항)
+ * @param userId - 사용자 ID (사용 안 함, 인증 토큰에서 자동 추출)
  * @param sessionId - 세션 ID (선택사항)
- * @param version - API 버전 (v1, v3, v4) - 선택사항
+ * @param version - API 버전 (향후 확장용, 현재 사용 안 함)
  * @returns 변환된 Chat 응답
  */
 export async function chatSearch(
@@ -65,15 +60,14 @@ export async function chatSearch(
 ): Promise<ChatSearchResult> {
   try {
     const request: ChatRequest = {
-      query,
-      user_id: userId || 'anonymous',
+      content: query,
       session_id: sessionId,
     };
 
-    const response = await sendChatMessage(request, version);
+    const response = await sendChatMessage(request);
 
-    // sources를 Citation 형식으로 변환
-    const citations: ChatCitation[] = response.sources.map((url, index) => ({
+    // sources.all을 Citation 형식으로 변환
+    const citations: ChatCitation[] = response.sources.all.map((url, index) => ({
       id: `citation-${index + 1}`,
       title: extractTitleFromUrl(url),
       url,
@@ -82,10 +76,19 @@ export async function chatSearch(
 
     return {
       query,
-      answer: response.answer,
+      answer: response.content,
       citations,
       session_id: response.session_id,
-      metadata: response.metadata,
+      metadata: {
+        processing_time: response.latency_ms ? response.latency_ms / 1000 : 0,
+        model: 'careerly-agent',
+        intent: response.intent,
+        agents_used: response.agents_used,
+        persona_level: response.persona_level,
+        confidence: response.confidence,
+        p1_score: response.p1_score,
+        p2_achieved: response.p2_achieved,
+      },
     };
   } catch (error) {
     throw handleApiError(error);
@@ -93,24 +96,23 @@ export async function chatSearch(
 }
 
 /**
- * Health Check (프록시를 통해)
+ * Health Check
+ * Note: Django backend에는 별도 health check 엔드포인트 없음
+ * 필요시 별도 구현 필요
  */
-export async function checkAgentHealth(): Promise<HealthResponse> {
-  try {
-    const response = await agentClient.get<HealthResponse>('');
-    return response.data;
-  } catch (error) {
-    throw handleApiError(error, { showToast: false });
-  }
+export async function checkAgentHealth(): Promise<{ status: string }> {
+  // Placeholder - Django backend에 health check 엔드포인트 추가 필요
+  return { status: 'healthy' };
 }
 
 /**
  * 3개 버전 API를 병렬로 호출하여 결과 비교
- * 한 버전이 실패해도 다른 버전은 계속 진행됨
+ * Note: 현재 Django backend는 단일 응답만 제공
+ * UI 호환성을 위해 동일한 결과를 3개 버전으로 복제
  * @param query - 사용자 질문
- * @param userId - 사용자 ID (선택사항)
+ * @param userId - 사용자 ID (사용 안 함, 인증 토큰에서 자동 추출)
  * @param sessionId - 세션 ID (선택사항)
- * @returns 버전별 결과 객체 (실패한 버전은 null)
+ * @returns 버전별 결과 객체 (현재는 모두 동일한 결과)
  */
 export async function chatSearchAllVersions(
   query: string,
@@ -118,30 +120,17 @@ export async function chatSearchAllVersions(
   sessionId?: string
 ): Promise<ChatComparisonResult> {
   try {
-    // 3개 버전을 병렬로 호출
-    const results = await Promise.allSettled([
-      chatSearch(query, userId, sessionId, 'v1'),
-      chatSearch(query, userId, sessionId, 'v3'),
-      chatSearch(query, userId, sessionId, 'v4'),
-    ]);
+    // Django backend는 단일 응답만 제공하므로 한 번만 호출
+    const result = await chatSearch(query, userId, sessionId);
 
+    // UI 호환성을 위해 동일한 결과를 3개 버전으로 복제
     return {
-      v1Result:
-        results[0].status === 'fulfilled'
-          ? results[0].value
-          : null,
-      v3Result:
-        results[1].status === 'fulfilled'
-          ? results[1].value
-          : null,
-      v4Result:
-        results[2].status === 'fulfilled'
-          ? results[2].value
-          : null,
+      v1Result: result,
+      v3Result: result,
+      v4Result: result,
     };
   } catch (error) {
-    // 예상치 못한 에러의 경우 (Promise.allSettled는 일반적으로 throw하지 않음)
-    console.error('All versions chat search error:', error);
+    console.error('Chat search error:', error);
     return {
       v1Result: null,
       v3Result: null,

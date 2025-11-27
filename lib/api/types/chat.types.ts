@@ -1,62 +1,69 @@
 /**
- * Careerly Agent API 타입 정의
- * API 문서: https://seulchankim--careerly-agent-poc-fastapi-app.modal.run/docs
+ * Careerly Chat API 타입 정의
+ * Django Backend: /api/v1/chat/
  */
 
 /**
- * API 버전 타입
+ * API 버전 타입 (향후 확장용)
  */
 export type ApiVersion = 'v1' | 'v3' | 'v4';
 
 /**
- * Chat API 요청 타입
+ * Chat API 요청 타입 (Django Backend)
  */
 export interface ChatRequest {
-  /** 사용자 질문 (1-2000자) */
-  query: string;
-  /** 사용자 식별자 (선택) */
-  user_id?: string;
+  /** 사용자 질문/메시지 (최대 5000자) */
+  content: string;
   /** 대화 세션 ID (선택, 없으면 자동 생성) */
   session_id?: string;
-  /** API 버전 (선택, 기본값은 서버에서 결정) */
-  version?: ApiVersion;
 }
 
 /**
- * Chat API 응답 타입
+ * 구조화된 출처 타입
+ */
+export interface ChatSources {
+  /** 전체 출처 목록 */
+  all: string[];
+  /** Somoon RAG 문서 출처 */
+  document: string[];
+  /** Careerly Q&A 출처 */
+  careerly: string[];
+  /** 웹 검색 출처 */
+  web: string[];
+}
+
+/**
+ * Chat API 응답 타입 (Django Backend)
  */
 export interface ChatResponse {
-  /** 최종 답변 텍스트 */
-  answer: string;
-  /** 세션 ID (다음 질문 시 포함하면 대화 이어짐) */
+  /** 세션 ID */
   session_id: string;
-  /** 질문 유형 */
-  intent: 'factual_query' | 'web_search' | 'hybrid' | 'general';
-  /** 출처 URL 배열 */
-  sources: string[];
+  /** 메시지 ID */
+  message_id: string;
+  /** AI 생성 답변 */
+  content: string;
+  /** 구조화된 출처 정보 */
+  sources: ChatSources;
+  /** 전체 출처 개수 */
+  source_count?: number;
+  /** 질문 의도 분류 */
+  intent?: string;
   /** 사용된 에이전트 목록 */
-  agents_used: string[];
-  /** 메타데이터 */
-  metadata: {
-    /** 처리 시간 (초) */
-    processing_time: number;
-    /** 사용된 모델 */
-    model: string;
-    [key: string]: unknown;
-  };
-  /** 타임스탬프 */
-  timestamp: string;
-}
-
-/**
- * Health Check 응답 타입
- */
-export interface HealthResponse {
-  status: 'healthy' | 'unhealthy';
-  orchestrator: string;
-  agents: string[];
-  timestamp: string;
-  version: string;
+  agents_used?: string[];
+  /** 사용자 레벨 (V4 only) */
+  persona_level?: string;
+  /** 답변 신뢰도 (0.0-1.0) */
+  confidence?: number;
+  /** 응답 생성 지연시간 (ms) */
+  latency_ms?: number;
+  /** P1 점수 (1-5, V4 only) */
+  p1_score?: number;
+  /** P2 달성 여부 (V4 only) */
+  p2_achieved?: boolean;
+  /** 메시지 생성 시간 */
+  created_at: string;
+  /** LangSmith trace ID */
+  langsmith_run_id?: string;
 }
 
 /**
@@ -70,6 +77,21 @@ export interface ChatCitation {
 }
 
 /**
+ * Chat 메타데이터 타입
+ */
+export interface ChatMetadata {
+  processing_time: number;
+  model: string;
+  intent?: string;
+  agents_used?: string[];
+  persona_level?: string;
+  confidence?: number;
+  p1_score?: number;
+  p2_achieved?: boolean;
+  [key: string]: unknown;
+}
+
+/**
  * Chat 결과를 기존 SearchResult 형식으로 변환한 타입
  */
 export interface ChatSearchResult {
@@ -77,7 +99,7 @@ export interface ChatSearchResult {
   answer: string;
   citations: ChatCitation[];
   session_id?: string;
-  metadata?: ChatResponse['metadata'];
+  metadata?: ChatMetadata;
 }
 
 /**

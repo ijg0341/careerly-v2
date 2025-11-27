@@ -343,7 +343,7 @@ export type {
   ChatSearchResult,
   ChatCitation,
   ChatComparisonResult,
-  HealthResponse,
+  ChatSources,
   ApiVersion,
 
   // Posts Types
