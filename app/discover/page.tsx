@@ -12,8 +12,95 @@ import { useInfiniteDailyContents, useInfiniteDailyJobs, type SomoonDailyContent
 import { mockJobMarketTrends } from '@/lib/data/discover-mock';
 import { LoadMore } from '@/components/ui/load-more';
 
+// 위젯 imports
+import { registerAllWidgets } from '@/components/widgets';
+import { GeekNewsWidget } from '@/components/widgets/implementations/GeekNewsWidget/GeekNewsWidget';
+import { TechStackWidget } from '@/components/widgets/implementations/TechStackWidget/TechStackWidget';
+import { BigTechBlogWidget } from '@/components/widgets/implementations/BigTechBlogWidget/BigTechBlogWidget';
+import { GitHubTrendingWidget } from '@/components/widgets/implementations/GitHubTrendingWidget/GitHubTrendingWidget';
+import { ITNewsWidget } from '@/components/widgets/implementations/ITNewsWidget/ITNewsWidget';
+import { WeatherWidget } from '@/components/widgets/implementations/WeatherWidget/WeatherWidget';
+import { StockWidget } from '@/components/widgets/implementations/StockWidget/StockWidget';
+import { AITrendWidget } from '@/components/widgets/implementations/AITrendWidget/AITrendWidget';
+
 type ContentType = 'all' | 'jobs' | 'blogs' | 'books' | 'courses';
 type LayoutType = 'grid' | 'list';
+
+// 위젯 설정
+const widgetConfigs = {
+  weather: {
+    id: 'weather-1',
+    type: 'weather',
+    title: '날씨',
+    size: 'small' as const,
+    order: 0,
+    enabled: true,
+    config: { location: '서울', units: 'metric' },
+  },
+  stock: {
+    id: 'stock-1',
+    type: 'stock',
+    title: '주식/지수',
+    size: 'small' as const,
+    order: 1,
+    enabled: true,
+    config: { symbols: ['KOSPI', 'KOSDAQ'], market: 'KOSPI' },
+  },
+  aitrend: {
+    id: 'aitrend-1',
+    type: 'ai-trend',
+    title: 'AI 트렌드',
+    size: 'large' as const,
+    order: 2,
+    enabled: true,
+    config: { sources: ['huggingface', 'github', 'news'], limit: 5, showTabs: true },
+  },
+  geeknews: {
+    id: 'geeknews-1',
+    type: 'geeknews',
+    title: 'GeekNews 트렌드',
+    size: 'medium' as const,
+    order: 3,
+    enabled: true,
+    config: { limit: 5 },
+  },
+  techstack: {
+    id: 'techstack-1',
+    type: 'techstack',
+    title: '기술 스택 트렌드',
+    size: 'medium' as const,
+    order: 4,
+    enabled: true,
+    config: { category: 'frontend', period: 'week' },
+  },
+  bigtech: {
+    id: 'bigtech-1',
+    type: 'bigtech-blog',
+    title: '빅테크 기술 블로그',
+    size: 'medium' as const,
+    order: 5,
+    enabled: true,
+    config: { companies: ['kakao', 'naver', 'toss'], limit: 4 },
+  },
+  github: {
+    id: 'github-1',
+    type: 'github-trending',
+    title: 'GitHub 트렌딩',
+    size: 'medium' as const,
+    order: 6,
+    enabled: true,
+    config: { since: 'daily', limit: 5 },
+  },
+  itnews: {
+    id: 'itnews-1',
+    type: 'itnews',
+    title: 'IT 뉴스',
+    size: 'medium' as const,
+    order: 7,
+    enabled: true,
+    config: { sources: ['bloter', 'zdnet', 'itchosun'], limit: 4 },
+  },
+};
 
 export default function DiscoverPage() {
   const [contentType, setContentType] = React.useState<ContentType>('all');
@@ -22,6 +109,11 @@ export default function DiscoverPage() {
   // Drawer state
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [selectedContent, setSelectedContent] = React.useState<any>(null);
+
+  // 위젯 등록
+  React.useEffect(() => {
+    registerAllWidgets();
+  }, []);
 
   // Contents infinite query
   const {
@@ -338,11 +430,32 @@ export default function DiscoverPage() {
         </div>
       </main>
 
-      {/* Right Sidebar - Trends */}
+      {/* Right Sidebar - Widgets */}
       <aside className="lg:col-span-3">
-        <div className="space-y-6 pt-16">
-          {/* Job Market Trends */}
-          <JobMarketTrendCard trends={mockJobMarketTrends} />
+        <div className="space-y-4 pt-16">
+          {/* 날씨 & 주식 - 가로로 배치 */}
+          <div className="grid grid-cols-2 gap-3">
+            <WeatherWidget config={widgetConfigs.weather} />
+            <StockWidget config={widgetConfigs.stock} />
+          </div>
+
+          {/* AI 트렌드 */}
+          <AITrendWidget config={widgetConfigs.aitrend} />
+
+          {/* GeekNews 트렌드 */}
+          <GeekNewsWidget config={widgetConfigs.geeknews} />
+
+          {/* 기술 스택 트렌드 */}
+          <TechStackWidget config={widgetConfigs.techstack} />
+
+          {/* 빅테크 기술 블로그 */}
+          <BigTechBlogWidget config={widgetConfigs.bigtech} />
+
+          {/* GitHub 트렌딩 */}
+          <GitHubTrendingWidget config={widgetConfigs.github} />
+
+          {/* IT 뉴스 */}
+          <ITNewsWidget config={widgetConfigs.itnews} />
         </div>
       </aside>
 

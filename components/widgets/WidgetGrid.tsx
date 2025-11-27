@@ -160,7 +160,15 @@ function createDefaultWidgets(): WidgetConfig[] {
   const defaults: WidgetConfig[] = [];
   let order = 0;
 
-  const widgetTypes = ['weather', 'stock', 'job'];
+  // 커리어 위젯 우선 표시
+  const widgetTypes = [
+    'geeknews',
+    'techstack',
+    'bigtech-blog',
+    'github-trending',
+    'itnews',
+    'job',
+  ];
 
   for (const type of widgetTypes) {
     const definition = WidgetRegistry.get(type);
