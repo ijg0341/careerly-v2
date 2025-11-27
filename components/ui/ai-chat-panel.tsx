@@ -4,13 +4,16 @@ import * as React from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { SearchComposeInput } from '@/components/ui/search-compose-input';
 import { cn } from '@/lib/utils';
-import { Bot, Loader2, X, FileText, Share2 } from 'lucide-react';
+import { Bot, Loader2, X, FileText, Share2, Search, Sparkles } from 'lucide-react';
+import { streamChatMessage } from '@/lib/api/services/chat.service';
+import type { SSEStatusStep, SSECompleteEvent } from '@/lib/api/types/chat.types';
 
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  sources?: string[];
 }
 
 export interface ContextData {
@@ -27,7 +30,26 @@ export interface AiChatPanelProps extends React.HTMLAttributes<HTMLDivElement> {
   loading?: boolean;
   contextData?: ContextData;
   onShareMessage?: (content: string) => void;
+  sessionId?: string | null;
+  onSessionChange?: (sessionId: string) => void;
+  useStreaming?: boolean;
 }
+
+// 상태 step에 따른 아이콘과 메시지 매핑
+const STATUS_CONFIG: Record<SSEStatusStep, { icon: React.ReactNode; defaultMessage: string }> = {
+  intent: {
+    icon: <Sparkles className="h-4 w-4 text-blue-500" />,
+    defaultMessage: '질문 분석 중...',
+  },
+  searching: {
+    icon: <Search className="h-4 w-4 text-blue-500" />,
+    defaultMessage: '관련 자료 검색 중...',
+  },
+  generating: {
+    icon: <Sparkles className="h-4 w-4 text-blue-500" />,
+    defaultMessage: '답변 생성 중...',
+  },
+};
 
 export const AiChatPanel = React.forwardRef<HTMLDivElement, AiChatPanelProps>(
   (
@@ -37,10 +59,13 @@ export const AiChatPanel = React.forwardRef<HTMLDivElement, AiChatPanelProps>(
       type,
       onSendMessage,
       onClose,
-      messages = [],
-      loading = false,
+      messages: externalMessages,
+      loading: externalLoading = false,
       contextData,
       onShareMessage,
+      sessionId: externalSessionId,
+      onSessionChange,
+      useStreaming = true,
       className,
       ...props
     },
@@ -50,19 +75,144 @@ export const AiChatPanel = React.forwardRef<HTMLDivElement, AiChatPanelProps>(
     const [showContext, setShowContext] = React.useState(true);
     const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
+    // 스트리밍 상태
+    const [internalMessages, setInternalMessages] = React.useState<Message[]>([]);
+    const [streamStatus, setStreamStatus] = React.useState<{
+      step: SSEStatusStep;
+      message: string;
+    } | null>(null);
+    const [streamingContent, setStreamingContent] = React.useState('');
+    const [streamingSources, setStreamingSources] = React.useState<string[]>([]);
+    const [isStreaming, setIsStreaming] = React.useState(false);
+    const [internalSessionId, setInternalSessionId] = React.useState<string | null>(null);
+    const cleanupRef = React.useRef<(() => void) | null>(null);
+
+    // 외부 또는 내부 메시지/세션 사용
+    const messages = externalMessages ?? internalMessages;
+    const sessionId = externalSessionId ?? internalSessionId;
+    const loading = externalLoading || isStreaming;
+
     const scrollToBottom = () => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
+    // 메시지나 스트리밍 컨텐츠 변경 시 스크롤
     React.useEffect(() => {
       scrollToBottom();
-    }, [messages]);
+    }, [messages, streamingContent]);
 
-    const handleSubmit = (value: string) => {
+    // 컴포넌트 언마운트 시 cleanup
+    React.useEffect(() => {
+      return () => {
+        cleanupRef.current?.();
+      };
+    }, []);
+
+    // 스트리밍 메시지 전송 핸들러
+    const handleStreamingSubmit = (value: string) => {
+      if (!value.trim() || loading) return;
+
+      const trimmedValue = value.trim();
+
+      // 사용자 메시지 즉시 추가 (Optimistic UI)
+      const userMessage: Message = {
+        id: `user-${Date.now()}`,
+        role: 'user',
+        content: trimmedValue,
+        timestamp: new Date(),
+      };
+
+      if (!externalMessages) {
+        setInternalMessages((prev) => [...prev, userMessage]);
+      }
+      onSendMessage?.(trimmedValue);
+
+      // 스트리밍 시작
+      setIsStreaming(true);
+      setStreamingContent('');
+      setStreamingSources([]);
+      setStreamStatus(null);
+
+      // 이전 스트림 정리
+      cleanupRef.current?.();
+
+      // 스트림 시작
+      const cleanup = streamChatMessage(trimmedValue, sessionId, {
+        onStatus: (step, message) => {
+          setStreamStatus({ step, message });
+        },
+        onToken: (token) => {
+          setStreamStatus(null);
+          setStreamingContent((prev) => prev + token);
+        },
+        onSources: (sources) => {
+          setStreamingSources(sources);
+        },
+        onComplete: (metadata: SSECompleteEvent) => {
+          // 최종 메시지 추가
+          setStreamingContent((currentContent) => {
+            if (currentContent) {
+              const aiMessage: Message = {
+                id: `ai-${Date.now()}`,
+                role: 'assistant',
+                content: currentContent,
+                timestamp: new Date(),
+                sources: streamingSources.length > 0 ? streamingSources : undefined,
+              };
+
+              if (!externalMessages) {
+                setInternalMessages((prev) => [...prev, aiMessage]);
+              }
+            }
+            return '';
+          });
+
+          // 세션 ID 업데이트
+          if (metadata.session_id) {
+            setInternalSessionId(metadata.session_id);
+            onSessionChange?.(metadata.session_id);
+          }
+
+          setStreamStatus(null);
+          setStreamingSources([]);
+          setIsStreaming(false);
+          cleanupRef.current = null;
+        },
+        onError: (error) => {
+          console.error('Streaming error:', error);
+          setStreamStatus(null);
+          setStreamingContent('');
+          setStreamingSources([]);
+          setIsStreaming(false);
+          cleanupRef.current = null;
+
+          // 에러 메시지 추가
+          const errorMessage: Message = {
+            id: `error-${Date.now()}`,
+            role: 'assistant',
+            content: `오류가 발생했습니다: ${error}`,
+            timestamp: new Date(),
+          };
+
+          if (!externalMessages) {
+            setInternalMessages((prev) => [...prev, errorMessage]);
+          }
+        },
+      });
+
+      cleanupRef.current = cleanup;
+      setInputValue('');
+    };
+
+    // 기존 동기식 전송 핸들러
+    const handleSyncSubmit = (value: string) => {
       if (!value.trim() || loading) return;
       onSendMessage?.(value.trim());
       setInputValue('');
     };
+
+    // 핸들러 선택
+    const handleSubmit = useStreaming ? handleStreamingSubmit : handleSyncSubmit;
 
     const placeholderText = type === 'post'
       ? '이 게시글에 대해 AI에게 물어보세요...'
@@ -198,7 +348,46 @@ export const AiChatPanel = React.forwardRef<HTMLDivElement, AiChatPanelProps>(
             </div>
           ))}
 
-          {loading && (
+          {/* 스트리밍 상태 표시 */}
+          {streamStatus && (
+            <div className="flex gap-3">
+              <Avatar className="h-8 w-8 flex-shrink-0">
+                <div className="flex items-center justify-center w-full h-full bg-coral-50">
+                  <Bot className="h-4 w-4 text-coral-500" />
+                </div>
+              </Avatar>
+              <div className="max-w-[85%] rounded-lg px-4 py-2.5 bg-slate-100">
+                <div className="flex items-center gap-2">
+                  {STATUS_CONFIG[streamStatus.step]?.icon || (
+                    <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
+                  )}
+                  <span className="text-sm text-slate-500 animate-pulse">
+                    {streamStatus.message || STATUS_CONFIG[streamStatus.step]?.defaultMessage}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 스트리밍 중인 응답 */}
+          {streamingContent && (
+            <div className="flex gap-3">
+              <Avatar className="h-8 w-8 flex-shrink-0">
+                <div className="flex items-center justify-center w-full h-full bg-coral-50">
+                  <Bot className="h-4 w-4 text-coral-500" />
+                </div>
+              </Avatar>
+              <div className="max-w-[85%] rounded-lg px-4 py-2.5 bg-slate-100 text-slate-900">
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                  {streamingContent}
+                  <span className="inline-block w-0.5 h-4 bg-blue-500 animate-pulse ml-0.5 align-text-bottom" />
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* 기존 로딩 표시 (스트리밍 비활성화 시) */}
+          {externalLoading && !isStreaming && !streamStatus && !streamingContent && (
             <div className="flex gap-3">
               <Avatar className="h-8 w-8 flex-shrink-0">
                 <div className="flex items-center justify-center w-full h-full bg-coral-50">

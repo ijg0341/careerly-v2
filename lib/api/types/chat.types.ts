@@ -114,3 +114,66 @@ export interface ChatComparisonResult {
   /** v4 API 응답 결과 (에러 발생 시 null) */
   v4Result: ChatSearchResult | null;
 }
+
+/**
+ * SSE 이벤트 타입
+ */
+export type SSEEventType = 'status' | 'token' | 'sources' | 'complete' | 'error';
+
+/**
+ * SSE Status 이벤트 step 타입
+ */
+export type SSEStatusStep = 'intent' | 'searching' | 'generating';
+
+/**
+ * SSE Status 이벤트 데이터
+ */
+export interface SSEStatusEvent {
+  step: SSEStatusStep;
+  message: string;
+}
+
+/**
+ * SSE Token 이벤트 데이터
+ */
+export interface SSETokenEvent {
+  content: string;
+}
+
+/**
+ * SSE Sources 이벤트 데이터
+ */
+export interface SSESourcesEvent {
+  sources: string[];
+  count: number;
+}
+
+/**
+ * SSE Complete 이벤트 데이터
+ */
+export interface SSECompleteEvent {
+  intent?: string;
+  agents_used?: string[];
+  execution_time_ms?: number;
+  session_id?: string;
+  message_id?: string;
+}
+
+/**
+ * SSE Error 이벤트 데이터
+ */
+export interface SSEErrorEvent {
+  error: string;
+  code?: string;
+}
+
+/**
+ * 스트리밍 콜백 인터페이스
+ */
+export interface StreamCallbacks {
+  onStatus?: (step: SSEStatusStep, message: string) => void;
+  onToken?: (content: string) => void;
+  onSources?: (sources: string[], count: number) => void;
+  onComplete?: (metadata: SSECompleteEvent) => void;
+  onError?: (error: string, code?: string) => void;
+}

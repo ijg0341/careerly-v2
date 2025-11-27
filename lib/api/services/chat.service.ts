@@ -13,6 +13,12 @@ import type {
   ChatCitation,
   ApiVersion,
   ChatComparisonResult,
+  StreamCallbacks,
+  SSEStatusEvent,
+  SSETokenEvent,
+  SSESourcesEvent,
+  SSECompleteEvent,
+  SSEErrorEvent,
 } from '../types/chat.types';
 
 /**
@@ -137,6 +143,174 @@ export async function chatSearchAllVersions(
       v4Result: null,
     };
   }
+}
+
+/**
+ * SSE 이벤트 파싱
+ */
+function parseSSEEvent(
+  line: string
+): { event: string; data: string } | null {
+  // SSE 이벤트 형식: "event: xxx\ndata: yyy"
+  const eventMatch = line.match(/^event:\s*(.+)$/);
+  const dataMatch = line.match(/^data:\s*(.+)$/);
+
+  if (eventMatch) {
+    return { event: eventMatch[1], data: '' };
+  }
+  if (dataMatch) {
+    return { event: '', data: dataMatch[1] };
+  }
+  return null;
+}
+
+/**
+ * 스트리밍 Chat 메시지 전송 (SSE)
+ * fetch + ReadableStream을 사용하여 POST SSE 처리
+ * @param content - 사용자 질문
+ * @param sessionId - 세션 ID (선택)
+ * @param callbacks - SSE 이벤트 콜백
+ * @returns 스트림 중단을 위한 cleanup 함수
+ */
+export function streamChatMessage(
+  content: string,
+  sessionId: string | null,
+  callbacks: StreamCallbacks
+): () => void {
+  const abortController = new AbortController();
+
+  const startStream = async () => {
+    try {
+      const response = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          content,
+          session_id: sessionId,
+        }),
+        signal: abortController.signal,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = '스트리밍 연결 실패';
+        try {
+          const error = JSON.parse(errorText);
+          errorMessage = error.error || error.message || errorMessage;
+        } catch {
+          // JSON 파싱 실패 시 기본 메시지 사용
+        }
+        callbacks.onError?.(errorMessage, String(response.status));
+        return;
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        callbacks.onError?.('스트림 리더를 생성할 수 없습니다.', 'NO_READER');
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let currentEvent = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+
+          if (!trimmedLine) {
+            continue;
+          }
+
+          // event: 라인 처리
+          if (trimmedLine.startsWith('event:')) {
+            currentEvent = trimmedLine.slice(6).trim();
+            continue;
+          }
+
+          // data: 라인 처리
+          if (trimmedLine.startsWith('data:')) {
+            const dataStr = trimmedLine.slice(5).trim();
+
+            try {
+              const data = JSON.parse(dataStr);
+
+              switch (currentEvent) {
+                case 'status': {
+                  const statusData = data as SSEStatusEvent;
+                  callbacks.onStatus?.(statusData.step, statusData.message);
+                  break;
+                }
+                case 'token': {
+                  const tokenData = data as SSETokenEvent;
+                  callbacks.onToken?.(tokenData.content);
+                  break;
+                }
+                case 'sources': {
+                  const sourcesData = data as SSESourcesEvent;
+                  callbacks.onSources?.(sourcesData.sources, sourcesData.count);
+                  break;
+                }
+                case 'complete': {
+                  const completeData = data as SSECompleteEvent;
+                  callbacks.onComplete?.(completeData);
+                  break;
+                }
+                case 'error': {
+                  const errorData = data as SSEErrorEvent;
+                  callbacks.onError?.(errorData.error, errorData.code);
+                  break;
+                }
+                default:
+                  // 알 수 없는 이벤트는 무시
+                  if (process.env.NODE_ENV === 'development') {
+                    console.log('Unknown SSE event:', currentEvent, data);
+                  }
+              }
+            } catch {
+              // JSON 파싱 실패 시 무시 (keep-alive 메시지 등)
+              if (process.env.NODE_ENV === 'development') {
+                console.log('SSE data parse failed:', dataStr);
+              }
+            }
+
+            currentEvent = '';
+          }
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        // 사용자가 중단한 경우
+        return;
+      }
+
+      console.error('Stream error:', error);
+      callbacks.onError?.(
+        error instanceof Error ? error.message : '스트리밍 중 오류가 발생했습니다.',
+        'STREAM_ERROR'
+      );
+    }
+  };
+
+  startStream();
+
+  // cleanup 함수 반환
+  return () => {
+    abortController.abort();
+  };
 }
 
 /**

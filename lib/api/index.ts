@@ -44,6 +44,7 @@ export {
   sendChatMessage,
   chatSearch,
   checkAgentHealth,
+  streamChatMessage,
 } from './services/chat.service';
 
 // User Service
@@ -355,6 +356,16 @@ export type {
   ChatComparisonResult,
   ChatSources,
   ApiVersion,
+
+  // SSE Types
+  SSEEventType,
+  SSEStatusStep,
+  SSEStatusEvent,
+  SSETokenEvent,
+  SSESourcesEvent,
+  SSECompleteEvent,
+  SSEErrorEvent,
+  StreamCallbacks,
 
   // Posts Types
   Post,
