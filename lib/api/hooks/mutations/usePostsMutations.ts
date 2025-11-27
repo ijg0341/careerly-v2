@@ -11,6 +11,11 @@ import {
   updatePost,
   patchPost,
   deletePost,
+  likePost,
+  unlikePost,
+  savePost,
+  unsavePost,
+  viewPost,
 } from '../../services/posts.service';
 import { postsKeys } from '../queries/usePosts';
 import type { Post, PostCreateRequest, PostUpdateRequest } from '../../types/posts.types';
@@ -120,6 +125,120 @@ export function useDeletePost(
     },
     onError: (error) => {
       toast.error(error.message || '게시물 삭제에 실패했습니다.');
+    },
+    ...options,
+  });
+}
+
+/**
+ * 게시물 좋아요 mutation
+ */
+export function useLikePost(
+  options?: Omit<UseMutationOptions<void, Error, number>, 'mutationFn'>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, number>({
+    mutationFn: likePost,
+    onSuccess: (_, postId) => {
+      // 해당 게시물 상세 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: postsKeys.detail(postId) });
+
+      toast.success('게시물을 좋아합니다.');
+    },
+    onError: (error) => {
+      toast.error(error.message || '좋아요에 실패했습니다.');
+    },
+    ...options,
+  });
+}
+
+/**
+ * 게시물 좋아요 취소 mutation
+ */
+export function useUnlikePost(
+  options?: Omit<UseMutationOptions<void, Error, number>, 'mutationFn'>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, number>({
+    mutationFn: unlikePost,
+    onSuccess: (_, postId) => {
+      // 해당 게시물 상세 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: postsKeys.detail(postId) });
+
+      toast.success('좋아요를 취소했습니다.');
+    },
+    onError: (error) => {
+      toast.error(error.message || '좋아요 취소에 실패했습니다.');
+    },
+    ...options,
+  });
+}
+
+/**
+ * 게시물 북마크 mutation
+ */
+export function useSavePost(
+  options?: Omit<UseMutationOptions<void, Error, number>, 'mutationFn'>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, number>({
+    mutationFn: savePost,
+    onSuccess: (_, postId) => {
+      // 해당 게시물 상세 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: postsKeys.detail(postId) });
+
+      toast.success('게시물을 저장했습니다.');
+    },
+    onError: (error) => {
+      toast.error(error.message || '저장에 실패했습니다.');
+    },
+    ...options,
+  });
+}
+
+/**
+ * 게시물 북마크 취소 mutation
+ */
+export function useUnsavePost(
+  options?: Omit<UseMutationOptions<void, Error, number>, 'mutationFn'>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, number>({
+    mutationFn: unsavePost,
+    onSuccess: (_, postId) => {
+      // 해당 게시물 상세 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: postsKeys.detail(postId) });
+
+      toast.success('저장을 취소했습니다.');
+    },
+    onError: (error) => {
+      toast.error(error.message || '저장 취소에 실패했습니다.');
+    },
+    ...options,
+  });
+}
+
+/**
+ * 게시물 조회수 증가 mutation
+ */
+export function useViewPost(
+  options?: Omit<UseMutationOptions<void, Error, number>, 'mutationFn'>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, number>({
+    mutationFn: viewPost,
+    onSuccess: (_, postId) => {
+      // 해당 게시물 상세 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: postsKeys.detail(postId) });
+    },
+    onError: (error) => {
+      // 조회수 증가 실패는 조용히 처리 (토스트 표시 안함)
+      console.error('Failed to increment view count:', error);
     },
     ...options,
   });

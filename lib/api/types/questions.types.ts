@@ -18,10 +18,10 @@ export interface Author {
  */
 export interface Answer {
   id: number;
-  questionid: number;
-  userid: number;
-  author: Author | null;
-  content: string;
+  question_id: number;
+  user_id: number;
+  author_name: string;
+  description: string;
   isdeleted: number;
   createdat: string;
   updatedat: string;
@@ -50,13 +50,11 @@ export interface Question {
  */
 export interface QuestionListItem {
   id: number;
-  userid: number;
-  author: Author | null;
+  user_id: number;
+  author_name: string;
   title: string;
-  description: string;
   status: number;
   answer_count: number;
-  answers: Answer[];
   ispublic: number;
   createdat: string;
   updatedat: string;
@@ -85,15 +83,14 @@ export interface QuestionUpdateRequest {
  * 답변 생성 요청
  */
 export interface AnswerCreateRequest {
-  questionid: number;
-  content: string;
+  description: string;
 }
 
 /**
  * 답변 수정 요청
  */
 export interface AnswerUpdateRequest {
-  content: string;
+  description: string;
 }
 
 /**

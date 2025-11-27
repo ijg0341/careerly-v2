@@ -85,3 +85,89 @@ export async function deletePost(id: number): Promise<void> {
     throw handleApiError(error);
   }
 }
+
+/**
+ * 게시물 좋아요
+ * 인증 필요
+ */
+export async function likePost(postId: number): Promise<void> {
+  try {
+    await authClient.post(`/api/v1/posts/${postId}/like/`);
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 게시물 좋아요 취소
+ * 인증 필요
+ */
+export async function unlikePost(postId: number): Promise<void> {
+  try {
+    await authClient.post(`/api/v1/posts/${postId}/unlike/`);
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 게시물 좋아요 여부 확인
+ * 인증 필요
+ */
+export async function isPostLiked(postId: number): Promise<boolean> {
+  try {
+    const response = await authClient.get<{ is_liked: boolean }>(`/api/v1/posts/${postId}/is-liked/`);
+    return response.data.is_liked;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 게시물 북마크 (저장)
+ * 인증 필요
+ */
+export async function savePost(postId: number): Promise<void> {
+  try {
+    await authClient.post(`/api/v1/posts/${postId}/save/`);
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 게시물 북마크 취소
+ * 인증 필요
+ */
+export async function unsavePost(postId: number): Promise<void> {
+  try {
+    await authClient.post(`/api/v1/posts/${postId}/unsave/`);
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 게시물 북마크 여부 확인
+ * 인증 필요
+ */
+export async function isPostSaved(postId: number): Promise<boolean> {
+  try {
+    const response = await authClient.get<{ is_saved: boolean }>(`/api/v1/posts/${postId}/is-saved/`);
+    return response.data.is_saved;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 게시물 조회수 증가
+ * 인증 필요
+ */
+export async function viewPost(postId: number): Promise<void> {
+  try {
+    await authClient.post(`/api/v1/posts/${postId}/view/`);
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}

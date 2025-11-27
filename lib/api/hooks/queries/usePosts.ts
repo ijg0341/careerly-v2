@@ -5,7 +5,7 @@
 'use client';
 
 import { useQuery, useInfiniteQuery, UseQueryOptions, UseInfiniteQueryOptions } from '@tanstack/react-query';
-import { getPosts, getPost } from '../../services/posts.service';
+import { getPosts, getPost, isPostLiked, isPostSaved } from '../../services/posts.service';
 import type { Post, PaginatedPostResponse } from '../../types/posts.types';
 
 /**
@@ -17,6 +17,8 @@ export const postsKeys = {
   list: (page?: number) => [...postsKeys.lists(), { page }] as const,
   details: () => [...postsKeys.all, 'detail'] as const,
   detail: (id: number) => [...postsKeys.details(), id] as const,
+  likeStatus: (id: number) => [...postsKeys.all, 'like-status', id] as const,
+  saveStatus: (id: number) => [...postsKeys.all, 'save-status', id] as const,
 };
 
 /**
@@ -69,5 +71,39 @@ export function useInfinitePosts() {
     initialPageParam: 1,
     staleTime: 2 * 60 * 1000, // 2분
     gcTime: 10 * 60 * 1000, // 10분
+  });
+}
+
+/**
+ * 게시물 좋아요 여부 조회 훅
+ */
+export function usePostLikeStatus(
+  postId: number,
+  options?: Omit<UseQueryOptions<boolean, Error>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery<boolean, Error>({
+    queryKey: postsKeys.likeStatus(postId),
+    queryFn: () => isPostLiked(postId),
+    enabled: !!postId && postId > 0,
+    staleTime: 1 * 60 * 1000, // 1분
+    gcTime: 5 * 60 * 1000, // 5분
+    ...options,
+  });
+}
+
+/**
+ * 게시물 북마크 여부 조회 훅
+ */
+export function usePostSaveStatus(
+  postId: number,
+  options?: Omit<UseQueryOptions<boolean, Error>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery<boolean, Error>({
+    queryKey: postsKeys.saveStatus(postId),
+    queryFn: () => isPostSaved(postId),
+    enabled: !!postId && postId > 0,
+    staleTime: 1 * 60 * 1000, // 1분
+    gcTime: 5 * 60 * 1000, // 5분
+    ...options,
   });
 }

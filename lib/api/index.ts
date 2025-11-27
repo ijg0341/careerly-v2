@@ -57,6 +57,7 @@ export {
   unfollowUser,
   getFollowers,
   getFollowing,
+  getMySavedPosts,
 } from './services/user.service';
 
 // Discover Service
@@ -81,6 +82,13 @@ export {
   updatePost,
   patchPost,
   deletePost,
+  likePost,
+  unlikePost,
+  isPostLiked,
+  savePost,
+  unsavePost,
+  isPostSaved,
+  viewPost,
 } from './services/posts.service';
 
 // Comments Service
@@ -152,6 +160,8 @@ export {
   useSearchUsers,
   useFollowers,
   useFollowing,
+  useMySavedPosts,
+  useInfiniteMySavedPosts,
   userKeys,
 } from './hooks/queries/useUser';
 
@@ -178,6 +188,8 @@ export {
   usePosts,
   usePost,
   useInfinitePosts,
+  usePostLikeStatus,
+  usePostSaveStatus,
   postsKeys,
 } from './hooks/queries/usePosts';
 
@@ -266,6 +278,11 @@ export {
   useUpdatePost,
   usePatchPost,
   useDeletePost,
+  useLikePost,
+  useUnlikePost,
+  useSavePost,
+  useUnsavePost,
+  useViewPost,
 } from './hooks/mutations/usePostsMutations';
 
 // Questions Mutations

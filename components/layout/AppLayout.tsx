@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { SidebarRail } from '@/components/ui/sidebar-rail';
 import { LoginModal, SignupModal } from '@/components/auth';
@@ -11,7 +12,7 @@ interface AppLayoutProps {
   children: React.ReactNode;
 }
 
-export function AppLayout({ children }: AppLayoutProps) {
+function AppLayoutContent({ children }: AppLayoutProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isDrawerMode = searchParams.get('drawer') === 'true';
@@ -118,5 +119,13 @@ export function AppLayout({ children }: AppLayoutProps) {
         onLoginClick={handleOpenLogin}
       />
     </div>
+  );
+}
+
+export function AppLayout({ children }: AppLayoutProps) {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
+      <AppLayoutContent>{children}</AppLayoutContent>
+    </Suspense>
   );
 }

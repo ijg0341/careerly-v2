@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AccountPageLayout } from '@/components/ui/account-page-layout';
 import { AccountSidebarNav } from '@/components/ui/account-sidebar-nav';
@@ -23,9 +23,24 @@ import {
   FileText,
   Zap,
   Link as LinkIcon,
+  Trash2,
+  Edit,
+  Plus,
+  X,
 } from 'lucide-react';
 import { useStore } from '@/hooks/useStore';
-import { useMyProfileDetail, useCurrentUser } from '@/lib/api';
+import {
+  useMyProfileDetail,
+  useCurrentUser,
+  useUpdateMyProfile,
+  useAddCareer,
+  useUpdateCareer,
+  useDeleteCareer,
+  useAddEducation,
+  useUpdateEducation,
+  useDeleteEducation,
+} from '@/lib/api';
+import type { CareerRequest, EducationRequest } from '@/lib/api';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/ko';
@@ -90,15 +105,34 @@ function ProfileSkeleton() {
   );
 }
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { recentQueries, clearRecentQueries } = useStore();
   const [activeTab, setActiveTab] = useState('profile');
 
+  // 편집 상태
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [descriptionValue, setDescriptionValue] = useState('');
+  const [editingBasicInfo, setEditingBasicInfo] = useState(false);
+  const [basicInfoValues, setBasicInfoValues] = useState({ name: '', headline: '', openToWork: '' });
+
+  // 경력/학력 추가 폼 상태
+  const [showAddCareer, setShowAddCareer] = useState(false);
+  const [showAddEducation, setShowAddEducation] = useState(false);
+
   // API 데이터 가져오기
   const { data: currentUser, isLoading: isUserLoading } = useCurrentUser();
   const { data: profile, isLoading: isProfileLoading, error } = useMyProfileDetail(currentUser?.id);
+
+  // Mutation 훅
+  const updateProfile = useUpdateMyProfile();
+  const addCareer = useAddCareer();
+  const updateCareer = useUpdateCareer();
+  const deleteCareer = useDeleteCareer();
+  const addEducation = useAddEducation();
+  const updateEducation = useUpdateEducation();
+  const deleteEducation = useDeleteEducation();
 
   const isLoading = isUserLoading || isProfileLoading;
 
@@ -109,6 +143,18 @@ export default function ProfilePage() {
       setActiveTab(tab);
     }
   }, [searchParams]);
+
+  // 프로필 데이터 로드 시 상태 초기화
+  useEffect(() => {
+    if (profile) {
+      setDescriptionValue(profile.long_description || '');
+      setBasicInfoValues({
+        name: profile.name || '',
+        headline: profile.headline || '',
+        openToWork: profile.open_to_work_status || '',
+      });
+    }
+  }, [profile]);
 
   const handleTabChange = (itemId: string) => {
     setActiveTab(itemId);
@@ -123,6 +169,52 @@ export default function ProfilePage() {
     if (!dateStr) return '현재';
     const date = new Date(dateStr);
     return `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
+  };
+
+  // 자기소개 저장
+  const handleSaveDescription = async () => {
+    try {
+      await updateProfile.mutateAsync({
+        long_description: descriptionValue,
+      });
+      setEditingDescription(false);
+    } catch (error) {
+      console.error('Failed to update description:', error);
+    }
+  };
+
+  // 기본 정보 저장
+  const handleSaveBasicInfo = async () => {
+    try {
+      await updateProfile.mutateAsync({
+        name: basicInfoValues.name,
+        headline: basicInfoValues.headline,
+        open_to_work_status: basicInfoValues.openToWork,
+      });
+      setEditingBasicInfo(false);
+    } catch (error) {
+      console.error('Failed to update basic info:', error);
+    }
+  };
+
+  // 경력 삭제
+  const handleDeleteCareer = async (careerId: number) => {
+    if (!confirm('이 경력을 삭제하시겠습니까?')) return;
+    try {
+      await deleteCareer.mutateAsync(careerId);
+    } catch (error) {
+      console.error('Failed to delete career:', error);
+    }
+  };
+
+  // 학력 삭제
+  const handleDeleteEducation = async (educationId: number) => {
+    if (!confirm('이 학력을 삭제하시겠습니까?')) return;
+    try {
+      await deleteEducation.mutateAsync(educationId);
+    } catch (error) {
+      console.error('Failed to delete education:', error);
+    }
   };
 
   // 로그인 체크
@@ -206,33 +298,98 @@ export default function ProfilePage() {
               {/* Basic Info */}
               <Card>
                 <CardHeader>
-                  <CardTitle>기본 정보</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>기본 정보</CardTitle>
+                    {!editingBasicInfo && (
+                      <button
+                        onClick={() => setEditingBasicInfo(true)}
+                        className="px-3 py-1.5 text-sm text-teal-600 hover:bg-teal-50 rounded-lg transition-colors flex items-center gap-1"
+                      >
+                        <Edit className="w-4 h-4" />
+                        수정
+                      </button>
+                    )}
+                  </div>
                 </CardHeader>
-                <CardContent className="space-y-0">
-                  <AccountFieldRow
-                    label="이름"
-                    value={profile?.name || '-'}
-                    actionLabel="변경"
-                    onAction={() => console.log('Change name')}
-                  />
-                  <AccountFieldRow
-                    label="사용자 ID"
-                    value={`${profile?.user_id || ''}`}
-                    description="고유 사용자 식별자"
-                  />
-                  <AccountFieldRow
-                    label="직무"
-                    value={profile?.headline || '-'}
-                    actionLabel="수정"
-                    onAction={() => console.log('Edit title')}
-                  />
-                  {profile?.open_to_work_status && (
-                    <AccountFieldRow
-                      label="구직 상태"
-                      value={profile.open_to_work_status === 'open' ? '구직 중' : '비공개'}
-                      actionLabel="변경"
-                      onAction={() => console.log('Change status')}
-                    />
+                <CardContent className="space-y-4">
+                  {editingBasicInfo ? (
+                    <>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700">이름</label>
+                        <input
+                          type="text"
+                          value={basicInfoValues.name}
+                          onChange={(e) => setBasicInfoValues({ ...basicInfoValues, name: e.target.value })}
+                          className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700">직무</label>
+                        <input
+                          type="text"
+                          value={basicInfoValues.headline}
+                          onChange={(e) => setBasicInfoValues({ ...basicInfoValues, headline: e.target.value })}
+                          className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                          placeholder="예: 프론트엔드 개발자"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700">구직 상태</label>
+                        <select
+                          value={basicInfoValues.openToWork}
+                          onChange={(e) => setBasicInfoValues({ ...basicInfoValues, openToWork: e.target.value })}
+                          className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        >
+                          <option value="">선택 안함</option>
+                          <option value="open">구직 중</option>
+                          <option value="closed">비공개</option>
+                        </select>
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <button
+                          onClick={handleSaveBasicInfo}
+                          disabled={updateProfile.isPending}
+                          className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {updateProfile.isPending ? '저장 중...' : '저장'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingBasicInfo(false);
+                            setBasicInfoValues({
+                              name: profile?.name || '',
+                              headline: profile?.headline || '',
+                              openToWork: profile?.open_to_work_status || '',
+                            });
+                          }}
+                          className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+                        >
+                          취소
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="space-y-0">
+                      <AccountFieldRow
+                        label="이름"
+                        value={profile?.name || '-'}
+                      />
+                      <AccountFieldRow
+                        label="사용자 ID"
+                        value={`${profile?.user_id || ''}`}
+                        description="고유 사용자 식별자"
+                      />
+                      <AccountFieldRow
+                        label="직무"
+                        value={profile?.headline || '-'}
+                      />
+                      {profile?.open_to_work_status && (
+                        <AccountFieldRow
+                          label="구직 상태"
+                          value={profile.open_to_work_status === 'open' ? '구직 중' : '비공개'}
+                        />
+                      )}
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -269,17 +426,30 @@ export default function ProfilePage() {
                 <CardContent>
                   <div className="space-y-4">
                     {profile?.description && (
-                      <p className="text-slate-600">{profile.description}</p>
+                      <p className="text-sm text-slate-500 mb-2">간단 소개: {profile.description}</p>
                     )}
                     <textarea
                       className="w-full min-h-[120px] p-3 border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                       placeholder="자신을 소개하는 글을 작성해보세요..."
-                      defaultValue={profile?.long_description || ''}
+                      value={descriptionValue}
+                      onChange={(e) => setDescriptionValue(e.target.value)}
                     />
-                    <div className="flex justify-end">
-                      <button className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors">
-                        저장
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={handleSaveDescription}
+                        disabled={updateProfile.isPending}
+                        className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {updateProfile.isPending ? '저장 중...' : '저장'}
                       </button>
+                      {descriptionValue !== (profile?.long_description || '') && (
+                        <button
+                          onClick={() => setDescriptionValue(profile?.long_description || '')}
+                          className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+                        >
+                          취소
+                        </button>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -351,16 +521,38 @@ export default function ProfilePage() {
                     <Briefcase className="h-5 w-5 text-teal-500" />
                     경력
                   </CardTitle>
-                  <button className="px-4 py-2 text-sm text-teal-600 hover:bg-teal-50 rounded-lg transition-colors">
-                    + 경력 추가
+                  <button
+                    onClick={() => setShowAddCareer(!showAddCareer)}
+                    className="px-4 py-2 text-sm text-teal-600 hover:bg-teal-50 rounded-lg transition-colors flex items-center gap-1"
+                  >
+                    {showAddCareer ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                    {showAddCareer ? '취소' : '경력 추가'}
                   </button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
+                {showAddCareer && (
+                  <div className="p-4 border border-teal-200 bg-teal-50/50 rounded-lg">
+                    <p className="text-sm text-teal-700 mb-2">
+                      경력 추가 기능은 곧 제공될 예정입니다.
+                    </p>
+                    <p className="text-xs text-slate-600">
+                      현재는 삭제 기능만 사용할 수 있습니다.
+                    </p>
+                  </div>
+                )}
                 {profile?.careers && profile.careers.length > 0 ? (
                   profile.careers.map((career) => (
-                    <div key={career.id} className="space-y-4 p-4 bg-slate-50 rounded-lg">
-                      <div className="flex items-start justify-between">
+                    <div key={career.id} className="space-y-4 p-4 bg-slate-50 rounded-lg relative group">
+                      <button
+                        onClick={() => handleDeleteCareer(career.id)}
+                        disabled={deleteCareer.isPending}
+                        className="absolute top-4 right-4 p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                        title="삭제"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <div className="flex items-start justify-between pr-10">
                         <div className="flex-1">
                           <h3 className="font-semibold text-lg text-slate-900">{career.title}</h3>
                           <p className="text-sm text-slate-600">{career.company}</p>
@@ -394,23 +586,47 @@ export default function ProfilePage() {
                     <GraduationCap className="h-5 w-5 text-blue-500" />
                     학력
                   </CardTitle>
-                  <button className="px-4 py-2 text-sm text-teal-600 hover:bg-teal-50 rounded-lg transition-colors">
-                    + 학력 추가
+                  <button
+                    onClick={() => setShowAddEducation(!showAddEducation)}
+                    className="px-4 py-2 text-sm text-teal-600 hover:bg-teal-50 rounded-lg transition-colors flex items-center gap-1"
+                  >
+                    {showAddEducation ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                    {showAddEducation ? '취소' : '학력 추가'}
                   </button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
+                {showAddEducation && (
+                  <div className="p-4 border border-teal-200 bg-teal-50/50 rounded-lg">
+                    <p className="text-sm text-teal-700 mb-2">
+                      학력 추가 기능은 곧 제공될 예정입니다.
+                    </p>
+                    <p className="text-xs text-slate-600">
+                      현재는 삭제 기능만 사용할 수 있습니다.
+                    </p>
+                  </div>
+                )}
                 {profile?.educations && profile.educations.length > 0 ? (
                   profile.educations.map((edu) => (
-                    <div key={edu.id} className="space-y-2 p-4 bg-slate-50 rounded-lg">
-                      <h3 className="font-semibold text-lg text-slate-900">{edu.institute}</h3>
-                      <p className="text-sm text-slate-600">{edu.major}</p>
-                      <p className="text-sm text-slate-500">
-                        {formatDate(edu.start_date)} - {formatDate(edu.end_date)}
-                      </p>
-                      {edu.description && (
-                        <p className="text-sm text-slate-600 mt-2">{edu.description}</p>
-                      )}
+                    <div key={edu.id} className="space-y-2 p-4 bg-slate-50 rounded-lg relative group">
+                      <button
+                        onClick={() => handleDeleteEducation(edu.id)}
+                        disabled={deleteEducation.isPending}
+                        className="absolute top-4 right-4 p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                        title="삭제"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <div className="pr-10">
+                        <h3 className="font-semibold text-lg text-slate-900">{edu.institute}</h3>
+                        <p className="text-sm text-slate-600">{edu.major}</p>
+                        <p className="text-sm text-slate-500">
+                          {formatDate(edu.start_date)} - {formatDate(edu.end_date)}
+                        </p>
+                        {edu.description && (
+                          <p className="text-sm text-slate-600 mt-2">{edu.description}</p>
+                        )}
+                      </div>
                     </div>
                   ))
                 ) : (
@@ -562,5 +778,13 @@ export default function ProfilePage() {
         </div>
       </AccountPageLayout>
     </div>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={<ProfileSkeleton />}>
+      <ProfilePageContent />
+    </Suspense>
   );
 }

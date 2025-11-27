@@ -4,7 +4,8 @@ import * as React from 'react';
 import { PostDetail } from '@/components/ui/post-detail';
 import { AiChatPanel, Message } from '@/components/ui/ai-chat-panel';
 import { useParams, useRouter } from 'next/navigation';
-import { usePost } from '@/lib/api';
+import { usePost, useComments, useCreateComment, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useViewPost, usePostLikeStatus, usePostSaveStatus } from '@/lib/api';
+import type { Comment as ApiComment } from '@/lib/api';
 
 export default function PostDetailPage() {
   const params = useParams();
@@ -13,10 +14,81 @@ export default function PostDetailPage() {
 
   // 실제 API 호출
   const { data: post, isLoading, error } = usePost(Number(postId));
+  const { data: isLiked, isLoading: isLikedLoading } = usePostLikeStatus(Number(postId));
+  const { data: isSaved, isLoading: isSavedLoading } = usePostSaveStatus(Number(postId));
+
+  // 댓글 목록 조회
+  const { data: commentsData, isLoading: isCommentsLoading } = useComments({
+    postId: Number(postId)
+  });
+
+  // Mutations
+  const createComment = useCreateComment();
+  const likePost = useLikePost();
+  const unlikePost = useUnlikePost();
+  const savePost = useSavePost();
+  const unsavePost = useUnsavePost();
+  const viewPost = useViewPost();
 
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [aiLoading, setAiLoading] = React.useState(false);
   const [sharedAiContent, setSharedAiContent] = React.useState<string>('');
+
+  // 조회수 증가 (페이지 로드 시 한 번만)
+  React.useEffect(() => {
+    if (postId && !isLoading && !error) {
+      viewPost.mutate(Number(postId));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postId]);
+
+  // API 댓글 데이터를 UI 댓글 형식으로 변환
+  const transformComments = (apiComments: ApiComment[]) => {
+    return apiComments.map((comment) => ({
+      id: comment.id,
+      userId: comment.user_id,
+      userName: comment.author_name,
+      userImage: undefined, // API에서 제공하지 않음
+      userHeadline: undefined, // API에서 제공하지 않음
+      content: comment.content,
+      createdAt: new Date(comment.createdat).toLocaleDateString('ko-KR'),
+      likeCount: 0, // API에서 제공하지 않음
+      liked: false,
+    }));
+  };
+
+  // 댓글 작성 핸들러
+  const handleCommentSubmit = async (content: string) => {
+    try {
+      await createComment.mutateAsync({
+        post_id: Number(postId),
+        content,
+      });
+    } catch (error) {
+      // 에러는 mutation 훅에서 자동으로 toast 표시
+      console.error('Failed to create comment:', error);
+    }
+  };
+
+  // 좋아요 핸들러
+  const handleLike = () => {
+    const postIdNum = Number(postId);
+    if (isLiked) {
+      unlikePost.mutate(postIdNum);
+    } else {
+      likePost.mutate(postIdNum);
+    }
+  };
+
+  // 북마크 핸들러
+  const handleBookmark = () => {
+    const postIdNum = Number(postId);
+    if (isSaved) {
+      unsavePost.mutate(postIdNum);
+    } else {
+      savePost.mutate(postIdNum);
+    }
+  };
 
   // 로딩 상태
   if (isLoading) {
@@ -105,21 +177,23 @@ export default function PostDetailPage() {
           createdAt={post.createdat}
           stats={{
             likeCount: 0,
-            replyCount: post.comment_count || 0,
+            replyCount: commentsData?.count || post.comment_count || 0,
             repostCount: 0,
             viewCount: 0,
           }}
           imageUrls={[]}
-          comments={[]}
-          onLike={() => console.log('Like post')}
+          comments={commentsData?.results ? transformComments(commentsData.results) : []}
+          onLike={handleLike}
           onReply={() => console.log('Reply to post')}
           onRepost={() => console.log('Repost')}
           onShare={() => console.log('Share')}
-          onBookmark={() => console.log('Bookmark')}
+          onBookmark={handleBookmark}
           onCommentLike={(commentId) => console.log('Like comment', commentId)}
-          onCommentSubmit={(content) => console.log('Submit comment', content)}
+          onCommentSubmit={handleCommentSubmit}
           sharedAiContent={sharedAiContent}
           onClearSharedContent={() => setSharedAiContent('')}
+          liked={isLiked}
+          bookmarked={isSaved}
         />
       </div>
 

@@ -110,10 +110,10 @@ export async function getQuestionAnswers(questionId: number, page?: number): Pro
  * 특정 질문에 답변 작성
  * 인증 필요
  */
-export async function createQuestionAnswer(questionId: number, content: string): Promise<Answer> {
+export async function createQuestionAnswer(questionId: number, description: string): Promise<Answer> {
   try {
     const response = await authClient.post<Answer>(`/api/v1/questions/${questionId}/answers/`, {
-      content,
+      description,
     });
     return response.data;
   } catch (error) {

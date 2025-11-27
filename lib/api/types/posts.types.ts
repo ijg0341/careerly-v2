@@ -29,6 +29,11 @@ export interface Post {
   createdat: string;
   updatedat: string;
   comment_count?: number;
+  like_count: number;
+  save_count: number;
+  view_count: number;
+  is_liked: boolean;
+  is_saved: boolean;
 }
 
 /**
@@ -45,6 +50,11 @@ export interface PostListItem {
   createdat: string;
   updatedat: string;
   comment_count: number;
+  like_count: number;
+  save_count: number;
+  view_count: number;
+  is_liked: boolean;
+  is_saved: boolean;
 }
 
 /**

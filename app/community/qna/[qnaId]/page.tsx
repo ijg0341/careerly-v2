@@ -4,7 +4,7 @@ import * as React from 'react';
 import { QnaDetail } from '@/components/ui/qna-detail';
 import { AiChatPanel, Message } from '@/components/ui/ai-chat-panel';
 import { useParams } from 'next/navigation';
-import { useQuestion } from '@/lib/api';
+import { useQuestion, useCreateQuestionAnswer, useUpdateAnswer, useDeleteAnswer } from '@/lib/api';
 import { Loader2 } from 'lucide-react';
 
 export default function QnaDetailPage() {
@@ -13,6 +13,11 @@ export default function QnaDetailPage() {
 
   // API 호출
   const { data: qnaData, isLoading, error } = useQuestion(Number(qnaId));
+
+  // 답변 CRUD mutations
+  const createAnswer = useCreateQuestionAnswer();
+  const updateAnswer = useUpdateAnswer();
+  const deleteAnswer = useDeleteAnswer();
 
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [aiLoading, setAiLoading] = React.useState(false);
@@ -43,6 +48,39 @@ export default function QnaDetailPage() {
       </div>
     );
   }
+
+  // 답변 작성 핸들러
+  const handleAnswerSubmit = async (content: string) => {
+    try {
+      await createAnswer.mutateAsync({
+        questionId: Number(qnaId),
+        description: content,
+      });
+      // 성공 시 sharedAiContent 초기화
+      setSharedAiContent('');
+    } catch (error) {
+      // 에러는 mutation의 onError에서 자동으로 toast 처리됨
+      console.error('Failed to submit answer:', error);
+    }
+  };
+
+  // 답변 수정 핸들러 (필요 시 사용)
+  const handleAnswerEdit = async (answerId: number, content: string) => {
+    try {
+      await updateAnswer.mutateAsync({ id: answerId, data: { description: content } });
+    } catch (error) {
+      console.error('Failed to update answer:', error);
+    }
+  };
+
+  // 답변 삭제 핸들러 (필요 시 사용)
+  const handleAnswerDelete = async (answerId: number) => {
+    try {
+      await deleteAnswer.mutateAsync({ id: answerId, questionId: Number(qnaId) });
+    } catch (error) {
+      console.error('Failed to delete answer:', error);
+    }
+  };
 
   const handleSendMessage = async (content: string) => {
     const userMessage: Message = {
@@ -86,11 +124,11 @@ export default function QnaDetailPage() {
           isPublic={qnaData.ispublic}
           answers={qnaData.answers.map(answer => ({
             id: answer.id,
-            userId: answer.userid,
-            userName: answer.author?.name || '익명',
-            userImage: answer.author?.image_url || '',
-            userHeadline: answer.author?.headline || '',
-            content: answer.content,
+            userId: answer.user_id,
+            userName: answer.author_name || '익명',
+            userImage: '',
+            userHeadline: '',
+            content: answer.description,
             createdAt: answer.createdat,
             likeCount: 0,
             dislikeCount: 0,
@@ -102,7 +140,7 @@ export default function QnaDetailPage() {
           onDislike={() => console.log('Dislike question')}
           onAnswerLike={(answerId) => console.log('Like answer', answerId)}
           onAnswerDislike={(answerId) => console.log('Dislike answer', answerId)}
-          onAnswerSubmit={(content) => console.log('Submit answer', content)}
+          onAnswerSubmit={handleAnswerSubmit}
           onAcceptAnswer={(answerId) => console.log('Accept answer', answerId)}
           sharedAiContent={sharedAiContent}
           onClearSharedContent={() => setSharedAiContent('')}

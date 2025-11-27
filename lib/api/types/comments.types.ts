@@ -7,10 +7,10 @@
  */
 export interface Comment {
   id: number;
-  postid: number;
+  post_id: number;
   parentcommentid: number;
   depth: number;
-  userid: number;
+  user_id: number;
   author_name: string;
   content: string;
   ispostwriter: number;
@@ -23,7 +23,7 @@ export interface Comment {
  * 댓글 생성 요청
  */
 export interface CommentCreateRequest {
-  postid: number;
+  post_id: number;
   parentcommentid?: number;
   content: string;
 }

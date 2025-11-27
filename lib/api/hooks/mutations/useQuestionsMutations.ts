@@ -139,14 +139,14 @@ export function useDeleteQuestion(
  */
 export function useCreateQuestionAnswer(
   options?: Omit<
-    UseMutationOptions<Answer, Error, { questionId: number; content: string }>,
+    UseMutationOptions<Answer, Error, { questionId: number; description: string }>,
     'mutationFn'
   >
 ) {
   const queryClient = useQueryClient();
 
-  return useMutation<Answer, Error, { questionId: number; content: string }>({
-    mutationFn: ({ questionId, content }) => createQuestionAnswer(questionId, content),
+  return useMutation<Answer, Error, { questionId: number; description: string }>({
+    mutationFn: ({ questionId, description }) => createQuestionAnswer(questionId, description),
     onSuccess: (data, { questionId }) => {
       // 질문 상세 무효화 (답변 목록 포함)
       queryClient.invalidateQueries({ queryKey: questionKeys.detail(questionId) });
@@ -178,10 +178,10 @@ export function useCreateAnswer(
     mutationFn: createAnswer,
     onSuccess: (data) => {
       // 연결된 질문 상세 무효화
-      queryClient.invalidateQueries({ queryKey: questionKeys.detail(data.questionid) });
+      queryClient.invalidateQueries({ queryKey: questionKeys.detail(data.question_id) });
 
       // 질문의 답변 목록 무효화
-      queryClient.invalidateQueries({ queryKey: questionKeys.answers(data.questionid) });
+      queryClient.invalidateQueries({ queryKey: questionKeys.answers(data.question_id) });
 
       // 전체 답변 목록 무효화
       queryClient.invalidateQueries({ queryKey: answerKeys.lists() });
@@ -213,10 +213,10 @@ export function useUpdateAnswer(
       queryClient.setQueryData(answerKeys.detail(id), data);
 
       // 연결된 질문 상세 무효화
-      queryClient.invalidateQueries({ queryKey: questionKeys.detail(data.questionid) });
+      queryClient.invalidateQueries({ queryKey: questionKeys.detail(data.question_id) });
 
       // 질문의 답변 목록 무효화
-      queryClient.invalidateQueries({ queryKey: questionKeys.answers(data.questionid) });
+      queryClient.invalidateQueries({ queryKey: questionKeys.answers(data.question_id) });
 
       // 전체 답변 목록 무효화
       queryClient.invalidateQueries({ queryKey: answerKeys.lists() });
@@ -248,10 +248,10 @@ export function usePatchAnswer(
       queryClient.setQueryData(answerKeys.detail(id), data);
 
       // 연결된 질문 상세 무효화
-      queryClient.invalidateQueries({ queryKey: questionKeys.detail(data.questionid) });
+      queryClient.invalidateQueries({ queryKey: questionKeys.detail(data.question_id) });
 
       // 질문의 답변 목록 무효화
-      queryClient.invalidateQueries({ queryKey: questionKeys.answers(data.questionid) });
+      queryClient.invalidateQueries({ queryKey: questionKeys.answers(data.question_id) });
 
       // 전체 답변 목록 무효화
       queryClient.invalidateQueries({ queryKey: answerKeys.lists() });

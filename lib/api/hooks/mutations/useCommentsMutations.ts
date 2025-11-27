@@ -32,7 +32,7 @@ export function useCreateComment(
     onSuccess: (data) => {
       // 해당 게시글의 댓글 목록 무효화
       queryClient.invalidateQueries({
-        queryKey: commentKeys.list({ postId: data.postid }),
+        queryKey: commentKeys.list({ postId: data.post_id }),
       });
 
       // 전체 댓글 목록도 무효화 (postId 필터 없는 경우)
@@ -68,7 +68,7 @@ export function useUpdateComment(
 
       // 댓글 목록 무효화
       queryClient.invalidateQueries({
-        queryKey: commentKeys.list({ postId: data.postid }),
+        queryKey: commentKeys.list({ postId: data.post_id }),
       });
       queryClient.invalidateQueries({
         queryKey: commentKeys.lists(),
@@ -102,7 +102,7 @@ export function usePatchComment(
 
       // 댓글 목록 무효화
       queryClient.invalidateQueries({
-        queryKey: commentKeys.list({ postId: data.postid }),
+        queryKey: commentKeys.list({ postId: data.post_id }),
       });
       queryClient.invalidateQueries({
         queryKey: commentKeys.lists(),

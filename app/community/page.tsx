@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CommunityFeedCard } from '@/components/ui/community-feed-card';
 import { QnaCard } from '@/components/ui/qna-card';
@@ -12,7 +13,7 @@ import { LoadMore } from '@/components/ui/load-more';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { MessageSquare, Users, X, ExternalLink, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useInfinitePosts, useInfiniteQuestions } from '@/lib/api';
+import { useInfinitePosts, useInfiniteQuestions, useLikePost, useUnlikePost, useSavePost, useUnsavePost } from '@/lib/api';
 import { QnaDetail } from '@/components/ui/qna-detail';
 import type { QuestionListItem, PaginatedPostResponse, PaginatedQuestionResponse } from '@/lib/api';
 
@@ -669,7 +670,7 @@ type SelectedContent = {
   questionData?: QuestionListItem;
 };
 
-export default function CommunityPage() {
+function CommunityPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -716,6 +717,12 @@ export default function CommunityPage() {
     isFetchingNextPage: isFetchingNextQuestions
   } = useInfiniteQuestions();
 
+  // Mutations
+  const likePost = useLikePost();
+  const unlikePost = useUnlikePost();
+  const savePost = useSavePost();
+  const unsavePost = useUnsavePost();
+
   const handleOpenPost = (postId: string, userProfile?: UserProfile) => {
     setSelectedContent({ type: 'post', id: postId, userProfile });
     setDrawerOpen(true);
@@ -729,6 +736,24 @@ export default function CommunityPage() {
   const handleCloseDrawer = () => {
     setDrawerOpen(false);
     setTimeout(() => setSelectedContent(null), 300);
+  };
+
+  // 좋아요 핸들러
+  const handleLikePost = (postId: number, isLiked?: boolean) => {
+    if (isLiked) {
+      unlikePost.mutate(postId);
+    } else {
+      likePost.mutate(postId);
+    }
+  };
+
+  // 북마크 핸들러
+  const handleBookmarkPost = (postId: number, isSaved?: boolean) => {
+    if (isSaved) {
+      unsavePost.mutate(postId);
+    } else {
+      savePost.mutate(postId);
+    }
   };
 
   const handleLoadMore = () => {
@@ -927,23 +952,31 @@ export default function CommunityPage() {
                         }}
                         imageUrls={[]} // Not available in list view
                         onClick={() => handleOpenPost(post.id.toString(), userProfile)}
-                        onLike={() => console.log('Like')}
+                        onLike={() => handleLikePost(post.id)}
                         onReply={() => console.log('Reply')}
                         onRepost={() => console.log('Repost')}
                         onShare={() => console.log('Share')}
-                        onBookmark={() => console.log('Bookmark')}
+                        onBookmark={() => handleBookmarkPost(post.id)}
                         onMore={() => console.log('More')}
                       />
                     </div>
                   );
                 } else if (item.type === 'qna') {
                   const question = item.data;
+                  // Map author_name to author object for QnaCard component
+                  const author = {
+                    id: question.user_id,
+                    name: question.author_name,
+                    email: '',
+                    image_url: null,
+                    headline: null,
+                  };
                   return (
                     <div key={`qna-${question.id}`} className="break-inside-avoid mb-6">
                       <QnaCard
                         title={question.title}
-                        description={question.description}
-                        author={question.author}
+                        description={'질문 내용을 확인하려면 클릭하세요'}
+                        author={author}
                         createdAt={question.createdat}
                         updatedAt={question.updatedat}
                         status={question.status}
@@ -1075,7 +1108,7 @@ export default function CommunityPage() {
                   <QnaDetail
                     qnaId={selectedContent.questionData.id.toString()}
                     title={selectedContent.questionData.title}
-                    description={selectedContent.questionData.description}
+                    description={'질문 상세 내용'}
                     createdAt={selectedContent.questionData.createdat}
                     updatedAt={selectedContent.questionData.updatedat}
                     hashTagNames=""
@@ -1084,20 +1117,7 @@ export default function CommunityPage() {
                     dislikeCount={0}
                     status={selectedContent.questionData.status}
                     isPublic={selectedContent.questionData.ispublic}
-                    answers={selectedContent.questionData.answers.map(answer => ({
-                      id: answer.id,
-                      userId: answer.userid,
-                      userName: answer.author?.name || '익명',
-                      userImage: answer.author?.image_url || '',
-                      userHeadline: answer.author?.headline || '',
-                      content: answer.content,
-                      createdAt: answer.createdat,
-                      likeCount: 0,
-                      dislikeCount: 0,
-                      isAccepted: false,
-                      liked: false,
-                      disliked: false,
-                    }))}
+                    answers={[]}
                     onLike={() => console.log('Like question')}
                     onDislike={() => console.log('Dislike question')}
                     onAnswerLike={(answerId) => console.log('Like answer', answerId)}
@@ -1120,5 +1140,13 @@ export default function CommunityPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function CommunityPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>}>
+      <CommunityPageContent />
+    </Suspense>
   );
 }

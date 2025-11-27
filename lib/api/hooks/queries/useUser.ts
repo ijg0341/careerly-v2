@@ -4,16 +4,18 @@
 
 'use client';
 
-import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, UseQueryOptions } from '@tanstack/react-query';
 import {
   getUserProfile,
   getMyProfile,
   searchUsers,
   getFollowers,
   getFollowing,
+  getMySavedPosts,
 } from '../../services/user.service';
 import { getCurrentUser } from '../../services/auth.service';
 import type { User } from '../../types/rest.types';
+import type { PaginatedPostResponse } from '../../types/posts.types';
 
 /**
  * 사용자 쿼리 키
@@ -28,6 +30,7 @@ export const userKeys = {
   search: (query: string) => [...userKeys.all, 'search', query] as const,
   followers: (userId: string) => [...userKeys.detail(userId), 'followers'] as const,
   following: (userId: string) => [...userKeys.detail(userId), 'following'] as const,
+  savedPosts: (page?: number) => [...userKeys.all, 'savedPosts', page] as const,
 };
 
 /**
@@ -121,5 +124,33 @@ export function useFollowing(
     enabled: !!userId,
     staleTime: 5 * 60 * 1000,
     ...options,
+  });
+}
+
+/**
+ * 내가 저장한 포스트 목록 훅
+ */
+export function useMySavedPosts(page?: number) {
+  return useQuery<PaginatedPostResponse, Error>({
+    queryKey: userKeys.savedPosts(page),
+    queryFn: () => getMySavedPosts(page),
+  });
+}
+
+/**
+ * 무한 스크롤용 훅
+ */
+export function useInfiniteMySavedPosts() {
+  return useInfiniteQuery<PaginatedPostResponse, Error>({
+    queryKey: [...userKeys.all, 'savedPosts', 'infinite'],
+    queryFn: ({ pageParam = 1 }) => getMySavedPosts(pageParam as number),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.next) {
+        const url = new URL(lastPage.next);
+        return Number(url.searchParams.get('page'));
+      }
+      return undefined;
+    },
   });
 }
