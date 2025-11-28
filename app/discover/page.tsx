@@ -433,11 +433,11 @@ export default function DiscoverPage() {
       {/* Right Sidebar - Widgets */}
       <aside className="lg:col-span-3">
         <div className="space-y-4 pt-16">
-          {/* 날씨 & 주식 - 가로로 배치 */}
-          <div className="grid grid-cols-2 gap-3">
-            <WeatherWidget config={widgetConfigs.weather} />
-            <StockWidget config={widgetConfigs.stock} />
-          </div>
+          {/* 날씨 */}
+          <WeatherWidget config={widgetConfigs.weather} />
+
+          {/* 주식/지수 */}
+          <StockWidget config={widgetConfigs.stock} />
 
           {/* AI 트렌드 */}
           <AITrendWidget config={widgetConfigs.aitrend} />
