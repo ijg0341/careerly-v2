@@ -13,6 +13,8 @@ import {
   signup as signupService,
   initiateOAuthLogin as initiateOAuthLoginService,
   handleOAuthCallback as handleOAuthCallbackService,
+  requestPasswordReset as requestPasswordResetService,
+  verifyPasswordReset as verifyPasswordResetService,
 } from '../../services/auth.service';
 import { setMemoryToken, clearMemoryToken } from '../../auth/token.client';
 import type {
@@ -172,6 +174,63 @@ export function useOAuthCallback(
 
       // 로그인 실패 시 로그인 페이지로 리다이렉트
       router.push('/login');
+    },
+    ...options,
+  });
+}
+
+/**
+ * 비밀번호 재설정 요청 mutation
+ */
+export function useRequestPasswordReset(
+  options?: Omit<
+    UseMutationOptions<{ success: boolean; message: string }, Error, string>,
+    'mutationFn'
+  >
+) {
+  return useMutation<{ success: boolean; message: string }, Error, string>({
+    mutationFn: requestPasswordResetService,
+    onSuccess: (data) => {
+      toast.success(data.message || '인증 코드가 이메일로 전송되었습니다.');
+    },
+    onError: (error) => {
+      toast.error(error.message || '비밀번호 재설정 요청에 실패했습니다.');
+    },
+    ...options,
+  });
+}
+
+/**
+ * 비밀번호 재설정 확인 mutation
+ */
+export function useVerifyPasswordReset(
+  options?: Omit<
+    UseMutationOptions<
+      { success: boolean; message: string },
+      Error,
+      { email: string; code: string; newPassword: string }
+    >,
+    'mutationFn'
+  >
+) {
+  const router = useRouter();
+
+  return useMutation<
+    { success: boolean; message: string },
+    Error,
+    { email: string; code: string; newPassword: string }
+  >({
+    mutationFn: ({ email, code, newPassword }) =>
+      verifyPasswordResetService(email, code, newPassword),
+    onSuccess: (data) => {
+      toast.success(data.message || '비밀번호가 성공적으로 변경되었습니다.');
+      // 로그인 페이지로 리다이렉트
+      setTimeout(() => {
+        router.push('/');
+      }, 1500);
+    },
+    onError: (error) => {
+      toast.error(error.message || '비밀번호 재설정에 실패했습니다.');
     },
     ...options,
   });

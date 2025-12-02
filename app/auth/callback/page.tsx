@@ -29,7 +29,7 @@ export default function AuthCallbackPage() {
       if (errorParam) {
         setError('OAuth 인증에 실패했습니다.');
         setTimeout(() => {
-          router.push('/login');
+          router.push('/');
         }, 2000);
         return;
       }
@@ -38,7 +38,7 @@ export default function AuthCallbackPage() {
       if (!code || !provider) {
         setError('잘못된 OAuth 콜백 요청입니다.');
         setTimeout(() => {
-          router.push('/login');
+          router.push('/');
         }, 2000);
         return;
       }
@@ -50,11 +50,12 @@ export default function AuthCallbackPage() {
           code,
           ...(state && { state }),
         });
+        // useOAuthCallback hook handles success redirect
       } catch (err) {
         console.error('OAuth callback error:', err);
         setError('OAuth 로그인 처리 중 오류가 발생했습니다.');
         setTimeout(() => {
-          router.push('/login');
+          router.push('/');
         }, 2000);
       }
     };

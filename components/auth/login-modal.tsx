@@ -191,6 +191,16 @@ export function LoginModal({ isOpen, onClose, onSignupClick }: LoginModalProps) 
               <Button type="submit" variant="coral" size="md" className="w-full" disabled={isLoading}>
                 {isLoading ? '로그인 중...' : '로그인'}
               </Button>
+
+              {/* 비밀번호 찾기 링크 */}
+              <div className="text-center">
+                <a
+                  href="/forgot-password"
+                  className="text-sm text-slate-600 hover:text-slate-900"
+                >
+                  비밀번호를 잊으셨나요?
+                </a>
+              </div>
             </form>
 
             {/* 회원가입 링크 */}

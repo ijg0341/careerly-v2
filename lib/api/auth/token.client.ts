@@ -5,39 +5,41 @@
 
 'use client';
 
+import { API_CONFIG } from '../config';
+
 /**
  * 클라이언트에서는 httpOnly 쿠키에 직접 접근할 수 없으므로
- * 서버 액션을 통해서만 토큰을 관리합니다.
+ * 백엔드 API를 직접 호출하여 쿠키를 관리합니다.
  *
- * 이 파일은 클라이언트에서 필요한 유틸리티 함수들을 제공합니다.
+ * 백엔드에서 httpOnly 쿠키를 직접 설정합니다.
  */
 
 /**
- * 로그인 처리 (서버 액션 호출)
+ * 로그인 처리 (백엔드 직접 호출)
  */
 export async function login(email: string, password: string): Promise<void> {
-  const response = await fetch('/api/auth/login', {
+  const response = await fetch(`${API_CONFIG.REST_BASE_URL}/api/v1/auth/login/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include', // 쿠키 포함
+    credentials: 'include', // 쿠키 전송 허용
     body: JSON.stringify({ email, password }),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.message || '로그인에 실패했습니다.');
+    throw new Error(error.error || '로그인에 실패했습니다.');
   }
 }
 
 /**
- * 로그아웃 처리 (서버 액션 호출)
+ * 로그아웃 처리 (백엔드 직접 호출)
  */
 export async function logout(): Promise<void> {
-  const response = await fetch('/api/auth/logout', {
+  const response = await fetch(`${API_CONFIG.REST_BASE_URL}/api/v1/auth/logout/`, {
     method: 'POST',
-    credentials: 'include', // 쿠키 포함
+    credentials: 'include', // 쿠키 전송 허용
   });
 
   if (!response.ok) {
@@ -46,12 +48,12 @@ export async function logout(): Promise<void> {
 }
 
 /**
- * 토큰 갱신 (자동으로 처리됨)
+ * 토큰 갱신 (백엔드 직접 호출)
  */
 export async function refreshToken(): Promise<void> {
-  const response = await fetch('/api/auth/refresh', {
+  const response = await fetch(`${API_CONFIG.REST_BASE_URL}/api/v1/auth/refresh-cookie/`, {
     method: 'POST',
-    credentials: 'include', // 쿠키 포함
+    credentials: 'include', // 쿠키 전송 허용
   });
 
   if (!response.ok) {
@@ -60,12 +62,12 @@ export async function refreshToken(): Promise<void> {
 }
 
 /**
- * 현재 인증 상태 확인
+ * 현재 인증 상태 확인 (백엔드 직접 호출)
  */
 export async function checkAuth(): Promise<boolean> {
   try {
-    const response = await fetch('/api/auth/me', {
-      credentials: 'include', // 쿠키 포함
+    const response = await fetch(`${API_CONFIG.REST_BASE_URL}/api/v1/users/me/`, {
+      credentials: 'include', // 쿠키 전송 허용
     });
     return response.ok;
   } catch {

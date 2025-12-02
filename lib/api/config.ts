@@ -32,11 +32,11 @@ export const API_CONFIG = {
     STATUS_CODES: [408, 429, 500, 502, 503, 504], // 재시도할 HTTP 상태 코드
   },
 
-  // 인증 설정
+  // 인증 설정 (백엔드 직접 호출)
   AUTH: {
-    TOKEN_REFRESH_ENDPOINT: '/api/auth/refresh',
-    LOGIN_ENDPOINT: '/api/auth/login',
-    LOGOUT_ENDPOINT: '/api/auth/logout',
+    TOKEN_REFRESH_ENDPOINT: '/api/v1/auth/refresh-cookie/',
+    LOGIN_ENDPOINT: '/api/v1/auth/login/',
+    LOGOUT_ENDPOINT: '/api/v1/auth/logout/',
   },
 } as const;
 

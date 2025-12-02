@@ -23,7 +23,7 @@ export {
   getCurrentUser,
   signup,
   requestPasswordReset,
-  resetPassword,
+  verifyPasswordReset,
   initiateOAuthLogin,
   handleOAuthCallback,
 } from './services/auth.service';
@@ -249,6 +249,8 @@ export {
   useSignup,
   useOAuthLogin,
   useOAuthCallback,
+  useRequestPasswordReset,
+  useVerifyPasswordReset,
 } from './hooks/mutations/useAuthMutations';
 
 // User Mutations
@@ -340,6 +342,9 @@ export type {
   RegisterRequest,
   RefreshTokenRequest,
   RefreshTokenResponse,
+  PasswordResetRequest,
+  PasswordResetResponse,
+  PasswordResetVerifyRequest,
   OAuthProvider,
   OAuthLoginResponse,
   OAuthCallbackRequest,

@@ -73,6 +73,24 @@ export interface RefreshTokenResponse {
 }
 
 /**
+ * 비밀번호 재설정 관련 타입
+ */
+export interface PasswordResetRequest {
+  email: string;
+}
+
+export interface PasswordResetResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface PasswordResetVerifyRequest {
+  email: string;
+  code: string;
+  newPassword: string;
+}
+
+/**
  * OAuth 인증 관련 타입
  */
 export type OAuthProvider = 'google' | 'apple' | 'kakao';

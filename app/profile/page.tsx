@@ -28,6 +28,10 @@ import {
   useUpdateMyProfile,
   useDeleteCareer,
   useDeleteEducation,
+  useAddCareer,
+  useUpdateCareer,
+  useAddEducation,
+  useUpdateEducation,
 } from '@/lib/api';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -70,6 +74,30 @@ function ProfilePageContent() {
   // 경력/학력 추가 폼 상태
   const [showAddCareer, setShowAddCareer] = useState(false);
   const [showAddEducation, setShowAddEducation] = useState(false);
+  const [editingCareer, setEditingCareer] = useState<number | null>(null);
+  const [editingEducation, setEditingEducation] = useState<number | null>(null);
+
+  // 경력 폼 데이터
+  const [careerForm, setCareerForm] = useState({
+    company: '',
+    title: '',
+    type: 'full_time',
+    start_date: '',
+    end_date: '',
+    is_current: false,
+    description: '',
+  });
+
+  // 학력 폼 데이터
+  const [educationForm, setEducationForm] = useState({
+    institute: '',
+    major: '',
+    type: 'bachelor',
+    start_date: '',
+    end_date: '',
+    is_current: false,
+    description: '',
+  });
 
   // API 데이터 가져오기
   const { data: currentUser, isLoading: isUserLoading } = useCurrentUser();
@@ -79,6 +107,10 @@ function ProfilePageContent() {
   const updateProfile = useUpdateMyProfile();
   const deleteCareer = useDeleteCareer();
   const deleteEducation = useDeleteEducation();
+  const addCareer = useAddCareer();
+  const updateCareer = useUpdateCareer();
+  const addEducation = useAddEducation();
+  const updateEducation = useUpdateEducation();
 
   const isLoading = isUserLoading || isProfileLoading;
 
@@ -148,6 +180,114 @@ function ProfilePageContent() {
     } catch (error) {
       console.error('Failed to delete education:', error);
     }
+  };
+
+  // 경력 폼 초기화
+  const resetCareerForm = () => {
+    setCareerForm({
+      company: '',
+      title: '',
+      type: 'full_time',
+      start_date: '',
+      end_date: '',
+      is_current: false,
+      description: '',
+    });
+    setEditingCareer(null);
+    setShowAddCareer(false);
+  };
+
+  // 학력 폼 초기화
+  const resetEducationForm = () => {
+    setEducationForm({
+      institute: '',
+      major: '',
+      type: 'bachelor',
+      start_date: '',
+      end_date: '',
+      is_current: false,
+      description: '',
+    });
+    setEditingEducation(null);
+    setShowAddEducation(false);
+  };
+
+  // 경력 저장 (추가 또는 수정)
+  const handleSaveCareer = async () => {
+    try {
+      const careerData = {
+        company: careerForm.company,
+        title: careerForm.title,
+        type: careerForm.type,
+        start_date: careerForm.start_date + '-01',
+        end_date: careerForm.is_current ? undefined : (careerForm.end_date ? careerForm.end_date + '-01' : undefined),
+        is_current: careerForm.is_current,
+        description: careerForm.description || undefined,
+      };
+
+      if (editingCareer) {
+        await updateCareer.mutateAsync({ careerId: editingCareer, data: careerData });
+      } else {
+        await addCareer.mutateAsync(careerData);
+      }
+      resetCareerForm();
+    } catch (error) {
+      console.error('Failed to save career:', error);
+    }
+  };
+
+  // 학력 저장 (추가 또는 수정)
+  const handleSaveEducation = async () => {
+    try {
+      const educationData = {
+        institute: educationForm.institute,
+        major: educationForm.major,
+        type: educationForm.type,
+        start_date: educationForm.start_date + '-01',
+        end_date: educationForm.is_current ? undefined : (educationForm.end_date ? educationForm.end_date + '-01' : undefined),
+        is_current: educationForm.is_current,
+        description: educationForm.description || undefined,
+      };
+
+      if (editingEducation) {
+        await updateEducation.mutateAsync({ educationId: editingEducation, data: educationData });
+      } else {
+        await addEducation.mutateAsync(educationData);
+      }
+      resetEducationForm();
+    } catch (error) {
+      console.error('Failed to save education:', error);
+    }
+  };
+
+  // 경력 수정 시작
+  const handleEditCareer = (career: any) => {
+    setCareerForm({
+      company: career.company,
+      title: career.title,
+      type: career.type,
+      start_date: career.start_date ? career.start_date.substring(0, 7) : '',
+      end_date: career.end_date ? career.end_date.substring(0, 7) : '',
+      is_current: career.is_current === 1,
+      description: career.description || '',
+    });
+    setEditingCareer(career.id);
+    setShowAddCareer(true);
+  };
+
+  // 학력 수정 시작
+  const handleEditEducation = (education: any) => {
+    setEducationForm({
+      institute: education.institute,
+      major: education.major,
+      type: education.type,
+      start_date: education.start_date ? education.start_date.substring(0, 7) : '',
+      end_date: education.end_date ? education.end_date.substring(0, 7) : '',
+      is_current: education.is_current === 1,
+      description: education.description || '',
+    });
+    setEditingEducation(education.id);
+    setShowAddEducation(true);
   };
 
   // Generate fallback initials from display name
@@ -422,7 +562,13 @@ function ProfilePageContent() {
                   경력
                 </h2>
                 <button
-                  onClick={() => setShowAddCareer(!showAddCareer)}
+                  onClick={() => {
+                    if (showAddCareer) {
+                      resetCareerForm();
+                    } else {
+                      setShowAddCareer(true);
+                    }
+                  }}
                   className="px-4 py-2 text-sm text-teal-600 hover:bg-teal-50 rounded-lg transition-colors flex items-center gap-1"
                 >
                   {showAddCareer ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
@@ -430,28 +576,132 @@ function ProfilePageContent() {
                 </button>
               </div>
               {showAddCareer && (
-                <div className="p-4 border border-teal-200 bg-teal-50/50 rounded-lg">
-                  <p className="text-sm text-teal-700 mb-2">
-                    경력 추가 기능은 곧 제공될 예정입니다.
-                  </p>
-                  <p className="text-xs text-slate-600">
-                    현재는 삭제 기능만 사용할 수 있습니다.
-                  </p>
+                <div className="p-4 border border-slate-200 bg-white rounded-lg space-y-4">
+                  <h3 className="font-semibold text-slate-900">
+                    {editingCareer ? '경력 수정' : '경력 추가'}
+                  </h3>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">회사명 *</label>
+                      <input
+                        type="text"
+                        value={careerForm.company}
+                        onChange={(e) => setCareerForm({ ...careerForm, company: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        placeholder="회사명"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">직책 *</label>
+                      <input
+                        type="text"
+                        value={careerForm.title}
+                        onChange={(e) => setCareerForm({ ...careerForm, title: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        placeholder="예: 프론트엔드 개발자"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">고용 형태 *</label>
+                    <select
+                      value={careerForm.type}
+                      onChange={(e) => setCareerForm({ ...careerForm, type: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    >
+                      <option value="full_time">정규직</option>
+                      <option value="contract">계약직</option>
+                      <option value="freelance">프리랜서</option>
+                      <option value="internship">인턴</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">시작일 *</label>
+                      <input
+                        type="month"
+                        value={careerForm.start_date}
+                        onChange={(e) => setCareerForm({ ...careerForm, start_date: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">종료일</label>
+                      <input
+                        type="month"
+                        value={careerForm.end_date}
+                        onChange={(e) => setCareerForm({ ...careerForm, end_date: e.target.value })}
+                        disabled={careerForm.is_current}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="is_current_career"
+                      checked={careerForm.is_current}
+                      onChange={(e) => setCareerForm({ ...careerForm, is_current: e.target.checked, end_date: e.target.checked ? '' : careerForm.end_date })}
+                      className="w-4 h-4 text-teal-600 border-slate-300 rounded focus:ring-teal-500"
+                    />
+                    <label htmlFor="is_current_career" className="text-sm text-slate-700">
+                      현재 재직 중
+                    </label>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">업무 설명</label>
+                    <textarea
+                      value={careerForm.description}
+                      onChange={(e) => setCareerForm({ ...careerForm, description: e.target.value })}
+                      className="w-full min-h-[100px] px-3 py-2 border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      placeholder="담당했던 업무나 성과를 입력해주세요"
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={handleSaveCareer}
+                      disabled={!careerForm.company || !careerForm.title || !careerForm.start_date || addCareer.isPending || updateCareer.isPending}
+                      className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {addCareer.isPending || updateCareer.isPending ? '저장 중...' : '저장'}
+                    </button>
+                    <button
+                      onClick={resetCareerForm}
+                      className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+                    >
+                      취소
+                    </button>
+                  </div>
                 </div>
               )}
               <div className="space-y-3">
                 {profile?.careers && profile.careers.length > 0 ? (
                   profile.careers.map((career) => (
                     <div key={career.id} className="space-y-2 p-3 bg-slate-50/50 rounded-lg relative group">
-                      <button
-                        onClick={() => handleDeleteCareer(career.id)}
-                        disabled={deleteCareer.isPending}
-                        className="absolute top-3 right-3 p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
-                        title="삭제"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                      <div className="flex items-start justify-between pr-10">
+                      <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100">
+                        <button
+                          onClick={() => handleEditCareer(career)}
+                          className="p-2 text-teal-500 hover:bg-teal-50 rounded-lg transition-colors"
+                          title="수정"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCareer(career.id)}
+                          disabled={deleteCareer.isPending}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                          title="삭제"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="flex items-start justify-between pr-20">
                         <div className="flex-1">
                           <h3 className="font-semibold text-base text-slate-900">{career.title}</h3>
                           <p className="text-sm text-slate-600 mt-1">{career.company}</p>
@@ -486,7 +736,13 @@ function ProfilePageContent() {
                   학력
                 </h2>
                 <button
-                  onClick={() => setShowAddEducation(!showAddEducation)}
+                  onClick={() => {
+                    if (showAddEducation) {
+                      resetEducationForm();
+                    } else {
+                      setShowAddEducation(true);
+                    }
+                  }}
                   className="px-4 py-2 text-sm text-teal-600 hover:bg-teal-50 rounded-lg transition-colors flex items-center gap-1"
                 >
                   {showAddEducation ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
@@ -494,28 +750,133 @@ function ProfilePageContent() {
                 </button>
               </div>
               {showAddEducation && (
-                <div className="p-4 border border-teal-200 bg-teal-50/50 rounded-lg">
-                  <p className="text-sm text-teal-700 mb-2">
-                    학력 추가 기능은 곧 제공될 예정입니다.
-                  </p>
-                  <p className="text-xs text-slate-600">
-                    현재는 삭제 기능만 사용할 수 있습니다.
-                  </p>
+                <div className="p-4 border border-slate-200 bg-white rounded-lg space-y-4">
+                  <h3 className="font-semibold text-slate-900">
+                    {editingEducation ? '학력 수정' : '학력 추가'}
+                  </h3>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">학교명 *</label>
+                      <input
+                        type="text"
+                        value={educationForm.institute}
+                        onChange={(e) => setEducationForm({ ...educationForm, institute: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        placeholder="학교명"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">전공 *</label>
+                      <input
+                        type="text"
+                        value={educationForm.major}
+                        onChange={(e) => setEducationForm({ ...educationForm, major: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        placeholder="예: 컴퓨터공학"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">학위 유형 *</label>
+                    <select
+                      value={educationForm.type}
+                      onChange={(e) => setEducationForm({ ...educationForm, type: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    >
+                      <option value="high_school">고등학교</option>
+                      <option value="associate">전문학사</option>
+                      <option value="bachelor">학사</option>
+                      <option value="master">석사</option>
+                      <option value="doctorate">박사</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">시작일 *</label>
+                      <input
+                        type="month"
+                        value={educationForm.start_date}
+                        onChange={(e) => setEducationForm({ ...educationForm, start_date: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">종료일</label>
+                      <input
+                        type="month"
+                        value={educationForm.end_date}
+                        onChange={(e) => setEducationForm({ ...educationForm, end_date: e.target.value })}
+                        disabled={educationForm.is_current}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="is_current_education"
+                      checked={educationForm.is_current}
+                      onChange={(e) => setEducationForm({ ...educationForm, is_current: e.target.checked, end_date: e.target.checked ? '' : educationForm.end_date })}
+                      className="w-4 h-4 text-teal-600 border-slate-300 rounded focus:ring-teal-500"
+                    />
+                    <label htmlFor="is_current_education" className="text-sm text-slate-700">
+                      현재 재학 중
+                    </label>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">설명</label>
+                    <textarea
+                      value={educationForm.description}
+                      onChange={(e) => setEducationForm({ ...educationForm, description: e.target.value })}
+                      className="w-full min-h-[100px] px-3 py-2 border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      placeholder="학업 관련 활동이나 성과를 입력해주세요"
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={handleSaveEducation}
+                      disabled={!educationForm.institute || !educationForm.major || !educationForm.start_date || addEducation.isPending || updateEducation.isPending}
+                      className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {addEducation.isPending || updateEducation.isPending ? '저장 중...' : '저장'}
+                    </button>
+                    <button
+                      onClick={resetEducationForm}
+                      className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+                    >
+                      취소
+                    </button>
+                  </div>
                 </div>
               )}
               <div className="space-y-3">
                 {profile?.educations && profile.educations.length > 0 ? (
                   profile.educations.map((edu) => (
                     <div key={edu.id} className="space-y-2 p-3 bg-slate-50/50 rounded-lg relative group">
-                      <button
-                        onClick={() => handleDeleteEducation(edu.id)}
-                        disabled={deleteEducation.isPending}
-                        className="absolute top-3 right-3 p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
-                        title="삭제"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                      <div className="pr-10">
+                      <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100">
+                        <button
+                          onClick={() => handleEditEducation(edu)}
+                          className="p-2 text-teal-500 hover:bg-teal-50 rounded-lg transition-colors"
+                          title="수정"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteEducation(edu.id)}
+                          disabled={deleteEducation.isPending}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                          title="삭제"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="pr-20">
                         <h3 className="font-semibold text-base text-slate-900">{edu.institute}</h3>
                         <p className="text-sm text-slate-600">{edu.major}</p>
                         <p className="text-sm text-slate-500">

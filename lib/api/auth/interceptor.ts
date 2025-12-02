@@ -77,10 +77,11 @@ export function setupAuthInterceptor(axiosInstance: AxiosInstance): void {
       isRefreshing = true;
 
       try {
-        // 서버에 토큰 갱신 요청
-        const response = await fetch('/api/auth/refresh', {
+        // 백엔드에 직접 토큰 갱신 요청
+        const { API_CONFIG } = await import('../config');
+        const response = await fetch(`${API_CONFIG.REST_BASE_URL}/api/v1/auth/refresh-cookie/`, {
           method: 'POST',
-          credentials: 'include',
+          credentials: 'include', // 쿠키 전송 허용
         });
 
         if (!response.ok) {
@@ -88,7 +89,7 @@ export function setupAuthInterceptor(axiosInstance: AxiosInstance): void {
         }
 
         const data = await response.json();
-        const newToken = data.accessToken;
+        const newToken = data.access;
 
         // 새 토큰으로 헤더 업데이트
         originalRequest.headers.Authorization = `Bearer ${newToken}`;

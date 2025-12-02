@@ -1,40 +1,16 @@
 /**
  * 서버 사이드 토큰 관리
  * Next.js 서버 액션과 API 라우트에서 사용
+ *
+ * 주의: 쿠키 설정은 백엔드에서 직접 처리합니다.
+ * 이 파일은 쿠키 읽기 전용으로 사용됩니다.
  */
 
 import { cookies } from 'next/headers';
 import { ApiError, ERROR_CODES, ERROR_MESSAGES } from '../types/error.types';
 
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
-  path: '/',
-};
-
 const ACCESS_TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
-
-/**
- * 인증 쿠키 설정
- */
-export async function setAuthCookies(
-  accessToken: string,
-  refreshToken: string
-): Promise<void> {
-  const cookieStore = await cookies();
-
-  cookieStore.set(ACCESS_TOKEN_KEY, accessToken, {
-    ...COOKIE_OPTIONS,
-    maxAge: 60 * 60 * 24 * 7, // 7일
-  });
-
-  cookieStore.set(REFRESH_TOKEN_KEY, refreshToken, {
-    ...COOKIE_OPTIONS,
-    maxAge: 60 * 60 * 24 * 30, // 30일
-  });
-}
 
 /**
  * 인증 쿠키 조회
@@ -68,39 +44,20 @@ export async function getRefreshToken(): Promise<string | undefined> {
 }
 
 /**
- * 인증 쿠키 삭제
- */
-export async function clearAuthCookies(): Promise<void> {
-  const cookieStore = await cookies();
-
-  cookieStore.delete(ACCESS_TOKEN_KEY);
-  cookieStore.delete(REFRESH_TOKEN_KEY);
-}
-
-/**
- * Access Token 갱신
+ * Access Token 갱신 (백엔드 직접 호출)
+ * 백엔드에서 쿠키를 직접 설정하므로 이 함수는 단순히 요청만 수행
  */
 export async function refreshAccessToken(): Promise<string> {
-  const { refreshToken } = await getAuthCookies();
-
-  if (!refreshToken) {
-    throw new ApiError(
-      401,
-      ERROR_CODES.NO_REFRESH_TOKEN,
-      ERROR_MESSAGES.NO_REFRESH_TOKEN
-    );
-  }
-
   try {
-    // Django 백엔드 토큰 갱신 요청
+    // Django 백엔드 토큰 갱신 요청 (쿠키 기반)
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/auth/refresh/`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/auth/refresh-cookie/`,
       {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ refresh: refreshToken }),
       }
     );
 
@@ -113,14 +70,9 @@ export async function refreshAccessToken(): Promise<string> {
     }
 
     const data = await response.json();
-
-    // 새 토큰 저장 (Django 응답: { access, refresh })
-    await setAuthCookies(data.access, data.refresh);
-
+    // 백엔드에서 새로운 httpOnly 쿠키를 설정함
     return data.access;
   } catch (error) {
-    // 갱신 실패 시 쿠키 삭제
-    await clearAuthCookies();
     throw error;
   }
 }
