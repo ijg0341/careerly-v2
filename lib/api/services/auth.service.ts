@@ -74,7 +74,7 @@ export async function logout(): Promise<void> {
  */
 export async function refreshToken(refreshToken: string): Promise<RefreshTokenResponse> {
   try {
-    const response = await fetch(`${API_CONFIG.REST_BASE_URL}/api/v1/auth/refresh-cookie/`, {
+    const response = await fetch(`${API_CONFIG.REST_BASE_URL}/api/v1/auth/refresh/`, {
       method: 'POST',
       credentials: 'include', // 쿠키 전송 허용
     });

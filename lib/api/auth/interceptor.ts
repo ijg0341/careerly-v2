@@ -79,7 +79,7 @@ export function setupAuthInterceptor(axiosInstance: AxiosInstance): void {
       try {
         // 백엔드에 직접 토큰 갱신 요청
         const { API_CONFIG } = await import('../config');
-        const response = await fetch(`${API_CONFIG.REST_BASE_URL}/api/v1/auth/refresh-cookie/`, {
+        const response = await fetch(`${API_CONFIG.REST_BASE_URL}/api/v1/auth/refresh/`, {
           method: 'POST',
           credentials: 'include', // 쿠키 전송 허용
         });

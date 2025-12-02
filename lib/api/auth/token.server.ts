@@ -51,7 +51,7 @@ export async function refreshAccessToken(): Promise<string> {
   try {
     // Django 백엔드 토큰 갱신 요청 (쿠키 기반)
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/auth/refresh-cookie/`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/auth/refresh/`,
       {
         method: 'POST',
         credentials: 'include',

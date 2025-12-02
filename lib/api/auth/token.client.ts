@@ -51,7 +51,7 @@ export async function logout(): Promise<void> {
  * 토큰 갱신 (백엔드 직접 호출)
  */
 export async function refreshToken(): Promise<void> {
-  const response = await fetch(`${API_CONFIG.REST_BASE_URL}/api/v1/auth/refresh-cookie/`, {
+  const response = await fetch(`${API_CONFIG.REST_BASE_URL}/api/v1/auth/refresh/`, {
     method: 'POST',
     credentials: 'include', // 쿠키 전송 허용
   });

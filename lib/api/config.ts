@@ -34,7 +34,7 @@ export const API_CONFIG = {
 
   // 인증 설정 (백엔드 직접 호출)
   AUTH: {
-    TOKEN_REFRESH_ENDPOINT: '/api/v1/auth/refresh-cookie/',
+    TOKEN_REFRESH_ENDPOINT: '/api/v1/auth/refresh/',
     LOGIN_ENDPOINT: '/api/v1/auth/login/',
     LOGOUT_ENDPOINT: '/api/v1/auth/logout/',
   },
