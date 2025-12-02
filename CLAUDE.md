@@ -110,6 +110,8 @@ NEXT_PUBLIC_API_BASE_URL=https://staging-gateway.careerly.co.kr
 2. ❌ 인증 토큰 수동 관리 금지
 3. ❌ API 에러 개별 처리 지양 (전역 처리 활용)
 4. ❌ `lib/api` 외부에서 API 클라이언트 생성 금지
+5. ❌ Next.js API Routes나 rewrites를 통한 프록시 호출 금지 - 모든 API는 Django 백엔드(`NEXT_PUBLIC_API_BASE_URL`)를 직접 호출해야 함
+6. ❌ SSR(Server-Side Rendering) 로직 구현 금지 - 이 프로젝트는 CSR(Client-Side Rendering) 기반이며, 인증/API 로직은 모두 Django 백엔드에서 처리
 
 ## ✅ 권장 사항
 
