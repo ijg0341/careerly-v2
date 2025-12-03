@@ -18,203 +18,126 @@ import { SuggestedFollowUpInput } from '@/components/ui/suggested-follow-up-inpu
 import { ViewModeToggle, type ViewMode } from '@/components/ui/view-mode-toggle';
 import { SearchResultItem } from '@/components/ui/search-result-item';
 
-// 상태 step에 따른 아이콘과 메시지 매핑
-const STATUS_CONFIG: Record<SSEStatusStep, {
-  icon: React.ReactNode;
-  defaultMessage: string;
-  description: string;
-}> = {
-  intent: {
-    icon: <Sparkles className="h-5 w-5" />,
-    defaultMessage: '질문을 분석하고 있어요',
-    description: '어떤 정보가 필요한지 파악 중...',
-  },
-  searching: {
-    icon: <Search className="h-5 w-5" />,
-    defaultMessage: '관련 자료를 검색하고 있어요',
-    description: '커리어리와 소문 데이터에서 검색 중...',
-  },
-  generating: {
-    icon: <Sparkles className="h-5 w-5" />,
-    defaultMessage: '답변을 작성하고 있어요',
-    description: '수집한 정보를 바탕으로 답변 생성 중...',
-  },
+// 상태 step에 따른 아이콘 매핑
+const STATUS_ICONS: Record<SSEStatusStep, React.ReactNode> = {
+  intent: <Sparkles className="h-4 w-4" />,
+  searching: <Search className="h-4 w-4" />,
+  generating: <Sparkles className="h-4 w-4" />,
 };
 
-// 에이전트 활동 표시 컴포넌트
-interface AgentActivityProps {
-  status: { step: SSEStatusStep; message: string } | null;
-  sources: string[];
-  isStreaming: boolean;
-  streamingContent: string;
+// 상태 히스토리 아이템 타입
+interface StatusHistoryItem {
+  id: string;
+  step: SSEStatusStep;
+  message: string;
+  timestamp: number;
 }
 
-function AgentActivityIndicator({ status, sources, isStreaming, streamingContent }: AgentActivityProps) {
-  if (!isStreaming && !status) return null;
+// 에이전트 활동 표시 컴포넌트 Props
+interface AgentActivityProps {
+  statusHistory: StatusHistoryItem[];
+  currentStatus: { step: SSEStatusStep; message: string } | null;
+  sources: string[];
+  isStreaming: boolean;
+  isGenerating: boolean;
+}
 
-  // 검색 완료 후 답변 생성 중일 때
-  const isGenerating = status?.step === 'generating' || streamingContent.length > 0;
+function AgentActivityIndicator({ statusHistory = [], currentStatus, sources = [], isStreaming, isGenerating }: AgentActivityProps) {
+  if (!isStreaming && statusHistory.length === 0) return null;
 
-  // 데이터 소스 분류
-  const careerlyCount = sources.filter(s => s.includes('careerly')).length;
-  const somoonCount = sources.filter(s => s.includes('somoon') || s.includes('document')).length;
-  const webCount = sources.filter(s => !s.includes('careerly') && !s.includes('somoon') && !s.includes('document')).length;
-
-  // isStreaming이 true인데 status가 아직 없으면 기본 상태 표시
-  const showInitialState = isStreaming && !status && !streamingContent;
+  // URL에서 도메인 추출
+  const extractDomain = (url: string) => {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.hostname.replace('www.', '');
+    } catch {
+      return url;
+    }
+  };
 
   return (
-    <div className="mb-6 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-5 shadow-sm">
-      {/* 초기 상태 - 에이전트 시작 중 */}
-      {showInitialState && (
-        <div className="flex items-start gap-4 mb-4">
-          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-teal-100 to-blue-100">
-            <Sparkles className="h-5 w-5 text-teal-600 animate-pulse" />
-          </div>
-          <div className="flex-1">
-            <p className="font-medium text-slate-900">AI 에이전트를 시작하고 있어요</p>
-            <p className="text-sm text-slate-500 mt-0.5">
-              잠시만 기다려주세요, 질문을 분석하고 있습니다...
-            </p>
-          </div>
-          <Loader2 className="h-5 w-5 animate-spin text-teal-500" />
-        </div>
-      )}
+    <div className="mb-6 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4 shadow-sm">
+      {/* 상태 히스토리 - 누적식으로 표시 */}
+      <div className="space-y-2">
+        {statusHistory.map((item, index) => {
+          const isLast = index === statusHistory.length - 1;
+          const isCurrent = isLast && isStreaming && !isGenerating;
 
-      {/* 메인 상태 표시 */}
-      {status && !streamingContent && (
-        <div className="flex items-start gap-4 mb-4">
-          <div className={cn(
-            "flex items-center justify-center w-10 h-10 rounded-full",
-            status.step === 'intent' && "bg-purple-100 text-purple-600",
-            status.step === 'searching' && "bg-blue-100 text-blue-600",
-            status.step === 'generating' && "bg-teal-100 text-teal-600"
-          )}>
-            {STATUS_CONFIG[status.step]?.icon}
-          </div>
-          <div className="flex-1">
-            <p className="font-medium text-slate-900">
-              {status.message || STATUS_CONFIG[status.step]?.defaultMessage}
-            </p>
-            <p className="text-sm text-slate-500 mt-0.5">
-              {STATUS_CONFIG[status.step]?.description}
-            </p>
-          </div>
-          <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
-        </div>
-      )}
-
-      {/* 데이터 소스 진행 상황 - 초기 상태 또는 검색 중일 때 표시 */}
-      {(showInitialState || status?.step === 'searching' || sources.length > 0) && (
-        <div className="grid grid-cols-3 gap-3 pt-3 border-t border-slate-100">
-          {/* 커리어리 데이터 */}
-          <div className={cn(
-            "flex items-center gap-2 p-3 rounded-lg transition-all",
-            careerlyCount > 0 ? "bg-teal-50 border border-teal-200" : "bg-slate-50 border border-slate-100"
-          )}>
-            <div className={cn(
-              "flex items-center justify-center w-8 h-8 rounded-full",
-              careerlyCount > 0 ? "bg-teal-100 text-teal-600" : "bg-slate-200 text-slate-400"
-            )}>
-              <FileText className="h-4 w-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className={cn(
-                "text-xs font-medium",
-                careerlyCount > 0 ? "text-teal-700" : "text-slate-500"
+          return (
+            <div
+              key={item.id}
+              className={cn(
+                "flex items-center gap-3 py-2 px-3 rounded-lg transition-all",
+                isCurrent ? "bg-teal-50 border border-teal-200" : "bg-slate-50"
+              )}
+            >
+              {/* 아이콘 */}
+              <div className={cn(
+                "flex items-center justify-center w-7 h-7 rounded-full flex-shrink-0",
+                isCurrent ? "bg-teal-100 text-teal-600" : "bg-slate-200 text-slate-500"
               )}>
-                커리어리
+                {isCurrent ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4 text-teal-500" />
+                )}
+              </div>
+
+              {/* 메시지 */}
+              <p className={cn(
+                "text-sm flex-1",
+                isCurrent ? "text-teal-700 font-medium" : "text-slate-600"
+              )}>
+                {item.message}
               </p>
-              {careerlyCount > 0 ? (
-                <p className="text-sm font-semibold text-teal-600">{careerlyCount}개 발견</p>
-              ) : (showInitialState || status?.step === 'searching') ? (
-                <p className="text-xs text-slate-400 animate-pulse">검색 대기 중...</p>
-              ) : (
-                <p className="text-xs text-slate-400">-</p>
+
+              {/* 시간 표시 (완료된 항목만) */}
+              {!isCurrent && (
+                <span className="text-xs text-slate-400 flex-shrink-0">완료</span>
               )}
             </div>
-            {careerlyCount > 0 && (
-              <CheckCircle2 className="h-4 w-4 text-teal-500 flex-shrink-0" />
-            )}
-          </div>
+          );
+        })}
 
-          {/* 소문 데이터 */}
-          <div className={cn(
-            "flex items-center gap-2 p-3 rounded-lg transition-all",
-            somoonCount > 0 ? "bg-purple-50 border border-purple-200" : "bg-slate-50 border border-slate-100"
-          )}>
-            <div className={cn(
-              "flex items-center justify-center w-8 h-8 rounded-full",
-              somoonCount > 0 ? "bg-purple-100 text-purple-600" : "bg-slate-200 text-slate-400"
-            )}>
-              <Database className="h-4 w-4" />
+        {/* 답변 생성 중 표시 */}
+        {isGenerating && (
+          <div className="flex items-center gap-3 py-2 px-3 rounded-lg bg-teal-50 border border-teal-200">
+            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-teal-100 text-teal-600 flex-shrink-0">
+              <Loader2 className="h-4 w-4 animate-spin" />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className={cn(
-                "text-xs font-medium",
-                somoonCount > 0 ? "text-purple-700" : "text-slate-500"
-              )}>
-                소문 RAG
-              </p>
-              {somoonCount > 0 ? (
-                <p className="text-sm font-semibold text-purple-600">{somoonCount}개 발견</p>
-              ) : (showInitialState || status?.step === 'searching') ? (
-                <p className="text-xs text-slate-400 animate-pulse">검색 대기 중...</p>
-              ) : (
-                <p className="text-xs text-slate-400">-</p>
-              )}
+            <p className="text-sm text-teal-700 font-medium flex-1">
+              답변을 작성하고 있어요
+            </p>
+            <div className="flex items-center gap-1">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" style={{ animationDelay: '150ms' }} />
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" style={{ animationDelay: '300ms' }} />
             </div>
-            {somoonCount > 0 && (
-              <CheckCircle2 className="h-4 w-4 text-purple-500 flex-shrink-0" />
-            )}
           </div>
+        )}
+      </div>
 
-          {/* 웹 검색 */}
-          <div className={cn(
-            "flex items-center gap-2 p-3 rounded-lg transition-all",
-            webCount > 0 ? "bg-blue-50 border border-blue-200" : "bg-slate-50 border border-slate-100"
-          )}>
-            <div className={cn(
-              "flex items-center justify-center w-8 h-8 rounded-full",
-              webCount > 0 ? "bg-blue-100 text-blue-600" : "bg-slate-200 text-slate-400"
-            )}>
-              <Globe className="h-4 w-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className={cn(
-                "text-xs font-medium",
-                webCount > 0 ? "text-blue-700" : "text-slate-500"
-              )}>
-                웹 검색
-              </p>
-              {webCount > 0 ? (
-                <p className="text-sm font-semibold text-blue-600">{webCount}개 발견</p>
-              ) : (showInitialState || status?.step === 'searching') ? (
-                <p className="text-xs text-slate-400 animate-pulse">검색 대기 중...</p>
-              ) : (
-                <p className="text-xs text-slate-400">-</p>
-              )}
-            </div>
-            {webCount > 0 && (
-              <CheckCircle2 className="h-4 w-4 text-blue-500 flex-shrink-0" />
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 답변 생성 중 표시 */}
-      {streamingContent && (
-        <div className="flex items-center gap-3 pt-3 border-t border-slate-100 mt-3">
-          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-teal-100 text-teal-600">
-            <Sparkles className="h-4 w-4" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-teal-700">답변을 작성하고 있어요</p>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse delay-100" />
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse delay-200" />
+      {/* 실시간 소스 표시 */}
+      {sources.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-slate-100">
+          <p className="text-xs font-medium text-slate-500 mb-2">
+            발견된 출처 ({sources.length}개)
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {sources.map((source, index) => (
+              <a
+                key={index}
+                href={source}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs bg-white border border-slate-200 rounded-full hover:border-teal-300 hover:bg-teal-50 transition-colors"
+              >
+                <Globe className="h-3 w-3 text-slate-400" />
+                <span className="text-slate-600 max-w-[150px] truncate">
+                  {extractDomain(source)}
+                </span>
+              </a>
+            ))}
           </div>
         </div>
       )}
@@ -259,6 +182,7 @@ function SearchContent() {
     step: SSEStatusStep;
     message: string;
   } | null>(null);
+  const [statusHistory, setStatusHistory] = useState<StatusHistoryItem[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [error, setError] = useState<{ message: string; code?: string } | null>(null);
@@ -295,6 +219,7 @@ function SearchContent() {
     setStreamingContent('');
     setStreamingSources([]);
     setStreamStatus(null);
+    setStatusHistory([]);
     setError(null);
     setCompletedAnswer('');
     setCompletedSources([]);
@@ -304,6 +229,18 @@ function SearchContent() {
     const cleanup = streamChatMessage(queryText.trim(), existingSessionId ?? null, {
       onStatus: (step, message) => {
         setStreamStatus({ step, message });
+        // 상태 히스토리에 추가 (중복 방지)
+        setStatusHistory((prev) => {
+          // 같은 step과 message가 이미 있으면 추가하지 않음
+          const exists = prev.some(item => item.step === step && item.message === message);
+          if (exists) return prev;
+          return [...prev, {
+            id: `${step}-${Date.now()}`,
+            step,
+            message,
+            timestamp: Date.now(),
+          }];
+        });
       },
       onToken: (token) => {
         setStreamStatus(null);
@@ -483,10 +420,11 @@ function SearchContent() {
 
         {/* 에이전트 활동 표시 */}
         <AgentActivityIndicator
-          status={streamStatus}
+          statusHistory={statusHistory}
+          currentStatus={streamStatus}
           sources={displaySources}
           isStreaming={isStreaming}
-          streamingContent={streamingContent}
+          isGenerating={streamingContent.length > 0}
         />
 
         {/* 에러 표시 */}
