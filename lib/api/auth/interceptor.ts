@@ -5,6 +5,7 @@
 
 import { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { getMemoryToken, clearMemoryToken } from './token.client';
+import { useStore } from '@/hooks/useStore';
 
 let isRefreshing = false;
 let refreshSubscribers: Array<(token: string) => void> = [];
@@ -135,8 +136,8 @@ export function setupAuthInterceptor(axiosInstance: AxiosInstance): void {
         const method = originalRequest.method?.toUpperCase();
         const isActionRequest = method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
 
-        if (typeof window !== 'undefined' && isActionRequest) {
-          window.dispatchEvent(new CustomEvent('auth:login-required'));
+        if (isActionRequest) {
+          useStore.getState().openLoginModal();
         }
 
         return Promise.reject(error);
