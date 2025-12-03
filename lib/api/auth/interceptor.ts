@@ -130,9 +130,9 @@ export function setupAuthInterceptor(axiosInstance: AxiosInstance): void {
         const error = refreshError instanceof Error ? refreshError : new Error('Token refresh failed');
         onTokenRefreshFailed(error);
 
-        // 토큰 갱신 실패 시 로그인 페이지로 이동
+        // 토큰 갱신 실패 시 로그인 모달 열기 이벤트 발생
         if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+          window.dispatchEvent(new CustomEvent('auth:login-required'));
         }
 
         return Promise.reject(error);

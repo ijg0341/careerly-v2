@@ -71,7 +71,7 @@ export function useLogout(
       // 성공/실패 관계없이 항상 로컬 상태 정리
       clearMemoryToken();
       queryClient.clear();
-      router.push('/login');
+      router.push('/');
     },
     onSuccess: () => {
       toast.success('로그아웃되었습니다.');
@@ -167,8 +167,8 @@ export function useOAuthCallback(
     onError: (error) => {
       toast.error(error.message || 'OAuth 로그인에 실패했습니다.');
 
-      // 로그인 실패 시 로그인 페이지로 리다이렉트
-      router.push('/login');
+      // 로그인 실패 시 홈으로 리다이렉트 (로그인 모달은 자동으로 열림)
+      router.push('/');
     },
     ...options,
   });
