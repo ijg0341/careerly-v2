@@ -4,7 +4,18 @@ import * as React from 'react';
 import { QnaDetail } from '@/components/ui/qna-detail';
 import { AiChatPanel, Message } from '@/components/ui/ai-chat-panel';
 import { useParams } from 'next/navigation';
-import { useQuestion, useCreateQuestionAnswer, useUpdateAnswer, useDeleteAnswer, useCurrentUser } from '@/lib/api';
+import {
+  useQuestion,
+  useCreateQuestionAnswer,
+  useUpdateAnswer,
+  useDeleteAnswer,
+  useCurrentUser,
+  useLikeQuestion,
+  useUnlikeQuestion,
+  useLikeAnswer,
+  useUnlikeAnswer,
+  useAcceptAnswer
+} from '@/lib/api';
 import { Loader2 } from 'lucide-react';
 
 export default function QnaDetailPage() {
@@ -20,9 +31,20 @@ export default function QnaDetailPage() {
   const updateAnswer = useUpdateAnswer();
   const deleteAnswer = useDeleteAnswer();
 
+  // Like/Dislike/Accept mutations
+  const likeQuestion = useLikeQuestion();
+  const unlikeQuestion = useUnlikeQuestion();
+  const likeAnswer = useLikeAnswer();
+  const unlikeAnswer = useUnlikeAnswer();
+  const acceptAnswer = useAcceptAnswer();
+
+  // State
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [aiLoading, setAiLoading] = React.useState(false);
   const [sharedAiContent, setSharedAiContent] = React.useState<string>('');
+  const [questionLiked, setQuestionLiked] = React.useState(false);
+  const [questionDisliked, setQuestionDisliked] = React.useState(false);
+  const [answerLikes, setAnswerLikes] = React.useState<Record<number, { liked: boolean; disliked: boolean }>>({});
 
   // 로딩 상태
   if (isLoading) {
@@ -83,6 +105,86 @@ export default function QnaDetailPage() {
     }
   };
 
+  // 질문 좋아요 핸들러
+  const handleQuestionLike = () => {
+    const qnaIdNum = Number(qnaId);
+    if (questionLiked) {
+      setQuestionLiked(false);
+      unlikeQuestion.mutate(qnaIdNum, {
+        onError: () => setQuestionLiked(true)
+      });
+    } else {
+      setQuestionLiked(true);
+      setQuestionDisliked(false); // 좋아요 누르면 싫어요 해제
+      likeQuestion.mutate(qnaIdNum, {
+        onError: () => setQuestionLiked(false)
+      });
+    }
+  };
+
+  // 질문 싫어요 핸들러
+  const handleQuestionDislike = () => {
+    const qnaIdNum = Number(qnaId);
+    if (questionDisliked) {
+      setQuestionDisliked(false);
+      unlikeQuestion.mutate(qnaIdNum, {
+        onError: () => setQuestionDisliked(true)
+      });
+    } else {
+      setQuestionDisliked(true);
+      setQuestionLiked(false); // 싫어요 누르면 좋아요 해제
+      // Note: using likeQuestion for dislike - backend handles the logic
+      likeQuestion.mutate(qnaIdNum, {
+        onError: () => setQuestionDisliked(false)
+      });
+    }
+  };
+
+  // 답변 좋아요 핸들러
+  const handleAnswerLike = (answerId: number) => {
+    const current = answerLikes[answerId] || { liked: false, disliked: false };
+
+    setAnswerLikes(prev => ({
+      ...prev,
+      [answerId]: { liked: !current.liked, disliked: false }
+    }));
+
+    if (current.liked) {
+      unlikeAnswer.mutate({ answerId, questionId: Number(qnaId) }, {
+        onError: () => setAnswerLikes(prev => ({ ...prev, [answerId]: current }))
+      });
+    } else {
+      likeAnswer.mutate({ answerId, questionId: Number(qnaId) }, {
+        onError: () => setAnswerLikes(prev => ({ ...prev, [answerId]: current }))
+      });
+    }
+  };
+
+  // 답변 싫어요 핸들러
+  const handleAnswerDislike = (answerId: number) => {
+    const current = answerLikes[answerId] || { liked: false, disliked: false };
+
+    setAnswerLikes(prev => ({
+      ...prev,
+      [answerId]: { liked: false, disliked: !current.disliked }
+    }));
+
+    if (current.disliked) {
+      unlikeAnswer.mutate({ answerId, questionId: Number(qnaId) }, {
+        onError: () => setAnswerLikes(prev => ({ ...prev, [answerId]: current }))
+      });
+    } else {
+      likeAnswer.mutate({ answerId, questionId: Number(qnaId) }, {
+        onError: () => setAnswerLikes(prev => ({ ...prev, [answerId]: current }))
+      });
+    }
+  };
+
+  // 답변 채택 핸들러
+  const handleAcceptAnswer = (answerId: number) => {
+    acceptAnswer.mutate({ answerId, questionId: Number(qnaId) });
+  };
+
   const handleSendMessage = async (content: string) => {
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -123,6 +225,8 @@ export default function QnaDetailPage() {
           dislikeCount={0}
           status={qnaData.status}
           isPublic={qnaData.ispublic}
+          liked={questionLiked}
+          disliked={questionDisliked}
           answers={qnaData.answers.map(answer => ({
             id: answer.id,
             userId: answer.user_id,
@@ -134,15 +238,15 @@ export default function QnaDetailPage() {
             likeCount: 0,
             dislikeCount: 0,
             isAccepted: false,
-            liked: false,
-            disliked: false,
+            liked: answerLikes[answer.id]?.liked || false,
+            disliked: answerLikes[answer.id]?.disliked || false,
           }))}
-          onLike={() => console.log('Like question')}
-          onDislike={() => console.log('Dislike question')}
-          onAnswerLike={(answerId) => console.log('Like answer', answerId)}
-          onAnswerDislike={(answerId) => console.log('Dislike answer', answerId)}
+          onLike={handleQuestionLike}
+          onDislike={handleQuestionDislike}
+          onAnswerLike={handleAnswerLike}
+          onAnswerDislike={handleAnswerDislike}
           onAnswerSubmit={handleAnswerSubmit}
-          onAcceptAnswer={(answerId) => console.log('Accept answer', answerId)}
+          onAcceptAnswer={handleAcceptAnswer}
           sharedAiContent={sharedAiContent}
           onClearSharedContent={() => setSharedAiContent('')}
           currentUser={user ? { name: user.name, image_url: user.image_url } : undefined}

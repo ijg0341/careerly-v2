@@ -307,6 +307,7 @@ export {
   useViewPost,
   useRepostPost,
   useUnrepostPost,
+  useUploadPostImage,
 } from './hooks/mutations/usePostsMutations';
 
 // Questions Mutations
@@ -321,6 +322,10 @@ export {
   usePatchAnswer,
   useDeleteAnswer,
   useAcceptAnswer,
+  useLikeQuestion,
+  useUnlikeQuestion,
+  useLikeAnswer,
+  useUnlikeAnswer,
 } from './hooks/mutations/useQuestionsMutations';
 
 // Profile Mutations

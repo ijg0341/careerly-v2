@@ -4,7 +4,7 @@ import * as React from 'react';
 import { PostDetail } from '@/components/ui/post-detail';
 import { AiChatPanel, Message } from '@/components/ui/ai-chat-panel';
 import { useParams, useRouter } from 'next/navigation';
-import { usePost, useComments, useCreateComment, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useViewPost, usePostLikeStatus, usePostSaveStatus, useCurrentUser } from '@/lib/api';
+import { usePost, useComments, useCreateComment, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useViewPost, usePostLikeStatus, usePostSaveStatus, useCurrentUser, useLikeComment, useUnlikeComment } from '@/lib/api';
 import type { Comment as ApiComment } from '@/lib/api';
 
 export default function PostDetailPage() {
@@ -30,10 +30,13 @@ export default function PostDetailPage() {
   const savePost = useSavePost();
   const unsavePost = useUnsavePost();
   const viewPost = useViewPost();
+  const likeComment = useLikeComment();
+  const unlikeComment = useUnlikeComment();
 
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [aiLoading, setAiLoading] = React.useState(false);
   const [sharedAiContent, setSharedAiContent] = React.useState<string>('');
+  const [commentLikes, setCommentLikes] = React.useState<Record<number, boolean>>({});
 
   // 조회수 증가 (페이지 로드 시 한 번만)
   React.useEffect(() => {
@@ -45,6 +48,13 @@ export default function PostDetailPage() {
 
   // API 댓글 데이터를 UI 댓글 형식으로 변환
   const transformComments = (apiComments: ApiComment[]) => {
+    // Initialize comment likes state from API data
+    const initialLikes: Record<number, boolean> = {};
+    apiComments.forEach(comment => {
+      initialLikes[comment.id] = comment.is_liked || false;
+    });
+    setCommentLikes(prev => ({ ...prev, ...initialLikes }));
+
     return apiComments.map((comment) => ({
       id: comment.id,
       userId: comment.user_id,
@@ -53,8 +63,8 @@ export default function PostDetailPage() {
       userHeadline: undefined, // API에서 제공하지 않음
       content: comment.content,
       createdAt: new Date(comment.createdat).toLocaleDateString('ko-KR'),
-      likeCount: 0, // API에서 제공하지 않음
-      liked: false,
+      likeCount: comment.like_count || 0,
+      liked: commentLikes[comment.id] || comment.is_liked || false,
     }));
   };
 
@@ -88,6 +98,31 @@ export default function PostDetailPage() {
       unsavePost.mutate(postIdNum);
     } else {
       savePost.mutate(postIdNum);
+    }
+  };
+
+  // 댓글 좋아요 핸들러
+  const handleCommentLike = (commentId: number) => {
+    const isCurrentlyLiked = commentLikes[commentId] || false;
+
+    // Optimistic update
+    setCommentLikes(prev => ({
+      ...prev,
+      [commentId]: !isCurrentlyLiked
+    }));
+
+    if (isCurrentlyLiked) {
+      unlikeComment.mutate(commentId, {
+        onError: () => {
+          setCommentLikes(prev => ({ ...prev, [commentId]: true }));
+        }
+      });
+    } else {
+      likeComment.mutate(commentId, {
+        onError: () => {
+          setCommentLikes(prev => ({ ...prev, [commentId]: false }));
+        }
+      });
     }
   };
 
@@ -189,7 +224,7 @@ export default function PostDetailPage() {
           onRepost={() => console.log('Repost')}
           onShare={() => console.log('Share')}
           onBookmark={handleBookmark}
-          onCommentLike={(commentId) => console.log('Like comment', commentId)}
+          onCommentLike={handleCommentLike}
           onCommentSubmit={handleCommentSubmit}
           sharedAiContent={sharedAiContent}
           onClearSharedContent={() => setSharedAiContent('')}

@@ -14,7 +14,7 @@ import { LoadMore } from '@/components/ui/load-more';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { MessageSquare, Users, X, ExternalLink, Loader2, PenSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useInfinitePosts, useInfiniteQuestions, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useRecommendedPosts, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser } from '@/lib/api';
+import { useInfinitePosts, useInfiniteQuestions, useFollowingPosts, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useRepostPost, useUnrepostPost, useLikeQuestion, useUnlikeQuestion, useRecommendedPosts, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser } from '@/lib/api';
 import { toast } from 'sonner';
 import { QnaDetail } from '@/components/ui/qna-detail';
 import type { QuestionListItem, PaginatedPostResponse, PaginatedQuestionResponse } from '@/lib/api';
@@ -53,6 +53,10 @@ function CommunityPageContent() {
   const [likedPosts, setLikedPosts] = React.useState<Record<number, boolean>>({});
   // 북마크 상태 관리 (postId -> saved 상태)
   const [savedPosts, setSavedPosts] = React.useState<Record<number, boolean>>({});
+  // 리포스트 상태 관리 (postId -> reposted 상태)
+  const [repostedPosts, setRepostedPosts] = React.useState<Record<number, boolean>>({});
+  // Q&A 좋아요 상태 관리
+  const [questionLikes, setQuestionLikes] = React.useState<Record<number, { liked: boolean; disliked: boolean }>>({});
 
   // Get current user and login modal state
   const { data: user } = useCurrentUser();
@@ -100,11 +104,22 @@ function CommunityPageContent() {
     isLoading: isLoadingRecommendedFollowers,
   } = useRecommendedFollowers(5);
 
+  // Following Posts (팔로잉하는 사람의 포스트)
+  const {
+    data: followingPostsData,
+    isLoading: isLoadingFollowingPosts,
+    error: followingPostsError,
+  } = useFollowingPosts(1);
+
   // Mutations
   const likePost = useLikePost();
   const unlikePost = useUnlikePost();
   const savePost = useSavePost();
   const unsavePost = useUnsavePost();
+  const repostPost = useRepostPost();
+  const unrepostPost = useUnrepostPost();
+  const likeQuestion = useLikeQuestion();
+  const unlikeQuestion = useUnlikeQuestion();
   const followUser = useFollowUser();
   const unfollowUser = useUnfollowUser();
 
@@ -113,21 +128,57 @@ function CommunityPageContent() {
     setContentFilter(currentTab);
   }, [currentTab]);
 
-  // API 응답에서 초기 좋아요/북마크 상태 설정
+  // API 응답에서 초기 좋아요/북마크/리포스트 상태 설정
   React.useEffect(() => {
     if (postsData?.pages) {
       const initialLikedState: Record<number, boolean> = {};
       const initialSavedState: Record<number, boolean> = {};
+      const initialRepostedState: Record<number, boolean> = {};
       postsData.pages.forEach((page) => {
         (page as PaginatedPostResponse).results.forEach((post) => {
           initialLikedState[post.id] = post.is_liked;
           initialSavedState[post.id] = post.is_saved;
+          initialRepostedState[post.id] = post.is_reposted || false;
         });
       });
       setLikedPosts(prev => ({ ...prev, ...initialLikedState }));
       setSavedPosts(prev => ({ ...prev, ...initialSavedState }));
+      setRepostedPosts(prev => ({ ...prev, ...initialRepostedState }));
     }
   }, [postsData]);
+
+  // Following posts에서도 초기 좋아요/북마크/리포스트 상태 설정
+  React.useEffect(() => {
+    if (followingPostsData?.results) {
+      const initialLikedState: Record<number, boolean> = {};
+      const initialSavedState: Record<number, boolean> = {};
+      const initialRepostedState: Record<number, boolean> = {};
+      followingPostsData.results.forEach((post) => {
+        initialLikedState[post.id] = post.is_liked;
+        initialSavedState[post.id] = post.is_saved;
+        initialRepostedState[post.id] = post.is_reposted || false;
+      });
+      setLikedPosts(prev => ({ ...prev, ...initialLikedState }));
+      setSavedPosts(prev => ({ ...prev, ...initialSavedState }));
+      setRepostedPosts(prev => ({ ...prev, ...initialRepostedState }));
+    }
+  }, [followingPostsData]);
+
+  // API 응답에서 초기 질문 좋아요 상태 설정
+  React.useEffect(() => {
+    if (questionsData?.pages) {
+      const initialQuestionLikes: Record<number, { liked: boolean; disliked: boolean }> = {};
+      questionsData.pages.forEach((page) => {
+        (page as PaginatedQuestionResponse).results.forEach((question) => {
+          initialQuestionLikes[question.id] = {
+            liked: question.is_liked || false,
+            disliked: false, // API doesn't provide dislike status yet
+          };
+        });
+      });
+      setQuestionLikes(prev => ({ ...prev, ...initialQuestionLikes }));
+    }
+  }, [questionsData]);
 
   const handleOpenPost = (postId: string, userProfile?: UserProfile) => {
     setSelectedContent({ type: 'post', id: postId, userProfile });
@@ -226,6 +277,113 @@ function CommunityPageContent() {
     }
   };
 
+  // 리포스트 핸들러 (Optimistic Update)
+  const handleRepostPost = (postId: number) => {
+    if (!user) {
+      openLoginModal();
+      return;
+    }
+
+    const isCurrentlyReposted = repostedPosts[postId] || false;
+
+    // Optimistic update
+    setRepostedPosts(prev => ({
+      ...prev,
+      [postId]: !isCurrentlyReposted
+    }));
+
+    // API 호출
+    if (isCurrentlyReposted) {
+      unrepostPost.mutate(postId, {
+        onError: () => {
+          // 실패 시 롤백
+          setRepostedPosts(prev => ({
+            ...prev,
+            [postId]: true
+          }));
+          toast.error('리포스트 취소에 실패했습니다');
+        }
+      });
+    } else {
+      repostPost.mutate(postId, {
+        onError: () => {
+          // 실패 시 롤백
+          setRepostedPosts(prev => ({
+            ...prev,
+            [postId]: false
+          }));
+          toast.error('리포스트에 실패했습니다');
+        }
+      });
+    }
+  };
+
+  // Q&A 좋아요 핸들러 (Optimistic Update)
+  const handleLikeQuestion = (questionId: number) => {
+    if (!user) {
+      openLoginModal();
+      return;
+    }
+
+    const current = questionLikes[questionId] || { liked: false, disliked: false };
+
+    // Optimistic update
+    setQuestionLikes(prev => ({
+      ...prev,
+      [questionId]: { liked: !current.liked, disliked: false }
+    }));
+
+    if (current.liked) {
+      unlikeQuestion.mutate(questionId, {
+        onError: () => {
+          setQuestionLikes(prev => ({ ...prev, [questionId]: current }));
+          toast.error('좋아요 취소에 실패했습니다');
+        }
+      });
+    } else {
+      likeQuestion.mutate(questionId, {
+        onError: () => {
+          setQuestionLikes(prev => ({ ...prev, [questionId]: current }));
+          toast.error('좋아요에 실패했습니다');
+        }
+      });
+    }
+  };
+
+  // Q&A 싫어요 핸들러 (Optimistic Update)
+  const handleDislikeQuestion = (questionId: number) => {
+    if (!user) {
+      openLoginModal();
+      return;
+    }
+
+    const current = questionLikes[questionId] || { liked: false, disliked: false };
+
+    // Optimistic update
+    setQuestionLikes(prev => ({
+      ...prev,
+      [questionId]: { liked: false, disliked: !current.disliked }
+    }));
+
+    // Note: Backend may handle dislike as a separate endpoint or same endpoint with different param
+    if (current.disliked) {
+      unlikeQuestion.mutate(questionId, {
+        onError: () => {
+          setQuestionLikes(prev => ({ ...prev, [questionId]: current }));
+          toast.error('싫어요 취소에 실패했습니다');
+        }
+      });
+    } else {
+      // For now, using like endpoint - backend should handle the toggle
+      likeQuestion.mutate(questionId, {
+        onError: () => {
+          setQuestionLikes(prev => ({ ...prev, [questionId]: current }));
+          toast.error('싫어요에 실패했습니다');
+        }
+      });
+    }
+  };
+
   // 글쓰기 버튼 핸들러
   const handleWriteClick = () => {
     if (user) {
@@ -308,24 +466,32 @@ function CommunityPageContent() {
   // Filter content based on selected filter
   const filteredContent = React.useMemo(() => {
     if (contentFilter === 'following') {
-      // TODO: Implement following filter logic
-      return allContent;
+      // Use following posts data
+      if (!followingPostsData?.results) return [];
+
+      return followingPostsData.results.map((item, idx) => ({
+        type: 'feed' as const,
+        data: item,
+        originalIndex: idx,
+      }));
     }
     return allContent.filter(item => item.type === contentFilter);
-  }, [allContent, contentFilter]);
+  }, [allContent, contentFilter, followingPostsData]);
 
   // Loading state
-  const isLoading = isLoadingPosts || isLoadingQuestions || isFetchingNextPosts || isFetchingNextQuestions;
+  const isLoading = isLoadingPosts || isLoadingQuestions || isFetchingNextPosts || isFetchingNextQuestions || (contentFilter === 'following' && isLoadingFollowingPosts);
 
   // Error state
-  const hasError = postsError || questionsError;
+  const hasError = postsError || questionsError || (contentFilter === 'following' && followingPostsError);
 
   // Check if there's more data to load
   const hasMoreData = contentFilter === 'feed'
     ? hasNextPosts
     : contentFilter === 'qna'
       ? hasNextQuestions
-      : hasNextPosts || hasNextQuestions;
+      : contentFilter === 'following'
+        ? false // Following uses single page for now
+        : hasNextPosts || hasNextQuestions;
 
   // Transform recommended posts data for RecommendedPostsPanel
   const recommendedPosts = React.useMemo(() => {
@@ -462,18 +628,19 @@ function CommunityPageContent() {
                         stats={{
                           likeCount: post.like_count || 0,
                           replyCount: post.comment_count || 0,
-                          repostCount: 0,
-                          viewCount: 0,
+                          repostCount: post.repost_count || 0,
+                          viewCount: post.view_count || 0,
                         }}
                         imageUrls={[]} // Not available in list view
                         onClick={() => handleOpenPost(post.id.toString(), userProfile)}
                         onLike={() => handleLikePost(post.id)}
                         onReply={() => console.log('Reply')}
-                        onRepost={() => console.log('Repost')}
+                        onRepost={() => handleRepostPost(post.id)}
                         onShare={() => handleShare(post.id.toString())}
                         onBookmark={() => handleBookmarkPost(post.id)}
                         onMore={() => console.log('More')}
                         liked={likedPosts[post.id] || false}
+                        reposted={repostedPosts[post.id] || false}
                         bookmarked={savedPosts[post.id] || false}
                       />
                     </div>
@@ -505,14 +672,16 @@ function CommunityPageContent() {
                         isPublic={question.ispublic}
                         answerCount={question.answer_count || 0}
                         commentCount={0}
-                        likeCount={0}
+                        likeCount={question.like_count || 0}
                         dislikeCount={0}
                         viewCount={0}
                         hashTagNames=""
                         qnaId={question.id}
                         onClick={() => handleOpenQna(question.id.toString(), question)}
-                        onLike={() => console.log('Like')}
-                        onDislike={() => console.log('Dislike')}
+                        onLike={() => handleLikeQuestion(question.id)}
+                        onDislike={() => handleDislikeQuestion(question.id)}
+                        liked={questionLikes[question.id]?.liked || false}
+                        disliked={questionLikes[question.id]?.disliked || false}
                       />
                     </div>
                   );

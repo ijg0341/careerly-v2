@@ -21,7 +21,7 @@ import {
   Plus,
   Loader2
 } from 'lucide-react';
-import { useCurrentUser, useCreatePost } from '@/lib/api';
+import { useCurrentUser, useCreatePost, useUploadPostImage } from '@/lib/api';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
@@ -44,6 +44,8 @@ export default function NewPostPage() {
   const [title, setTitle] = React.useState('');
   const [showTitle, setShowTitle] = React.useState(false);
   const createPostMutation = useCreatePost();
+  const uploadImageMutation = useUploadPostImage();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // User authentication
   const { data: user, isLoading: isUserLoading } = useCurrentUser();
@@ -194,9 +196,38 @@ export default function NewPostPage() {
   };
 
   const handleImage = () => {
-    const url = window.prompt('이미지 URL을 입력하세요');
-    if (url) {
-      editor?.chain().focus().setImage({ src: url }).run();
+    fileInputRef.current?.click();
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('이미지 파일만 업로드할 수 있습니다');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('이미지 크기는 5MB 이하여야 합니다');
+      return;
+    }
+
+    try {
+      const result = await uploadImageMutation.mutateAsync(file);
+      if (result.url) {
+        editor?.chain().focus().setImage({ src: result.url }).run();
+      }
+    } catch (error) {
+      // Error toast is handled by the mutation hook
+      console.error('Failed to upload image:', error);
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -366,8 +397,13 @@ export default function NewPostPage() {
                   className="h-8 w-8 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                   title="Image"
                   onClick={handleImage}
+                  disabled={uploadImageMutation.isPending}
                 >
-                  <ImagePlus className="h-4 w-4" />
+                  {uploadImageMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ImagePlus className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
 
@@ -375,6 +411,15 @@ export default function NewPostPage() {
               <div className="min-h-[400px] border-2 border-transparent hover:border-slate-200 focus-within:border-slate-300 rounded-lg transition-colors">
                 <EditorContent editor={editor} />
               </div>
+
+              {/* Hidden file input for image upload */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
             </div>
           </div>
 
