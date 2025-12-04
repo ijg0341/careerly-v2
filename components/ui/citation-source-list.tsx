@@ -7,6 +7,7 @@ import { QuoteSourceLink } from '@/components/ui/quote-source-link';
 export interface CitationSource {
   id: string;
   title: string;
+  href?: string;
   faviconUrl?: string;
 }
 

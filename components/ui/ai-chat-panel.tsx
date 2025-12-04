@@ -41,6 +41,10 @@ const STATUS_CONFIG: Record<SSEStatusStep, { icon: React.ReactNode; defaultMessa
     icon: <Sparkles className="h-4 w-4 text-blue-500" />,
     defaultMessage: '질문 분석 중...',
   },
+  routing: {
+    icon: <Sparkles className="h-4 w-4 text-blue-500" />,
+    defaultMessage: '라우팅 중...',
+  },
   searching: {
     icon: <Search className="h-4 w-4 text-blue-500" />,
     defaultMessage: '관련 자료 검색 중...',
