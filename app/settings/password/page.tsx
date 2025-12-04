@@ -55,14 +55,14 @@ export default function PasswordSettingsPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="w-full bg-white border-b border-slate-200 sticky top-0 z-50">
+      <header className="w-full bg-slate-50 sticky top-0 z-50 pt-4 pb-2">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => router.back()}
-              className="-ml-2 hover:bg-slate-100"
+              className="-ml-2 hover:bg-slate-200"
             >
               <ChevronLeft className="h-6 w-6 text-slate-900" />
             </Button>
@@ -72,7 +72,7 @@ export default function PasswordSettingsPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-2xl mx-auto px-4 py-6">
+      <main className="max-w-3xl mx-auto px-4 py-6">
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
           {/* Description */}
           <div className="mb-8">

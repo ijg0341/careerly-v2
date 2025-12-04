@@ -56,16 +56,6 @@ export default function AccountSettingsPage() {
     ? user.phone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-****-$3')
     : '미등록';
 
-  const handleEmailClick = () => {
-    // TODO: 이메일 변경 모달/페이지 구현
-    alert('이메일 변경 기능은 추후 구현 예정입니다.');
-  };
-
-  const handlePhoneClick = () => {
-    // TODO: 전화번호 변경 모달/페이지 구현
-    alert('전화번호 변경 기능은 추후 구현 예정입니다.');
-  };
-
   const handlePasswordClick = () => {
     router.push('/settings/password');
   };
@@ -127,17 +117,13 @@ export default function AccountSettingsPage() {
                 <SettingItem
                   icon={<Mail className="h-5 w-5" />}
                   title="이메일"
-                  description={user?.email}
-                  onClick={handleEmailClick}
-                  disabled={isSocialLogin}
-                  disabledText={isSocialLogin ? '소셜 로그인 계정은 이메일을 변경할 수 없습니다.' : undefined}
+                  description={user?.email || '-'}
                 />
 
                 <SettingItem
                   icon={<Phone className="h-5 w-5" />}
                   title="전화번호"
                   description={maskedPhone}
-                  onClick={handlePhoneClick}
                 />
 
                 <SettingItem

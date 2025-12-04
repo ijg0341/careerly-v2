@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { useLogout } from '@/lib/api';
+import { useLogout, useRequestDeleteAccount } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 const DELETE_REASONS = [
@@ -24,9 +24,9 @@ export default function DeleteAccountPage() {
   const [reason, setReason] = useState<string>('');
   const [feedback, setFeedback] = useState('');
   const [agreed, setAgreed] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { logoutWithConfirm } = useLogout();
+  const requestDelete = useRequestDeleteAccount();
 
   const handleSubmit = async () => {
     if (!agreed) return;
@@ -37,27 +37,14 @@ export default function DeleteAccountPage() {
 
     if (!confirmed) return;
 
-    setIsSubmitting(true);
-
-    try {
-      // TODO: API hook will be implemented by another agent
-      // For now, we'll simulate the API call
-      // const requestDelete = useRequestDeleteAccount();
-      // await requestDelete.mutateAsync({ reason, feedback });
-
-      // Simulating API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      alert('계정 삭제 요청이 접수되었습니다.\n처리 완료 시 이메일로 안내드립니다.');
-
-      // Logout after successful request
-      logoutWithConfirm();
-    } catch (error) {
-      console.error('Failed to request account deletion:', error);
-      alert('계정 삭제 요청 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    requestDelete.mutate(
+      { reason, feedback },
+      {
+        onSuccess: () => {
+          logoutWithConfirm();
+        },
+      }
+    );
   };
 
   return (
@@ -165,12 +152,12 @@ export default function DeleteAccountPage() {
           variant="coral"
           className={cn(
             "w-full h-12 font-semibold",
-            agreed && !isSubmitting && "hover:opacity-90"
+            agreed && !requestDelete.isPending && "hover:opacity-90"
           )}
-          disabled={!agreed || isSubmitting}
+          disabled={!agreed || requestDelete.isPending}
           onClick={handleSubmit}
         >
-          {isSubmitting ? '처리 중...' : '계정 삭제 요청하기'}
+          {requestDelete.isPending ? '처리 중...' : '계정 삭제 요청하기'}
         </Button>
 
         {/* Additional Info */}

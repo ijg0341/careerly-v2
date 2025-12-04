@@ -55,8 +55,8 @@ export default function InterestsSettingsPage() {
   };
 
   // 개발/엔지니어링 관심사와 그 외로 분리
-  const engineeringInterests = interests?.filter((i) => i.isEngineering) || [];
-  const nonEngineeringInterests = interests?.filter((i) => !i.isEngineering) || [];
+  const engineeringInterests = interests?.filter((i) => i.isEngineering === true) || [];
+  const nonEngineeringInterests = interests?.filter((i) => i.isEngineering !== true) || [];
 
   return (
     <div className="min-h-screen bg-slate-50">
