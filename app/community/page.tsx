@@ -833,7 +833,6 @@ function CommunityPageContent() {
                       <CommunityFeedCard
                         userProfile={userProfile}
                         content={post.description}
-                        contentHtml={post.description} // API doesn't provide HTML separately in list
                         createdAt={post.createdat}
                         stats={{
                           likeCount: post.like_count || 0,
