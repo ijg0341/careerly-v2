@@ -3,6 +3,42 @@ import { MarketAssetMiniCardProps } from '@/components/ui/market-asset-mini-card
 import { JobMarketTrend } from '@/components/ui/job-market-trend-card';
 import { WeatherForecast } from '@/components/ui/weather-info-card';
 
+// AI 카테고리 타입
+export type AICategory = 'ai-core' | 'ai-enabled' | 'traditional';
+// ai-core: AI/ML 엔지니어, 프롬프트 엔지니어 등 AI 핵심 직무
+// ai-enabled: 전통 직무 + AI 도구 활용 필요
+// traditional: AI와 무관한 전통 직무
+
+// 직무 카테고리 타입
+export type JobRole = 'engineering' | 'design' | 'marketing' | 'pm' | 'data' | 'operations' | 'other';
+// engineering: 개발/엔지니어링
+// design: 디자인/UX
+// marketing: 마케팅/그로스
+// pm: 기획/PM
+// data: 데이터 분석/사이언스
+// operations: 운영/비즈니스
+// other: 기타
+
+// 직무 카테고리 설정
+export const jobRoleConfig: Record<JobRole, { label: string; icon: string; color: string }> = {
+  engineering: { label: '개발', icon: '💻', color: 'blue' },
+  design: { label: '디자인', icon: '🎨', color: 'pink' },
+  marketing: { label: '마케팅', icon: '📈', color: 'orange' },
+  pm: { label: '기획/PM', icon: '📋', color: 'indigo' },
+  data: { label: '데이터', icon: '📊', color: 'emerald' },
+  operations: { label: '운영', icon: '⚙️', color: 'slate' },
+  other: { label: '기타', icon: '📁', color: 'gray' },
+};
+
+// AI 카테고리별 브리핑 타입
+export interface AICategoryBriefing {
+  category: AICategory;
+  title: string;
+  summary: string;
+  keyInsight: string;
+  jobCount: number;
+}
+
 // Metadata types for different content types
 export interface JobMetadata {
   averageSalary?: string;
@@ -120,6 +156,8 @@ export interface DiscoverMockResponse {
     summary: string;
     createdAt: string | null;
     score: number;
+    aiScore: number; // AI 관련도 점수 (0-100)
+    aiCategory: 'ai-dev' | 'ai-design' | 'ai-biz' | 'ai-general' | 'other'; // AI&Dev, AI&Design, AI&Biz, AI 일반, 기타
     reason: string;
     hasMyBookmark: boolean;
     hasMyLike: boolean;
@@ -459,69 +497,898 @@ export const mockDiscoverResponse: DiscoverMockResponse = {
     },
   ],
   blogs: [
+    // === 12월 8일 (일) - 5개 ===
     {
-      id: 47659,
-      title: '2025년 버전, 개발조직 주도 교육 및 성장 회고(Tech-driven Education Retrospect)',
-      url: 'https://techtopic.skplanet.com/techlearning2025/',
+      id: 47700,
+      title: 'Claude MCP(Model Context Protocol) 완벽 가이드: AI Agent 개발의 새로운 패러다임',
+      url: 'https://tech.example.com/claude-mcp-guide',
       company: {
-        title: 'SK Planet 블로그',
+        title: '토스 테크블로그',
         sign: null,
-        image: 'https://somoonai.s3.amazonaws.com/uploads/logos/skplanet.jpg',
+        image: 'https://static.toss.im/icons/png/4x/icon-toss-logo.png',
       },
       source: null,
       category: null,
-      imageUrl: null,
-      publishedAt: null,
-      summary:
-        'SK플래닛은 2025년, 개발자 경쟁력 강화와 프로덕트 적시 런칭을 목표로 AI 및 테크 교육 프로그램을 적극적으로 운영했습니다. CTO, 개발그룹 등 개발 조직 주도로 Tech Academy, Bootcamp, MOOC, Agile Coaching, AI/Cloud/Web3 교육 등을 통해 개발자 성장을 지원해왔으며, 특히 최태원 회장의 AI 활용 강조에 발맞춰 단순 툴 소개를 넘어 업무 프로세스에 AI를 녹여 생산성을 향상시키는 교육에 집중했습니다.\n\n2025년 추진 방향은 시장 대비 개발자 경쟁력 강화와 프로덕트 적시 런칭을 위한 Skill 보유를 목표로, AI와 Tech 육성 방향을 Upskilling 및 Reskilling으로 설정했습니다. AI는 프로덕트 개발, AI Coding, Workflow로 정의하고 프로덕트 개발과 AI Coding에 포커스를 맞췄으며, Tech는 구성원 및 조직 니즈가 높은 분야(k8s, Redis, Kafka 등)를 중심으로 Upskilling 및 Reskilling 프로그램을 제공했습니다.\n\n주요 프로그램으로는 외부 전문가를 초청한 AI & 테크 인사이트 세미나(GitHub Copilot UNIVERSE 리캡, NVIDIA GTC 2025 리캡 및 MCP 소개, Cursor 도입 및 활용 사례 공유, RAG/Agent 및 바이브코딩 도입 사례 공유, 사내 Agent 특강 등)와 실습 중심의 Tech Upskilling 핸즈온 교육(RAG & AI Agent 개발, Docker & Kubernetes 배포 및 모니터링, Redis 장애실습, GitHub Copilot 활용 Figma MCP 핸즈온 등)이 진행되었습니다.\n\n또한, 직무 변경 대상자의 빠른 현업 적응을 위한 Tech Reskilling 교육(웹 프론트엔드, 백엔드, 데이터 엔지니어링)을 오프라인 및 온라인 연계 과정으로 제공하여 높은 만족도를 얻었습니다. 회사 기술 블로그를 개발자 Tech Writing Playground로 활용하여 글쓰기 역량 개발 및 정보 공유를 활성화했으며, SK 데보션 프로 활동 및 SK AI SUMMIT 발표 참여를 통해 개발자 퍼스널 브랜딩 기회를 제공했습니다.\n\n결론적으로 SK플래닛은 AI 시대에도 개발자의 성장과 이를 위한 기업의 노력이 필수적임을 강조하며, 이를 통해 기업과 개인이 함께 성장하는 지혜로운 길을 모색하고 있습니다.\n\n🌟 한 줄 요약: SK플래닛은 AI 시대를 맞아 개발자 경쟁력 강화를 위해 AI 및 테크 교육, 직무 전환 지원, 기술 블로그 활용 등 다각적인 프로그램을 운영하며 조직과 개인의 동반 성장을 추구하고 있습니다.',
-      createdAt: '2025-10-28 15:00:00',
-      score: 0.8,
-      reason:
-        '이 인재는 팀원들의 기술 성장을 지원하고, 프로젝트 매니징 능력을 발휘하는 프론트엔드 개발팀 리더입니다. 이 블로그 글은 개발 조직의 교육 및 성장 회고를 다루고 있어, 팀원들의 기술 향상과 관련된 다양한 프로그램과 방향성을 제시하고 있어 실무에 도움이 될 것입니다.',
+      imageUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400&h=300&fit=crop',
+      publishedAt: '2025-12-08',
+      summary: 'Anthropic이 공개한 MCP(Model Context Protocol)는 AI 에이전트가 외부 도구와 데이터 소스에 접근하는 방식을 표준화합니다.',
+      createdAt: '2025-12-08 09:00:00',
+      score: 0.95,
+      aiScore: 98,
+      aiCategory: 'ai-dev',
+      reason: 'AI Agent 개발의 핵심 프로토콜인 MCP에 대한 실무 가이드',
       hasMyBookmark: false,
       hasMyLike: false,
     },
     {
-      id: 47610,
-      title: 'Arvind Jain Pushes into AI-powered Productivity',
-      url: 'https://sequoiacap.com/article/arvind-jain-glean-spotlight/',
+      id: 47750,
+      title: 'Vercel AI SDK 4.0: 스트리밍 UI와 Tool Calling의 진화',
+      url: 'https://tech.example.com/vercel-ai-sdk-4',
       company: {
-        title: 'Sequoia 블로그',
+        title: '당근 테크블로그',
         sign: null,
-        image: 'https://somoonai.s3.amazonaws.com/uploads/logos/sequoiacap.png',
+        image: 'https://about.daangn.com/static/media/daangn-symbol.57768a21.svg',
       },
       source: null,
       category: null,
-      imageUrl: null,
-      publishedAt: null,
-      summary:
-        'Arvind Jain은 과거 Rubrik에서 겪었던 직원들의 정보 검색 비효율성 문제를 해결하기 위해 AI 기반 기업 검색 엔진 Glean을 창업했습니다. Google에서 검색 엔진 개발 경험을 쌓은 Jain은 기업 내부에 파편화된 정보를 효과적으로 검색하고 활용하는 것이 인터넷 검색보다 어렵다는 점에 주목했습니다. Glean은 다양한 SaaS 도구에 흩어진 기업 데이터를 지식 그래프로 구축하고, 최신 자연어 처리 및 딥러닝 기술을 활용하여 개인화된 검색 결과를 제공합니다. 특히 최근에는 생성형 AI를 통합하여 단순 정보 검색을 넘어 업무 수행까지 지원하는 \'업무 도우미\'로 발전하고 있습니다. Glean은 기업의 생산성을 획기적으로 향상시키고, 직원들이 정보 탐색에 소요하는 시간을 줄여 핵심 업무에 집중할 수 있도록 돕는 것을 목표로 합니다.\n\n🌟 한 줄 요약: AI 기반 기업 검색 엔진 Glean은 파편화된 기업 정보를 통합하고 생성형 AI를 활용하여 업무 생산성을 극대화한다.',
-      createdAt: '2025-10-27 15:00:00',
-      score: 0.7,
-      reason:
-        '이 인재는 프론트엔드 개발자로서의 경험을 바탕으로 팀 리더 역할을 수행하고 있습니다. 이 블로그 글은 AI 기반의 생산성 향상에 대한 내용을 다루고 있어, 프론트엔드 개발과 관련된 최신 기술 트렌드와 AI의 활용 방안에 대한 통찰을 제공할 것입니다.',
+      imageUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=300&fit=crop',
+      publishedAt: '2025-12-08',
+      summary: 'Vercel AI SDK 4.0의 새로운 기능들을 살펴봅니다. useChat, useCompletion 훅의 개선사항과 Tool Calling 패턴을 다룹니다.',
+      createdAt: '2025-12-08 14:00:00',
+      score: 0.91,
+      aiScore: 94,
+      aiCategory: 'ai-dev',
+      reason: 'AI SDK 업데이트 및 실전 활용',
       hasMyBookmark: false,
       hasMyLike: false,
     },
     {
-      id: 47555,
-      title: '기기 없이 앱을 테스트하는 법, 멀티버스가 알려드립니다',
-      url: 'https://tech.kakaopay.com/post/multiverse/',
+      id: 47751,
+      title: 'AI 코파일럿으로 디자인 시스템 문서화 자동화하기',
+      url: 'https://design.example.com/ai-design-docs',
       company: {
-        title: '카카오페이 테크블로그',
+        title: '토스 디자인 블로그',
         sign: null,
-        image: 'https://somoonai.s3.amazonaws.com/uploads/logos/kakaopaytech.png',
+        image: 'https://static.toss.im/icons/png/4x/icon-toss-logo.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400&h=300&fit=crop',
+      publishedAt: '2025-12-08',
+      summary: 'Figma AI와 GitHub Copilot을 활용해 디자인 시스템 문서를 자동 생성하는 워크플로우를 공유합니다.',
+      createdAt: '2025-12-08 11:00:00',
+      score: 0.78,
+      aiScore: 82,
+      aiCategory: 'ai-design',
+      reason: 'AI 기반 디자인 문서화 자동화',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47752,
+      title: 'ChatGPT 팀 플랜 vs 엔터프라이즈: 우리 회사에 맞는 선택은?',
+      url: 'https://blog.example.com/chatgpt-plans-compare',
+      company: {
+        title: '리멤버 블로그',
+        sign: null,
+        image: 'https://www.rememberapp.co.kr/assets/img/common/logo_symbol.png',
       },
       source: null,
       category: null,
       imageUrl: null,
-      publishedAt: null,
-      summary:
-        '카카오페이 클라이언트 플랫폼 팀은 테스트 기기 부족 및 관리 비용, 다양한 버전에서의 테스트 불편함 등 모바일 서비스 개발 시 발생하는 현실적인 문제들을 해결하기 위해 사내 테스트 플랫폼 \'멀티버스\'를 개발했습니다. 멀티버스는 맥북 하나로 실제 기기 없이 다양한 OS 버전과 기기 환경에서 앱을 테스트할 수 있는 가상 기기(시뮬레이터, 에뮬레이터)를 제공하며, 클릭 한 번으로 환경 구축, 가상 기기 생성 및 관리, 앱 설치 및 실행, 딥 링크 실행, 화면 캡처 및 녹화, 사용자 행동 로그 실시간 확인 등 다양한 테스트 편의 기능을 지원합니다. 이를 통해 프론트엔드, 백엔드 개발자뿐만 아니라 기획자, 디자이너 등 다양한 직군의 사용자들이 테스트에 집중할 수 있도록 돕고 개발 생산성을 향상시켰습니다. 향후에는 확장된 로그 콘솔, 사내 테스트 도구 및 어드민 연계, 직군별 테스트 편의 기능 제공 등을 통해 더욱 발전된 플랫폼으로 진화할 계획입니다.\n\n🌟 한 줄 요약: 멀티버스는 실제 기기 없이도 다양한 환경에서 앱 테스트를 가능하게 하여 개발 생산성을 극대화하는 혁신적인 사내 테스트 플랫폼입니다.',
-      createdAt: '2025-10-29 15:00:00',
-      score: 0.6,
-      reason:
-        '이 인재는 대규모 웹 애플리케이션의 프론트엔드 아키텍처 설계 및 구현을 담당하고 있습니다. 이 블로그 글은 가상 기기를 활용한 앱 테스트 방법을 소개하고 있어, 프론트엔드 개발 시 유용한 테스트 환경 구축에 대한 정보를 제공하여 실무에 도움이 될 것입니다.',
+      publishedAt: '2025-12-08',
+      summary: 'ChatGPT 팀 플랜과 엔터프라이즈 플랜의 기능, 보안, 가격을 비교 분석하고 도입 시 고려사항을 정리합니다.',
+      createdAt: '2025-12-08 10:00:00',
+      score: 0.72,
+      aiScore: 68,
+      aiCategory: 'ai-biz',
+      reason: 'AI 도구 도입 의사결정 가이드',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47753,
+      title: 'Sora로 만드는 제품 소개 영상: 프롬프트 작성법',
+      url: 'https://design.example.com/sora-product-video',
+      company: {
+        title: '네이버 D2',
+        sign: null,
+        image: 'https://d2.naver.com/static/img/app/common/logo_d2.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: 'https://images.unsplash.com/photo-1536240478700-b869070f9279?w=400&h=300&fit=crop',
+      publishedAt: '2025-12-08',
+      summary: 'OpenAI Sora를 활용한 제품 소개 영상 제작 가이드. 효과적인 프롬프트 작성법과 편집 워크플로우를 소개합니다.',
+      createdAt: '2025-12-08 16:00:00',
+      score: 0.80,
+      aiScore: 85,
+      aiCategory: 'ai-design',
+      reason: 'AI 영상 생성 실전 가이드',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+
+    // === 12월 7일 (토) - 6개 ===
+    {
+      id: 47699,
+      title: 'LangGraph로 구축하는 Multi-Agent 시스템: 실전 아키텍처 패턴',
+      url: 'https://engineering.example.com/langgraph-multi-agent',
+      company: {
+        title: '카카오 테크블로그',
+        sign: null,
+        image: 'https://t1.kakaocdn.net/kakaocorp/kakaocorp/admin/5f9c58c2017800001.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=400&h=300&fit=crop',
+      publishedAt: '2025-12-07',
+      summary: 'LangGraph를 활용한 복잡한 Multi-Agent 워크플로우 설계 방법을 다룹니다. State Graph 패턴과 에이전트 간 협업 전략을 설명합니다.',
+      createdAt: '2025-12-07 14:00:00',
+      score: 0.92,
+      aiScore: 95,
+      aiCategory: 'ai-dev',
+      reason: 'LangGraph 기반 Multi-Agent 아키텍처 실전 가이드',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47754,
+      title: 'Windsurf IDE 심층 리뷰: Cursor의 대안이 될 수 있을까?',
+      url: 'https://tech.example.com/windsurf-review',
+      company: {
+        title: 'GeekNews',
+        sign: null,
+        image: 'https://news.hada.io/logo.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-12-07',
+      summary: 'Codeium의 새로운 AI IDE Windsurf를 2주간 실제 프로젝트에서 사용해본 솔직한 리뷰. Cursor와의 비교 분석.',
+      createdAt: '2025-12-07 10:00:00',
+      score: 0.88,
+      aiScore: 90,
+      aiCategory: 'ai-dev',
+      reason: 'AI IDE 비교 리뷰',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47755,
+      title: 'Canva AI로 SNS 콘텐츠 대량 생산하기',
+      url: 'https://design.example.com/canva-ai-content',
+      company: {
+        title: '요즘IT',
+        sign: null,
+        image: 'https://yozm.wishket.com/static/img/og_image.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-12-07',
+      summary: 'Canva의 AI 기능들을 활용해 인스타그램, 유튜브 썸네일 등 SNS 콘텐츠를 효율적으로 제작하는 방법을 공유합니다.',
+      createdAt: '2025-12-07 09:00:00',
+      score: 0.70,
+      aiScore: 72,
+      aiCategory: 'ai-design',
+      reason: 'AI 디자인 툴 활용 가이드',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47756,
+      title: 'AI 기반 코드 리뷰 자동화: CodeRabbit vs Sourcery 비교',
+      url: 'https://tech.example.com/ai-code-review-tools',
+      company: {
+        title: 'LINE 테크블로그',
+        sign: null,
+        image: 'https://engineering.linecorp.com/images/line-developers-logo.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-12-07',
+      summary: 'PR 자동 리뷰 도구 CodeRabbit과 Sourcery를 실제 프로젝트에 적용해본 경험을 공유합니다.',
+      createdAt: '2025-12-07 15:00:00',
+      score: 0.85,
+      aiScore: 88,
+      aiCategory: 'ai-dev',
+      reason: 'AI 코드 리뷰 도구 비교',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47757,
+      title: 'Perplexity로 시장 조사 10배 빠르게 하기',
+      url: 'https://blog.example.com/perplexity-research',
+      company: {
+        title: 'Disquiet 블로그',
+        sign: null,
+        image: 'https://disquiet.io/favicon.ico',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-12-07',
+      summary: 'Perplexity AI를 활용한 효율적인 시장 조사 방법론. 경쟁사 분석, 트렌드 파악, 리포트 작성까지.',
+      createdAt: '2025-12-07 11:00:00',
+      score: 0.68,
+      aiScore: 65,
+      aiCategory: 'ai-biz',
+      reason: 'AI 리서치 도구 활용',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47758,
+      title: 'GPT-4 Vision으로 UI 테스트 자동화하기',
+      url: 'https://tech.example.com/gpt4-vision-ui-test',
+      company: {
+        title: '우아한형제들 테크블로그',
+        sign: null,
+        image: 'https://techblog.woowahan.com/wp-content/uploads/2021/06/woowahanLogo.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=300&fit=crop',
+      publishedAt: '2025-12-07',
+      summary: 'GPT-4 Vision API를 활용한 시각적 UI 테스트 자동화 구현기. 스크린샷 기반 회귀 테스트를 AI로.',
+      createdAt: '2025-12-07 17:00:00',
+      score: 0.90,
+      aiScore: 92,
+      aiCategory: 'ai-dev',
+      reason: 'AI 기반 UI 테스트 자동화',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+
+    // === 12월 6일 (금) - 5개 ===
+    {
+      id: 47698,
+      title: 'ChatGPT로 업무 생산성 200% 올리기: 프롬프트 엔지니어링 실전 팁',
+      url: 'https://blog.example.com/chatgpt-productivity',
+      company: {
+        title: '리멤버 블로그',
+        sign: null,
+        image: 'https://www.rememberapp.co.kr/assets/img/common/logo_symbol.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: 'https://images.unsplash.com/photo-1655720828018-edd2daec9349?w=400&h=300&fit=crop',
+      publishedAt: '2025-12-06',
+      summary: '일상 업무에서 ChatGPT를 효과적으로 활용하는 방법을 소개합니다. 이메일 작성, 회의록 정리, 보고서 작성 팁.',
+      createdAt: '2025-12-06 10:00:00',
+      score: 0.75,
+      aiScore: 72,
+      aiCategory: 'ai-biz',
+      reason: 'AI 도구 활용 업무 생산성 향상 가이드',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47759,
+      title: 'Amazon Bedrock으로 RAG 시스템 구축하기',
+      url: 'https://tech.example.com/bedrock-rag',
+      company: {
+        title: '쿠팡 테크블로그',
+        sign: null,
+        image: 'https://www.coupang.com/favicon.ico',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-12-06',
+      summary: 'AWS Bedrock의 Knowledge Bases 기능을 활용한 엔터프라이즈급 RAG 시스템 구축 가이드.',
+      createdAt: '2025-12-06 14:00:00',
+      score: 0.88,
+      aiScore: 91,
+      aiCategory: 'ai-dev',
+      reason: 'AWS AI 서비스 활용',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47760,
+      title: 'Figma AI 기능 총정리: 2024 연말 업데이트',
+      url: 'https://design.example.com/figma-ai-update',
+      company: {
+        title: '토스 디자인 블로그',
+        sign: null,
+        image: 'https://static.toss.im/icons/png/4x/icon-toss-logo.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: 'https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?w=400&h=300&fit=crop',
+      publishedAt: '2025-12-06',
+      summary: 'Figma의 AI 기능들을 총정리합니다. AI 레이어 이름 지정, 자동 레이아웃, 이미지 생성 기능 활용법.',
+      createdAt: '2025-12-06 11:00:00',
+      score: 0.76,
+      aiScore: 80,
+      aiCategory: 'ai-design',
+      reason: 'Figma AI 기능 가이드',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47761,
+      title: 'Claude Artifacts로 프로토타입 빠르게 만들기',
+      url: 'https://blog.example.com/claude-artifacts',
+      company: {
+        title: '요즘IT',
+        sign: null,
+        image: 'https://yozm.wishket.com/static/img/og_image.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-12-06',
+      summary: 'Claude의 Artifacts 기능을 활용해 인터랙티브 프로토타입을 빠르게 만드는 방법. React 컴포넌트부터 게임까지.',
+      createdAt: '2025-12-06 09:00:00',
+      score: 0.82,
+      aiScore: 86,
+      aiCategory: 'ai-dev',
+      reason: 'Claude AI 실전 활용',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47762,
+      title: 'AI 어시스턴트 비교: Claude vs ChatGPT vs Gemini 2024',
+      url: 'https://ai.example.com/ai-assistant-compare-2024',
+      company: {
+        title: 'GeekNews',
+        sign: null,
+        image: 'https://news.hada.io/logo.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-12-06',
+      summary: '2024년 말 기준 주요 AI 어시스턴트들의 성능, 기능, 가격을 종합 비교합니다.',
+      createdAt: '2025-12-06 16:00:00',
+      score: 0.78,
+      aiScore: 75,
+      aiCategory: 'ai-general',
+      reason: 'AI 어시스턴트 비교 분석',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+
+    // === 12월 5일 (목) - 4개 ===
+    {
+      id: 47697,
+      title: 'Cursor AI로 개발 속도 3배 높이기: VSCode에서 AI 페어 프로그래밍',
+      url: 'https://tech.example.com/cursor-ai-development',
+      company: {
+        title: '배달의민족 테크블로그',
+        sign: null,
+        image: 'https://techblog.woowahan.com/wp-content/uploads/2021/06/woowahanLogo.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-12-05',
+      summary: 'Cursor IDE의 핵심 기능과 효과적인 활용법을 다룹니다. Composer 모드, Chat 기능, 코드 자동 완성의 차이점.',
+      createdAt: '2025-12-05 11:00:00',
+      score: 0.88,
+      aiScore: 90,
+      aiCategory: 'ai-dev',
+      reason: 'AI 코딩 도구 Cursor 실전 활용 가이드',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47763,
+      title: 'Gamma AI로 프레젠테이션 5분만에 만들기',
+      url: 'https://blog.example.com/gamma-ai-presentation',
+      company: {
+        title: 'Disquiet 블로그',
+        sign: null,
+        image: 'https://disquiet.io/favicon.ico',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-12-05',
+      summary: 'Gamma AI를 활용한 프레젠테이션 제작 가이드. 텍스트 입력만으로 전문적인 슬라이드를 만드는 방법.',
+      createdAt: '2025-12-05 09:00:00',
+      score: 0.65,
+      aiScore: 62,
+      aiCategory: 'ai-biz',
+      reason: 'AI 프레젠테이션 도구',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47764,
+      title: 'AI 이미지 생성 도구 비교: DALL-E 3 vs Midjourney vs Stable Diffusion',
+      url: 'https://design.example.com/ai-image-compare',
+      company: {
+        title: '네이버 D2',
+        sign: null,
+        image: 'https://d2.naver.com/static/img/app/common/logo_d2.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: 'https://images.unsplash.com/photo-1547954575-855750c57bd3?w=400&h=300&fit=crop',
+      publishedAt: '2025-12-05',
+      summary: '주요 AI 이미지 생성 도구들의 품질, 속도, 가격, 사용성을 비교 분석합니다.',
+      createdAt: '2025-12-05 14:00:00',
+      score: 0.74,
+      aiScore: 78,
+      aiCategory: 'ai-design',
+      reason: 'AI 이미지 생성 도구 비교',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47765,
+      title: 'Spring AI로 Java 백엔드에 LLM 통합하기',
+      url: 'https://tech.example.com/spring-ai-integration',
+      company: {
+        title: 'NHN 테크블로그',
+        sign: null,
+        image: 'https://www.nhn.com/favicon.ico',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-12-05',
+      summary: 'Spring AI 프레임워크를 활용해 Java 애플리케이션에 OpenAI, Anthropic API를 통합하는 방법.',
+      createdAt: '2025-12-05 15:00:00',
+      score: 0.86,
+      aiScore: 89,
+      aiCategory: 'ai-dev',
+      reason: 'Java AI 통합 가이드',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+
+    // === 12월 4일 (수) - 4개 ===
+    {
+      id: 47696,
+      title: 'Next.js 15 App Router 마이그레이션 완벽 가이드',
+      url: 'https://engineering.example.com/nextjs15-migration',
+      company: {
+        title: '카카오 테크블로그',
+        sign: null,
+        image: 'https://t1.kakaocdn.net/kakaocorp/kakaocorp/admin/5f9c58c2017800001.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-12-04',
+      summary: 'Next.js 14에서 15로 마이그레이션하면서 겪은 경험을 공유합니다. Turbopack, 새로운 캐싱 전략.',
+      createdAt: '2025-12-04 15:00:00',
+      score: 0.70,
+      aiScore: 35,
+      aiCategory: 'other',
+      reason: 'Next.js 프레임워크 마이그레이션 기술 가이드',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47766,
+      title: 'Copilot for Microsoft 365 실제 업무 활용기',
+      url: 'https://blog.example.com/copilot-365-review',
+      company: {
+        title: '리멤버 블로그',
+        sign: null,
+        image: 'https://www.rememberapp.co.kr/assets/img/common/logo_symbol.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-12-04',
+      summary: 'Microsoft 365 Copilot을 3개월간 사용해본 솔직한 후기. Excel, PowerPoint, Teams에서의 활용도.',
+      createdAt: '2025-12-04 10:00:00',
+      score: 0.70,
+      aiScore: 68,
+      aiCategory: 'ai-biz',
+      reason: 'MS Copilot 실사용 후기',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47767,
+      title: 'PostgreSQL에서 pgvector로 벡터 검색 구현하기',
+      url: 'https://tech.example.com/pgvector-guide',
+      company: {
+        title: '당근 테크블로그',
+        sign: null,
+        image: 'https://about.daangn.com/static/media/daangn-symbol.57768a21.svg',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-12-04',
+      summary: 'pgvector 확장을 사용해 PostgreSQL에서 벡터 유사도 검색을 구현하는 방법. RAG 시스템의 벡터 DB로 활용.',
+      createdAt: '2025-12-04 14:00:00',
+      score: 0.84,
+      aiScore: 87,
+      aiCategory: 'ai-dev',
+      reason: '벡터 DB 구현 가이드',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47768,
+      title: 'Adobe Firefly로 제품 이미지 배경 자동 생성하기',
+      url: 'https://design.example.com/firefly-product-images',
+      company: {
+        title: '토스 디자인 블로그',
+        sign: null,
+        image: 'https://static.toss.im/icons/png/4x/icon-toss-logo.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-12-04',
+      summary: 'Adobe Firefly의 생성적 채우기 기능을 활용해 이커머스 제품 이미지의 배경을 자동으로 생성하는 워크플로우.',
+      createdAt: '2025-12-04 11:00:00',
+      score: 0.72,
+      aiScore: 76,
+      aiCategory: 'ai-design',
+      reason: 'Adobe AI 활용 가이드',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+
+    // === 12월 3일 (화) - 4개 ===
+    {
+      id: 47695,
+      title: 'AI 시대의 개발자 커리어: 5년 후를 준비하는 전략',
+      url: 'https://blog.example.com/ai-developer-career',
+      company: {
+        title: 'wanted 인사이트',
+        sign: null,
+        image: 'https://static.wanted.co.kr/images/wdes/0_5.c7ead3a6.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-12-03',
+      summary: 'AI가 개발 업무를 자동화하는 시대, 개발자가 키워야 할 역량. CTO 인터뷰를 통한 미래 개발자상.',
+      createdAt: '2025-12-03 09:00:00',
+      score: 0.65,
+      aiScore: 60,
+      aiCategory: 'ai-general',
+      reason: 'AI 시대 개발자 커리어 전략',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47769,
+      title: 'Anthropic Claude API 비용 최적화 전략',
+      url: 'https://tech.example.com/claude-api-cost',
+      company: {
+        title: '뤼튼 테크블로그',
+        sign: null,
+        image: 'https://static.wrtn.io/images/wrtn/logo/logo-wrtn-symbol.svg',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-12-03',
+      summary: 'Claude API 사용 비용을 줄이는 실전 팁. 프롬프트 캐싱, 배치 처리, 모델 선택 전략.',
+      createdAt: '2025-12-03 14:00:00',
+      score: 0.83,
+      aiScore: 86,
+      aiCategory: 'ai-dev',
+      reason: 'AI API 비용 최적화',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47770,
+      title: 'Runway Gen-3로 AI 뮤직비디오 만들기',
+      url: 'https://design.example.com/runway-music-video',
+      company: {
+        title: '요즘IT',
+        sign: null,
+        image: 'https://yozm.wishket.com/static/img/og_image.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop',
+      publishedAt: '2025-12-03',
+      summary: 'Runway의 최신 비디오 생성 모델 Gen-3를 활용한 뮤직비디오 제작 과정을 공유합니다.',
+      createdAt: '2025-12-03 11:00:00',
+      score: 0.75,
+      aiScore: 79,
+      aiCategory: 'ai-design',
+      reason: 'AI 비디오 생성 활용',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47771,
+      title: 'AI 챗봇 구축 플랫폼 비교: Dialogflow vs Rasa vs Botpress',
+      url: 'https://tech.example.com/chatbot-platform-compare',
+      company: {
+        title: 'LINE 테크블로그',
+        sign: null,
+        image: 'https://engineering.linecorp.com/images/line-developers-logo.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-12-03',
+      summary: '주요 챗봇 구축 플랫폼들의 기능, 가격, 커스터마이징 용이성을 비교합니다.',
+      createdAt: '2025-12-03 15:00:00',
+      score: 0.80,
+      aiScore: 82,
+      aiCategory: 'ai-dev',
+      reason: '챗봇 플랫폼 비교',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+
+    // === 12월 2일 (월) - 5개 ===
+    {
+      id: 47694,
+      title: 'RAG 파이프라인 성능 최적화: Embedding부터 Reranking까지',
+      url: 'https://tech.example.com/rag-optimization',
+      company: {
+        title: '네이버 D2',
+        sign: null,
+        image: 'https://d2.naver.com/static/img/app/common/logo_d2.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-12-02',
+      summary: 'RAG 시스템의 검색 정확도와 응답 품질을 높이는 방법. Hybrid Search, Semantic Chunking, Reranking.',
+      createdAt: '2025-12-02 16:00:00',
+      score: 0.93,
+      aiScore: 96,
+      aiCategory: 'ai-dev',
+      reason: 'RAG 시스템 최적화 심화 가이드',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47772,
+      title: 'Gemini 2.0 Flash로 멀티모달 앱 만들기',
+      url: 'https://tech.example.com/gemini-2-flash',
+      company: {
+        title: '카카오 테크블로그',
+        sign: null,
+        image: 'https://t1.kakaocdn.net/kakaocorp/kakaocorp/admin/5f9c58c2017800001.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=400&h=300&fit=crop',
+      publishedAt: '2025-12-02',
+      summary: 'Google의 새로운 Gemini 2.0 Flash 모델을 활용한 멀티모달 애플리케이션 개발 가이드.',
+      createdAt: '2025-12-02 10:00:00',
+      score: 0.89,
+      aiScore: 92,
+      aiCategory: 'ai-dev',
+      reason: 'Gemini 2.0 활용 가이드',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47773,
+      title: 'AI 번역 도구 비교: DeepL vs Google vs ChatGPT',
+      url: 'https://blog.example.com/ai-translation-compare',
+      company: {
+        title: 'Disquiet 블로그',
+        sign: null,
+        image: 'https://disquiet.io/favicon.ico',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-12-02',
+      summary: '주요 AI 번역 서비스들의 정확도, 뉘앙스 표현력, 전문 용어 처리 능력을 비교합니다.',
+      createdAt: '2025-12-02 09:00:00',
+      score: 0.62,
+      aiScore: 58,
+      aiCategory: 'ai-general',
+      reason: 'AI 번역 도구 비교',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47774,
+      title: 'Stable Diffusion 3으로 일관된 캐릭터 생성하기',
+      url: 'https://design.example.com/sd3-character',
+      company: {
+        title: '토스 디자인 블로그',
+        sign: null,
+        image: 'https://static.toss.im/icons/png/4x/icon-toss-logo.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-12-02',
+      summary: 'Stable Diffusion 3의 새로운 기능들을 활용해 일관된 캐릭터 이미지를 생성하는 테크닉.',
+      createdAt: '2025-12-02 14:00:00',
+      score: 0.73,
+      aiScore: 77,
+      aiCategory: 'ai-design',
+      reason: 'SD3 캐릭터 생성 가이드',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47775,
+      title: 'Slack AI 기능 활용해서 팀 생산성 높이기',
+      url: 'https://blog.example.com/slack-ai-features',
+      company: {
+        title: '리멤버 블로그',
+        sign: null,
+        image: 'https://www.rememberapp.co.kr/assets/img/common/logo_symbol.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-12-02',
+      summary: 'Slack의 AI 요약, 검색, 채널 요약 기능을 활용한 팀 커뮤니케이션 효율화 방법.',
+      createdAt: '2025-12-02 11:00:00',
+      score: 0.66,
+      aiScore: 63,
+      aiCategory: 'ai-biz',
+      reason: 'Slack AI 활용 가이드',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+
+    // === 지난 주 (11/25 ~ 12/1) - 기존 데이터 유지 ===
+    {
+      id: 47693,
+      title: 'GitHub Copilot Workspace 리뷰: AI가 이슈를 PR로 만들어준다면?',
+      url: 'https://engineering.example.com/copilot-workspace',
+      company: {
+        title: 'LINE 테크블로그',
+        sign: null,
+        image: 'https://engineering.linecorp.com/images/line-developers-logo.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-12-01',
+      summary: 'GitHub Copilot Workspace 베타 버전 실제 테스트 경험. 이슈 분석부터 PR 생성까지.',
+      createdAt: '2025-12-01 10:00:00',
+      score: 0.85,
+      aiScore: 88,
+      aiCategory: 'ai-dev',
+      reason: 'GitHub Copilot 새 기능 실전 리뷰',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47692,
+      title: 'Kubernetes 클러스터 비용 50% 절감한 방법',
+      url: 'https://tech.example.com/k8s-cost-optimization',
+      company: {
+        title: '쿠팡 테크블로그',
+        sign: null,
+        image: 'https://www.coupang.com/favicon.ico',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-11-30',
+      summary: '대규모 Kubernetes 클러스터 운영 비용 절반으로 줄인 경험. Spot Instance, HPA/VPA 튜닝.',
+      createdAt: '2025-11-30 14:00:00',
+      score: 0.72,
+      aiScore: 25,
+      aiCategory: 'other',
+      reason: 'Kubernetes 인프라 비용 최적화',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47691,
+      title: 'Midjourney v6로 디자인 시스템 구축하기: AI 생성 에셋 활용법',
+      url: 'https://design.example.com/midjourney-design-system',
+      company: {
+        title: '토스 디자인 블로그',
+        sign: null,
+        image: 'https://static.toss.im/icons/png/4x/icon-toss-logo.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=300&fit=crop',
+      publishedAt: '2025-11-29',
+      summary: 'Midjourney v6를 활용해 일관된 디자인 에셋을 생성하는 방법. Style Reference 기능 활용.',
+      createdAt: '2025-11-29 11:00:00',
+      score: 0.68,
+      aiScore: 78,
+      aiCategory: 'ai-design',
+      reason: 'AI 이미지 생성 도구 디자인 활용 가이드',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47690,
+      title: 'OpenAI Assistants API v2 마이그레이션 가이드',
+      url: 'https://tech.example.com/assistants-api-v2',
+      company: {
+        title: '뤼튼 테크블로그',
+        sign: null,
+        image: 'https://static.wrtn.io/images/wrtn/logo/logo-wrtn-symbol.svg',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-11-28',
+      summary: 'OpenAI Assistants API v2 주요 변경 사항. Vector Store API, File Search, Streaming 지원.',
+      createdAt: '2025-11-28 15:00:00',
+      score: 0.90,
+      aiScore: 94,
+      aiCategory: 'ai-dev',
+      reason: 'OpenAI API 마이그레이션 기술 가이드',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47689,
+      title: 'TypeScript 5.4 새 기능 총정리: NoInfer와 개선된 타입 추론',
+      url: 'https://engineering.example.com/typescript-54',
+      company: {
+        title: '우아한형제들 테크블로그',
+        sign: null,
+        image: 'https://techblog.woowahan.com/wp-content/uploads/2021/06/woowahanLogo.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-11-27',
+      summary: 'TypeScript 5.4의 새로운 기능들. NoInfer 유틸리티 타입, 클로저 타입 내로잉 개선.',
+      createdAt: '2025-11-27 10:00:00',
+      score: 0.65,
+      aiScore: 20,
+      aiCategory: 'other',
+      reason: 'TypeScript 새 버전 기능 소개',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47688,
+      title: 'Claude 3.5 Sonnet vs GPT-4o: 코딩 능력 벤치마크 비교',
+      url: 'https://ai.example.com/claude-vs-gpt4o-coding',
+      company: {
+        title: 'GeekNews',
+        sign: null,
+        image: 'https://news.hada.io/logo.png',
+      },
+      source: null,
+      category: null,
+      imageUrl: null,
+      publishedAt: '2025-11-26',
+      summary: '최신 LLM들의 코딩 능력 실제 비교. 버그 수정, 코드 리뷰, 리팩토링 10가지 시나리오.',
+      createdAt: '2025-11-26 16:00:00',
+      score: 0.82,
+      aiScore: 85,
+      aiCategory: 'ai-dev',
+      reason: 'AI 코딩 모델 벤치마크 비교 분석',
+      hasMyBookmark: false,
+      hasMyLike: false,
+    },
+    {
+      id: 47687,
+      title: 'Notion AI로 문서 작업 자동화하기: 템플릿과 워크플로우',
+      url: 'https://productivity.example.com/notion-ai-workflow',
+      company: {
+        title: 'Disquiet 블로그',
+        sign: null,
+        image: 'https://disquiet.io/favicon.ico',
+      },
+      source: null,
+      category: null,
+      imageUrl: 'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=400&h=300&fit=crop',
+      publishedAt: '2025-11-25',
+      summary: 'Notion AI 활용 문서 작업 자동화. 회의록 자동 정리, 번역, 요약, Q&A 생성 템플릿.',
+      createdAt: '2025-11-25 09:00:00',
+      score: 0.60,
+      aiScore: 58,
+      aiCategory: 'ai-biz',
+      reason: 'AI 업무 자동화 도구 활용 가이드',
       hasMyBookmark: false,
       hasMyLike: false,
     },
@@ -798,6 +1665,201 @@ export function getDiscoverContentDetail(id: string): DiscoverContentDetail | nu
 }
 
 // Today's Jobs Mock Data
+export const mockSourceStats = {
+  totalSources: 1240,
+  activeJobs: 8543,
+  updatesToday: 342,
+};
+
+// 카테고리별 출처 데이터
+export const mockSourcesByCategory = {
+  companies: [
+    {
+      id: 'company-1',
+      name: '토스',
+      logo: 'https://static.toss.im/icons/png/4x/icon-toss-logo.png',
+      activeCount: 156,
+      category: 'Fintech',
+    },
+    {
+      id: 'company-2',
+      name: '카카오',
+      logo: 'https://publy.imgix.net/admin/careerly/company/ci/kakao1.png?w=400&h=400&auto=format',
+      activeCount: 124,
+      category: 'Tech',
+    },
+    {
+      id: 'company-3',
+      name: '네이버',
+      logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/naver.png',
+      activeCount: 98,
+      category: 'Tech',
+    },
+    {
+      id: 'company-4',
+      name: '쿠팡',
+      logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/coupang.png',
+      activeCount: 87,
+      category: 'E-commerce',
+    },
+    {
+      id: 'company-5',
+      name: '라인',
+      logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/line.png',
+      activeCount: 65,
+      category: 'Global',
+    },
+    {
+      id: 'company-6',
+      name: '뤼튼',
+      logo: 'https://publy.imgix.net/admin/careerly/company/ci/wrtn-symbol_1683698706.webp?w=400&h=400&auto=format',
+      activeCount: 42,
+      category: 'AI',
+    },
+    {
+      id: 'company-7',
+      name: '당근',
+      logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/daangn.png',
+      activeCount: 38,
+      category: 'Platform',
+    },
+    {
+      id: 'company-8',
+      name: '배달의민족',
+      logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/baemin.png',
+      activeCount: 31,
+      category: 'Delivery',
+    },
+  ],
+  blogs: [
+    {
+      id: 'blog-1',
+      name: '카카오페이 테크블로그',
+      logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/kakaopaytech.png',
+      activeCount: 245,
+      category: 'Tech Blog',
+    },
+    {
+      id: 'blog-2',
+      name: '토스 테크블로그',
+      logo: 'https://static.toss.im/icons/png/4x/icon-toss-logo.png',
+      activeCount: 198,
+      category: 'Tech Blog',
+    },
+    {
+      id: 'blog-3',
+      name: '우아한형제들 기술블로그',
+      logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/woowahan.png',
+      activeCount: 176,
+      category: 'Tech Blog',
+    },
+    {
+      id: 'blog-4',
+      name: '당근 테크블로그',
+      logo: 'https://about.daangn.com/static/media/daangn-symbol.57768a21.svg',
+      activeCount: 167,
+      category: 'Tech Blog',
+    },
+    {
+      id: 'blog-5',
+      name: '네이버 D2',
+      logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/naver.png',
+      activeCount: 156,
+      category: 'Tech Blog',
+    },
+    {
+      id: 'blog-6',
+      name: '쿠팡 엔지니어링 블로그',
+      logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/coupang.png',
+      activeCount: 134,
+      category: 'Tech Blog',
+    },
+    {
+      id: 'blog-7',
+      name: '라인 엔지니어링',
+      logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/line.png',
+      activeCount: 123,
+      category: 'Tech Blog',
+    },
+    {
+      id: 'blog-8',
+      name: 'SK Planet 블로그',
+      logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/skplanet.jpg',
+      activeCount: 98,
+      category: 'Tech Blog',
+    },
+    {
+      id: 'blog-9',
+      name: 'Hyperconnect 테크블로그',
+      logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/hyperconnect.png',
+      activeCount: 87,
+      category: 'Tech Blog',
+    },
+    {
+      id: 'blog-10',
+      name: 'Sequoia 블로그',
+      logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/sequoiacap.png',
+      activeCount: 76,
+      category: 'VC Insight',
+    },
+  ],
+  education: [
+    {
+      id: 'edu-1',
+      name: 'LinkedIn Learning',
+      logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/linkedinlearning.png',
+      activeCount: 1250,
+      category: 'Online Course',
+    },
+    {
+      id: 'edu-2',
+      name: 'Udemy',
+      logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/udemy.png',
+      activeCount: 980,
+      category: 'Online Course',
+    },
+    {
+      id: 'edu-3',
+      name: 'Coursera',
+      logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/coursera.png',
+      activeCount: 756,
+      category: 'Online Course',
+    },
+    {
+      id: 'edu-4',
+      name: '인프런',
+      logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/inflearn.png',
+      activeCount: 542,
+      category: 'Online Course',
+    },
+  ],
+  books: [
+    {
+      id: 'book-1',
+      name: '제이펍 출판사',
+      logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/jpub.png',
+      activeCount: 328,
+      category: 'Publisher',
+    },
+    {
+      id: 'book-2',
+      name: 'Packt 출판사',
+      logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/packtpub.png',
+      activeCount: 412,
+      category: 'Publisher',
+    },
+    {
+      id: 'book-3',
+      name: "O'Reilly",
+      logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/oreilly.png',
+      activeCount: 567,
+      category: 'Publisher',
+    },
+  ],
+};
+
+// 기존 호환성을 위한 export
+export const mockTopSources = mockSourcesByCategory.companies.slice(0, 5);
 export const mockTodayJobs = [
   {
     company: {
@@ -810,6 +1872,10 @@ export const mockTodayJobs = [
         id: '357993',
         url: 'https://recruit.snowcorp.com/rcrt/view.do?annoId=30004061',
         title: '[KREAM] Brand Growth Marketing 담당자 모집',
+        summary: 'KREAM의 브랜드 성장을 이끌 마케팅 담당자를 찾습니다. 브랜드 캠페인 기획 및 실행, 성과 분석을 담당합니다.',
+        createdAt: '2025-12-06',
+        aiCategory: 'ai-enabled' as AICategory,
+        jobRole: 'marketing' as JobRole,
         company: {
           name: '스노우',
           symbolImageUrl: 'https://publy.imgix.net/admin/careerly/company/ci/snow-symbol_1694506510.webp?w=400&h=400&auto=format',
@@ -819,6 +1885,10 @@ export const mockTodayJobs = [
         id: '357243',
         url: 'https://recruit.snowcorp.com/rcrt/view.do?annoId=30004056',
         title: '[SNOW] 그로스 마케터 (계약직)',
+        summary: 'SNOW 앱의 사용자 성장을 위한 마케팅 전략 수립 및 실행. 데이터 기반 성과 분석 및 개선 업무.',
+        createdAt: '2025-12-05',
+        aiCategory: 'ai-enabled' as AICategory,
+        jobRole: 'marketing' as JobRole,
         company: {
           name: '스노우',
           symbolImageUrl: 'https://publy.imgix.net/admin/careerly/company/ci/snow-symbol_1694506510.webp?w=400&h=400&auto=format',
@@ -836,7 +1906,11 @@ export const mockTodayJobs = [
       {
         id: '358256',
         url: 'https://flitto.career.greetinghr.com/ko/o/183669',
-        title: '[플리토] Data Engineer 인턴 채용',
+        title: '[플리토] AI Data Engineer 인턴 채용',
+        summary: 'AI 모델 학습용 데이터 파이프라인 구축 및 관리, ETL 프로세스 개발. Python, SQL 활용 데이터 처리 업무.',
+        createdAt: '2025-12-07',
+        aiCategory: 'ai-core' as AICategory,
+        jobRole: 'data' as JobRole,
         company: {
           name: '플리토',
           symbolImageUrl: 'https://somoonai.s3.amazonaws.com/uploads/logos/Flitto_sns_profile.png',
@@ -846,6 +1920,10 @@ export const mockTodayJobs = [
         id: '358254',
         url: 'https://flitto.career.greetinghr.com/ko/o/184662',
         title: '[플리토] 프로젝트 인재풀 운영 매니저 채용',
+        summary: '번역가 인재풀 관리 및 프로젝트 매칭. 번역 품질 관리 및 번역가 커뮤니케이션 업무.',
+        createdAt: '2025-12-07',
+        aiCategory: 'traditional' as AICategory,
+        jobRole: 'operations' as JobRole,
         company: {
           name: '플리토',
           symbolImageUrl: 'https://somoonai.s3.amazonaws.com/uploads/logos/Flitto_sns_profile.png',
@@ -864,6 +1942,10 @@ export const mockTodayJobs = [
         id: '357503',
         url: 'https://careers.kakao.com/jobs/P-14279',
         title: '전략 기획 담당자 (경력)',
+        summary: '카카오 사업 전략 수립 및 실행. 시장 분석, 경쟁사 분석, 신규 사업 기회 발굴 업무.',
+        createdAt: '2025-12-04',
+        aiCategory: 'traditional' as AICategory,
+        jobRole: 'pm' as JobRole,
         company: {
           name: '카카오',
           symbolImageUrl: 'https://publy.imgix.net/admin/careerly/company/ci/kakao1.png?w=400&h=400&auto=format',
@@ -881,7 +1963,11 @@ export const mockTodayJobs = [
       {
         id: '358063',
         url: 'https://wrtn.career.greetinghr.com/ko/o/184103',
-        title: '[크랙] Product Designer',
+        title: '[크랙] AI Product Designer',
+        summary: 'AI 기반 서비스의 UX/UI 디자인. 사용자 리서치, 프로토타이핑, 디자인 시스템 구축 업무.',
+        createdAt: '2025-12-06',
+        aiCategory: 'ai-enabled' as AICategory,
+        jobRole: 'design' as JobRole,
         company: {
           name: '뤼튼테크놀로지스',
           symbolImageUrl: 'https://publy.imgix.net/admin/careerly/company/ci/wrtn-symbol_1683698706.webp?w=400&h=400&auto=format',
@@ -890,7 +1976,11 @@ export const mockTodayJobs = [
       {
         id: '358061',
         url: 'https://wrtn.career.greetinghr.com/ko/o/184202',
-        title: '[크랙] Product Design Lead',
+        title: '[크랙] AI Product Design Lead',
+        summary: 'AI 제품 디자인 팀 리드 및 제품 디자인 전략 수립. 디자인 시스템 관리, 팀 멘토링 업무.',
+        createdAt: '2025-12-06',
+        aiCategory: 'ai-enabled' as AICategory,
+        jobRole: 'design' as JobRole,
         company: {
           name: '뤼튼테크놀로지스',
           symbolImageUrl: 'https://publy.imgix.net/admin/careerly/company/ci/wrtn-symbol_1683698706.webp?w=400&h=400&auto=format',
@@ -901,7 +1991,7 @@ export const mockTodayJobs = [
   {
     company: {
       id: '1404',
-      name: 'Xai',
+      name: 'xAI',
       symbolImageUrl: 'https://somoonai.s3.amazonaws.com/uploads/logos/xai.png',
     },
     jobs: [
@@ -909,17 +1999,25 @@ export const mockTodayJobs = [
         id: '358064',
         url: 'https://job-boards.greenhouse.io/xai/jobs/4959262007',
         title: 'Windows Systems Engineer',
+        summary: 'AI 인프라용 Windows 시스템 구축 및 관리. Active Directory, 그룹 정책, 보안 설정 업무.',
+        createdAt: '2025-12-06',
+        aiCategory: 'ai-enabled' as AICategory,
+        jobRole: 'engineering' as JobRole,
         company: {
-          name: 'Xai',
+          name: 'xAI',
           symbolImageUrl: 'https://somoonai.s3.amazonaws.com/uploads/logos/xai.png',
         },
       },
       {
         id: '358850',
         url: 'https://job-boards.greenhouse.io/xai/jobs/4961357007',
-        title: 'Network Development Engineer (Ops&Deploy) -xAI Networking',
+        title: 'AI Infrastructure Engineer',
+        summary: '대규모 AI 모델 학습을 위한 네트워크 인프라 운영 및 배포 자동화. GPU 클러스터 관리.',
+        createdAt: '2025-12-07',
+        aiCategory: 'ai-core' as AICategory,
+        jobRole: 'engineering' as JobRole,
         company: {
-          name: 'Xai',
+          name: 'xAI',
           symbolImageUrl: 'https://somoonai.s3.amazonaws.com/uploads/logos/xai.png',
         },
       },
@@ -927,11 +2025,597 @@ export const mockTodayJobs = [
         id: '357269',
         url: 'https://job-boards.greenhouse.io/xai/jobs/4959690007',
         title: 'RL Environments Specialist',
+        summary: '강화학습 환경 구축 및 최적화. 시뮬레이션 환경 개발, 벤치마크 설계 업무.',
+        createdAt: '2025-12-05',
+        aiCategory: 'ai-core' as AICategory,
+        jobRole: 'engineering' as JobRole,
         company: {
-          name: 'Xai',
+          name: 'xAI',
           symbolImageUrl: 'https://somoonai.s3.amazonaws.com/uploads/logos/xai.png',
         },
       },
     ],
   },
 ];
+
+// 날짜별 채용공고 데이터 + AI 요약 + 카테고리별 브리핑
+export const mockDailyJobData: Record<string, {
+  summary: string;
+  companies: typeof mockTodayJobs;
+  categoryBriefings?: AICategoryBriefing[];
+}> = {
+  '2025-12-07': {
+    summary: '오늘 수집된 채용공고는 총 10개입니다. 스노우, 플리토, 카카오, 뤼튼테크놀로지스, xAI 등 5개 기업에서 새로운 포지션을 오픈했습니다.',
+    companies: mockTodayJobs,
+    categoryBriefings: [
+      {
+        category: 'ai-core',
+        title: 'AI 핵심 직무',
+        summary: 'xAI와 플리토에서 AI 인프라 및 데이터 엔지니어링 포지션을 오픈했습니다. 특히 xAI의 RL Environments Specialist는 강화학습 환경 전문가로, 국내에서 보기 드문 희소 포지션입니다.',
+        keyInsight: '강화학습 전문가 수요 증가',
+        jobCount: 3,
+      },
+      {
+        category: 'ai-enabled',
+        title: 'AI 활용 직무',
+        summary: '뤼튼에서 AI 제품 디자이너를 채용하고 있어 AI 스타트업의 디자인 조직 확장이 눈에 띕니다. 마케팅 분야에서도 AI 기반 데이터 분석 역량을 요구하는 추세입니다.',
+        keyInsight: 'AI 제품 디자인 수요 급증',
+        jobCount: 5,
+      },
+      {
+        category: 'traditional',
+        title: '기타 직무',
+        summary: '카카오 전략 기획과 플리토 운영 매니저 등 전통적인 직무도 채용 중입니다. 대기업의 사업 확장과 스타트업의 운영 효율화 니즈가 반영된 것으로 보입니다.',
+        keyInsight: '전략/운영 직무 꾸준한 수요',
+        jobCount: 2,
+      },
+    ],
+  },
+  '2025-12-06': {
+    summary: '어제 수집된 채용공고는 총 3개입니다. 카카오와 네이버, 두 대기업에서 개발자 포지션을 오픈했습니다.',
+    companies: [
+      {
+        company: {
+          id: '360',
+          name: '카카오',
+          symbolImageUrl: 'https://publy.imgix.net/admin/careerly/company/ci/kakao1.png?w=400&h=400&auto=format',
+        },
+        jobs: [
+          {
+            id: '357510',
+            url: 'https://careers.kakao.com/jobs/P-14280',
+            title: '프론트엔드 개발자 (React/TypeScript)',
+            summary: '카카오 서비스의 웹 프론트엔드 개발. React, TypeScript 기반 UI 컴포넌트 설계 및 구현.',
+            createdAt: '2025-12-06',
+            aiCategory: 'ai-enabled' as AICategory,
+            jobRole: 'engineering' as JobRole,
+            company: {
+              name: '카카오',
+              symbolImageUrl: 'https://publy.imgix.net/admin/careerly/company/ci/kakao1.png?w=400&h=400&auto=format',
+            },
+          },
+          {
+            id: '357511',
+            url: 'https://careers.kakao.com/jobs/P-14281',
+            title: '백엔드 개발자 (Java/Kotlin)',
+            summary: 'MSA 기반 서비스 개발 및 운영. Spring Boot, Kotlin 활용한 API 설계.',
+            createdAt: '2025-12-06',
+            aiCategory: 'traditional' as AICategory,
+            jobRole: 'engineering' as JobRole,
+            company: {
+              name: '카카오',
+              symbolImageUrl: 'https://publy.imgix.net/admin/careerly/company/ci/kakao1.png?w=400&h=400&auto=format',
+            },
+          },
+        ],
+      },
+      {
+        company: {
+          id: '100',
+          name: '네이버',
+          symbolImageUrl: 'https://somoonai.s3.amazonaws.com/uploads/logos/naver.png',
+        },
+        jobs: [
+          {
+            id: '357520',
+            url: 'https://recruit.navercorp.com/jobs/12345',
+            title: '검색 플랫폼 엔지니어',
+            summary: '네이버 검색 서비스의 핵심 플랫폼 개발. 대용량 데이터 처리 및 검색 알고리즘 최적화.',
+            createdAt: '2025-12-06',
+            aiCategory: 'ai-enabled' as AICategory,
+            jobRole: 'engineering' as JobRole,
+            company: {
+              name: '네이버',
+              symbolImageUrl: 'https://somoonai.s3.amazonaws.com/uploads/logos/naver.png',
+            },
+          },
+        ],
+      },
+    ],
+    categoryBriefings: [
+      {
+        category: 'ai-enabled',
+        title: 'AI 활용 직무',
+        summary: '카카오와 네이버에서 AI 기술을 활용하는 개발자를 채용 중입니다. 특히 검색 알고리즘 최적화와 프론트엔드 개발에 AI 도구 활용이 필수가 되고 있습니다.',
+        keyInsight: '대기업 AI 활용 개발자 채용 활발',
+        jobCount: 2,
+      },
+      {
+        category: 'traditional',
+        title: '기타 직무',
+        summary: '카카오 백엔드 개발자 포지션은 MSA 전환 프로젝트와 관련된 것으로 보입니다. 전통적인 백엔드 아키텍처 역량이 여전히 중요합니다.',
+        keyInsight: 'MSA 아키텍처 경험 중시',
+        jobCount: 1,
+      },
+    ],
+  },
+  '2025-12-05': {
+    summary: '이날 수집된 채용공고는 총 2개로, 모두 토스에서 나왔습니다. Security Engineer와 Data Analyst 포지션입니다.',
+    companies: [
+      {
+        company: {
+          id: '200',
+          name: '토스',
+          symbolImageUrl: 'https://static.toss.im/icons/png/4x/icon-toss-logo.png',
+        },
+        jobs: [
+          {
+            id: '357530',
+            url: 'https://toss.im/career/jobs/12345',
+            title: 'Security Engineer',
+            summary: '토스 금융 서비스의 보안 아키텍처 설계 및 취약점 분석. 침투 테스트 및 보안 감사.',
+            createdAt: '2025-12-05',
+            aiCategory: 'traditional' as AICategory,
+            jobRole: 'engineering' as JobRole,
+            company: {
+              name: '토스',
+              symbolImageUrl: 'https://static.toss.im/icons/png/4x/icon-toss-logo.png',
+            },
+          },
+          {
+            id: '357531',
+            url: 'https://toss.im/career/jobs/12346',
+            title: 'Data Analyst',
+            summary: '사용자 행동 데이터 분석 및 인사이트 도출. A/B 테스트 설계 및 결과 분석.',
+            createdAt: '2025-12-05',
+            aiCategory: 'ai-enabled' as AICategory,
+            jobRole: 'data' as JobRole,
+            company: {
+              name: '토스',
+              symbolImageUrl: 'https://static.toss.im/icons/png/4x/icon-toss-logo.png',
+            },
+          },
+        ],
+      },
+    ],
+    categoryBriefings: [
+      {
+        category: 'ai-enabled',
+        title: 'AI 활용 직무',
+        summary: '토스 Data Analyst는 AI 기반 분석 도구 활용이 필수입니다. A/B 테스트 자동화와 예측 분석에 ML 모델을 활용하는 추세입니다.',
+        keyInsight: '데이터 분석에 AI 도구 필수화',
+        jobCount: 1,
+      },
+      {
+        category: 'traditional',
+        title: '기타 직무',
+        summary: '금융권 보안 규제 강화로 시니어급 Security Engineer 수요가 증가하고 있습니다. 침투 테스트 경험이 필수 요건입니다.',
+        keyInsight: '핀테크 보안 전문가 수요 급증',
+        jobCount: 1,
+      },
+    ],
+  },
+  '2025-12-04': {
+    summary: '이날은 쿠팡에서 Logistics Optimization Engineer 1건만 수집되었습니다.',
+    companies: [
+      {
+        company: {
+          id: '300',
+          name: '쿠팡',
+          symbolImageUrl: 'https://somoonai.s3.amazonaws.com/uploads/logos/coupang.png',
+        },
+        jobs: [
+          {
+            id: '357540',
+            url: 'https://www.coupang.jobs/jobs/12345',
+            title: 'Logistics Optimization Engineer',
+            summary: '쿠팡 물류 네트워크 최적화 알고리즘 개발. 배송 경로 최적화 및 재고 관리 시스템.',
+            createdAt: '2025-12-04',
+            aiCategory: 'ai-enabled' as AICategory,
+            jobRole: 'engineering' as JobRole,
+            company: {
+              name: '쿠팡',
+              symbolImageUrl: 'https://somoonai.s3.amazonaws.com/uploads/logos/coupang.png',
+            },
+          },
+        ],
+      },
+    ],
+    categoryBriefings: [
+      {
+        category: 'ai-enabled',
+        title: 'AI 활용 직무',
+        summary: '쿠팡 로켓배송의 핵심인 물류 최적화 알고리즘 개발 포지션입니다. ML 기반 수요 예측과 경로 최적화 경험이 우대됩니다.',
+        keyInsight: '물류 AI 최적화 전문가 수요',
+        jobCount: 1,
+      },
+    ],
+  },
+  '2025-12-03': {
+    summary: '이날은 넥슨에서 Game Server Developer 1건이 수집되었습니다.',
+    companies: [
+      {
+        company: {
+          id: '400',
+          name: '넥슨',
+          symbolImageUrl: 'https://somoonai.s3.amazonaws.com/uploads/logos/nexon.png',
+        },
+        jobs: [
+          {
+            id: '357550',
+            url: 'https://career.nexon.com/jobs/12345',
+            title: 'Game Server Developer',
+            summary: '대규모 온라인 게임 서버 개발. 실시간 멀티플레이 시스템 구현 및 최적화.',
+            createdAt: '2025-12-03',
+            aiCategory: 'traditional' as AICategory,
+            jobRole: 'engineering' as JobRole,
+            company: {
+              name: '넥슨',
+              symbolImageUrl: 'https://somoonai.s3.amazonaws.com/uploads/logos/nexon.png',
+            },
+          },
+        ],
+      },
+    ],
+    categoryBriefings: [
+      {
+        category: 'traditional',
+        title: '기타 직무',
+        summary: '게임 서버 개발은 여전히 전통적인 시스템 프로그래밍 역량이 핵심입니다. 대규모 동시접속 처리와 실시간 통신 최적화 경험이 중요합니다.',
+        keyInsight: '게임 서버 개발자 꾸준한 수요',
+        jobCount: 1,
+      },
+    ],
+  },
+};
+
+// 7일간 채용공고 수집 통계 (트렌드 차트용)
+export const mockWeeklyStats = [
+  { date: '2025-12-01', count: 45, companies: 12 },
+  { date: '2025-12-02', count: 38, companies: 9 },
+  { date: '2025-12-03', count: 52, companies: 15 },
+  { date: '2025-12-04', count: 41, companies: 11 },
+  { date: '2025-12-05', count: 67, companies: 18 },
+  { date: '2025-12-06', count: 55, companies: 14 },
+  { date: '2025-12-07', count: 73, companies: 20 },
+];
+
+// 최근 업데이트된 기업 리스트 (사이드바용)
+export interface RecentlyUpdatedCompany {
+  id: string;
+  name: string;
+  logo: string;
+  category: string;
+  isPremium: boolean;
+  updatedJobCount: number;
+  updatedAt: string;
+  totalJobs: number;
+}
+
+export const mockRecentlyUpdatedCompanies: RecentlyUpdatedCompany[] = [
+  {
+    id: 'company-1',
+    name: '토스',
+    logo: 'https://static.toss.im/icons/png/4x/icon-toss-logo.png',
+    category: 'Fintech',
+    isPremium: true,
+    updatedJobCount: 3,
+    updatedAt: '2시간 전',
+    totalJobs: 156,
+  },
+  {
+    id: 'company-6',
+    name: '뤼튼',
+    logo: 'https://publy.imgix.net/admin/careerly/company/ci/wrtn-symbol_1683698706.webp?w=400&h=400&auto=format',
+    category: 'AI',
+    isPremium: false,
+    updatedJobCount: 2,
+    updatedAt: '5시간 전',
+    totalJobs: 42,
+  },
+  {
+    id: 'company-xai',
+    name: 'xAI',
+    logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/xai.png',
+    category: 'AI',
+    isPremium: true,
+    updatedJobCount: 5,
+    updatedAt: '1일 전',
+    totalJobs: 28,
+  },
+  {
+    id: 'company-2',
+    name: '카카오',
+    logo: 'https://publy.imgix.net/admin/careerly/company/ci/kakao1.png?w=400&h=400&auto=format',
+    category: 'Tech',
+    isPremium: true,
+    updatedJobCount: 4,
+    updatedAt: '1일 전',
+    totalJobs: 124,
+  },
+  {
+    id: 'company-3',
+    name: '네이버',
+    logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/naver.png',
+    category: 'Tech',
+    isPremium: false,
+    updatedJobCount: 2,
+    updatedAt: '2일 전',
+    totalJobs: 98,
+  },
+  {
+    id: 'company-4',
+    name: '라인',
+    logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/line.png',
+    category: 'Tech',
+    isPremium: true,
+    updatedJobCount: 3,
+    updatedAt: '2일 전',
+    totalJobs: 87,
+  },
+  {
+    id: 'company-5',
+    name: '쿠팡',
+    logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/coupang.png',
+    category: 'E-commerce',
+    isPremium: true,
+    updatedJobCount: 6,
+    updatedAt: '3일 전',
+    totalJobs: 203,
+  },
+  {
+    id: 'company-7',
+    name: '당근',
+    logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/daangn.png',
+    category: 'Tech',
+    isPremium: false,
+    updatedJobCount: 2,
+    updatedAt: '3일 전',
+    totalJobs: 45,
+  },
+  {
+    id: 'company-8',
+    name: '배달의민족',
+    logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/baemin.png',
+    category: 'Tech',
+    isPremium: true,
+    updatedJobCount: 4,
+    updatedAt: '4일 전',
+    totalJobs: 112,
+  },
+  {
+    id: 'company-9',
+    name: 'OpenAI',
+    logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/openai.png',
+    category: 'AI',
+    isPremium: true,
+    updatedJobCount: 7,
+    updatedAt: '4일 전',
+    totalJobs: 89,
+  },
+  {
+    id: 'company-10',
+    name: 'Anthropic',
+    logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/anthropic.png',
+    category: 'AI',
+    isPremium: true,
+    updatedJobCount: 4,
+    updatedAt: '5일 전',
+    totalJobs: 56,
+  },
+];
+
+// 전체 기업 목록 (검색용)
+export interface SearchableCompany {
+  id: string;
+  name: string;
+  logo: string;
+  category: string;
+  isPremium: boolean;
+  totalJobs: number;
+}
+
+export const mockAllCompanies: SearchableCompany[] = [
+  // 인증 기업 (Premium)
+  { id: 'company-1', name: '토스', logo: 'https://static.toss.im/icons/png/4x/icon-toss-logo.png', category: 'Fintech', isPremium: true, totalJobs: 156 },
+  { id: 'company-xai', name: 'xAI', logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/xai.png', category: 'AI', isPremium: true, totalJobs: 28 },
+  { id: 'company-2', name: '카카오', logo: 'https://publy.imgix.net/admin/careerly/company/ci/kakao1.png?w=400&h=400&auto=format', category: 'Tech', isPremium: true, totalJobs: 124 },
+  { id: 'company-4', name: '라인', logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/line.png', category: 'Tech', isPremium: true, totalJobs: 87 },
+  { id: 'company-5', name: '쿠팡', logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/coupang.png', category: 'E-commerce', isPremium: true, totalJobs: 203 },
+  { id: 'company-8', name: '배달의민족', logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/baemin.png', category: 'Tech', isPremium: true, totalJobs: 112 },
+  { id: 'company-9', name: 'OpenAI', logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/openai.png', category: 'AI', isPremium: true, totalJobs: 89 },
+  { id: 'company-10', name: 'Anthropic', logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/anthropic.png', category: 'AI', isPremium: true, totalJobs: 56 },
+  { id: 'company-google', name: 'Google', logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/google.png', category: 'Tech', isPremium: true, totalJobs: 312 },
+  { id: 'company-meta', name: 'Meta', logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/meta.png', category: 'Tech', isPremium: true, totalJobs: 245 },
+  { id: 'company-amazon', name: 'Amazon', logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/amazon.png', category: 'Tech', isPremium: true, totalJobs: 567 },
+  { id: 'company-apple', name: 'Apple', logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/apple.png', category: 'Tech', isPremium: true, totalJobs: 234 },
+  // 미등록 기업 (Non-Premium)
+  { id: 'company-6', name: '뤼튼', logo: 'https://publy.imgix.net/admin/careerly/company/ci/wrtn-symbol_1683698706.webp?w=400&h=400&auto=format', category: 'AI', isPremium: false, totalJobs: 42 },
+  { id: 'company-3', name: '네이버', logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/naver.png', category: 'Tech', isPremium: false, totalJobs: 98 },
+  { id: 'company-7', name: '당근', logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/daangn.png', category: 'Tech', isPremium: false, totalJobs: 45 },
+  { id: 'company-sk', name: 'SK텔레콤', logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/skt.png', category: 'Telecom', isPremium: false, totalJobs: 67 },
+  { id: 'company-lg', name: 'LG전자', logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/lg.png', category: 'Electronics', isPremium: false, totalJobs: 134 },
+  { id: 'company-samsung', name: '삼성전자', logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/samsung.png', category: 'Electronics', isPremium: false, totalJobs: 456 },
+  { id: 'company-hyundai', name: '현대자동차', logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/hyundai.png', category: 'Automotive', isPremium: false, totalJobs: 178 },
+  { id: 'company-ncsoft', name: '엔씨소프트', logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/ncsoft.png', category: 'Gaming', isPremium: false, totalJobs: 89 },
+  { id: 'company-krafton', name: '크래프톤', logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/krafton.png', category: 'Gaming', isPremium: false, totalJobs: 76 },
+  { id: 'company-nexon', name: '넥슨', logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/nexon.png', category: 'Gaming', isPremium: false, totalJobs: 112 },
+  { id: 'company-socar', name: '쏘카', logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/socar.png', category: 'Mobility', isPremium: false, totalJobs: 34 },
+  { id: 'company-yanolja', name: '야놀자', logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/yanolja.png', category: 'Travel', isPremium: false, totalJobs: 56 },
+  { id: 'company-musinsa', name: '무신사', logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/musinsa.png', category: 'Fashion', isPremium: false, totalJobs: 67 },
+];
+
+// 기업 상세 정보 (기업 페이지용)
+export interface CompanyDetail {
+  id: string;
+  name: string;
+  logo: string;
+  category: string;
+  location: string;
+  employeeCount: string;
+  isPremium: boolean;
+  stats: {
+    views: number;
+    followers: number;
+    weeklyApplicants: number;
+  };
+  jobs: Array<{
+    id: string;
+    title: string;
+    createdAt: string;
+    views: number;
+    comments: number;
+    aiCategory: 'ai-core' | 'ai-enabled' | 'traditional';
+  }>;
+  blogs: Array<{
+    id: string;
+    title: string;
+    createdAt: string;
+    views: number;
+  }>;
+  recentComments: Array<{
+    id: string;
+    userName: string;
+    userImage?: string;
+    content: string;
+    createdAt: string;
+  }>;
+}
+
+export const mockCompanyDetails: Record<string, CompanyDetail> = {
+  'company-1': {
+    id: 'company-1',
+    name: '토스',
+    logo: 'https://static.toss.im/icons/png/4x/icon-toss-logo.png',
+    category: 'Fintech',
+    location: '서울',
+    employeeCount: '2,000+',
+    isPremium: true,
+    stats: {
+      views: 12345,
+      followers: 892,
+      weeklyApplicants: 127,
+    },
+    jobs: [
+      { id: 'job-1', title: 'AI Engineer', createdAt: '오늘', views: 234, comments: 5, aiCategory: 'ai-core' },
+      { id: 'job-2', title: 'Frontend Developer', createdAt: '어제', views: 189, comments: 3, aiCategory: 'traditional' },
+      { id: 'job-3', title: 'Data Scientist', createdAt: '2일 전', views: 156, comments: 2, aiCategory: 'ai-core' },
+      { id: 'job-4', title: 'Backend Developer', createdAt: '3일 전', views: 201, comments: 4, aiCategory: 'ai-enabled' },
+      { id: 'job-5', title: 'Product Designer', createdAt: '4일 전', views: 98, comments: 1, aiCategory: 'traditional' },
+    ],
+    blogs: [
+      { id: 'blog-1', title: '토스의 마이크로서비스 아키텍처 전환기', createdAt: '1주 전', views: 3421 },
+      { id: 'blog-2', title: 'React Native에서 Flutter로 전환한 이유', createdAt: '2주 전', views: 2876 },
+      { id: 'blog-3', title: '토스 디자인 시스템 구축기', createdAt: '3주 전', views: 1923 },
+    ],
+    recentComments: [
+      { id: 'c1', userName: '개발자A', userImage: 'https://i.pravatar.cc/40?u=dev1', content: '이 회사 면접 후기 궁금합니다', createdAt: '2시간 전' },
+      { id: 'c2', userName: '취준생B', userImage: 'https://i.pravatar.cc/40?u=job2', content: '복지가 좋다고 들었는데 실제로도 그런가요?', createdAt: '5시간 전' },
+    ],
+  },
+  'company-6': {
+    id: 'company-6',
+    name: '뤼튼',
+    logo: 'https://publy.imgix.net/admin/careerly/company/ci/wrtn-symbol_1683698706.webp?w=400&h=400&auto=format',
+    category: 'AI',
+    location: '서울',
+    employeeCount: '100+',
+    isPremium: false,
+    stats: {
+      views: 4567,
+      followers: 234,
+      weeklyApplicants: 45,
+    },
+    jobs: [
+      { id: 'job-1', title: 'AI Product Designer', createdAt: '오늘', views: 87, comments: 2, aiCategory: 'ai-enabled' },
+      { id: 'job-2', title: 'ML Engineer', createdAt: '어제', views: 123, comments: 4, aiCategory: 'ai-core' },
+      { id: 'job-3', title: 'Backend Developer', createdAt: '3일 전', views: 67, comments: 1, aiCategory: 'ai-enabled' },
+      { id: 'job-4', title: 'Frontend Developer', createdAt: '5일 전', views: 89, comments: 2, aiCategory: 'traditional' },
+    ],
+    blogs: [
+      { id: 'blog-1', title: 'LLM 프로덕트를 만드는 방법', createdAt: '1주 전', views: 1567 },
+    ],
+    recentComments: [
+      { id: 'c1', userName: '마케터C', content: 'AI 툴 경험이 있으면 유리할까요?', createdAt: '1시간 전' },
+    ],
+  },
+  'company-xai': {
+    id: 'company-xai',
+    name: 'xAI',
+    logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/xai.png',
+    category: 'AI',
+    location: 'San Francisco',
+    employeeCount: '500+',
+    isPremium: true,
+    stats: {
+      views: 8901,
+      followers: 567,
+      weeklyApplicants: 89,
+    },
+    jobs: [
+      { id: 'job-1', title: 'AI Infrastructure Engineer', createdAt: '오늘', views: 345, comments: 8, aiCategory: 'ai-core' },
+      { id: 'job-2', title: 'Windows Systems Engineer', createdAt: '어제', views: 189, comments: 3, aiCategory: 'ai-enabled' },
+      { id: 'job-3', title: 'ML Research Scientist', createdAt: '2일 전', views: 456, comments: 12, aiCategory: 'ai-core' },
+    ],
+    blogs: [],
+    recentComments: [
+      { id: 'c1', userName: 'AI연구자D', userImage: 'https://i.pravatar.cc/40?u=ai4', content: '일론 머스크 회사라 궁금하네요', createdAt: '3시간 전' },
+    ],
+  },
+  'company-2': {
+    id: 'company-2',
+    name: '카카오',
+    logo: 'https://publy.imgix.net/admin/careerly/company/ci/kakao1.png?w=400&h=400&auto=format',
+    category: 'Tech',
+    location: '판교',
+    employeeCount: '5,000+',
+    isPremium: true,
+    stats: {
+      views: 23456,
+      followers: 1234,
+      weeklyApplicants: 234,
+    },
+    jobs: [
+      { id: 'job-1', title: 'Backend Developer', createdAt: '오늘', views: 567, comments: 15, aiCategory: 'traditional' },
+      { id: 'job-2', title: 'iOS Developer', createdAt: '어제', views: 345, comments: 8, aiCategory: 'traditional' },
+      { id: 'job-3', title: 'AI Platform Engineer', createdAt: '2일 전', views: 234, comments: 6, aiCategory: 'ai-core' },
+    ],
+    blogs: [
+      { id: 'blog-1', title: '카카오톡 메시지 전송 시스템 개선기', createdAt: '2주 전', views: 5678 },
+    ],
+    recentComments: [],
+  },
+  'company-3': {
+    id: 'company-3',
+    name: '네이버',
+    logo: 'https://somoonai.s3.amazonaws.com/uploads/logos/naver.png',
+    category: 'Tech',
+    location: '분당',
+    employeeCount: '4,000+',
+    isPremium: false,
+    stats: {
+      views: 18765,
+      followers: 987,
+      weeklyApplicants: 178,
+    },
+    jobs: [
+      { id: 'job-1', title: 'Search Engineer', createdAt: '오늘', views: 234, comments: 5, aiCategory: 'ai-enabled' },
+      { id: 'job-2', title: 'Frontend Developer', createdAt: '3일 전', views: 178, comments: 3, aiCategory: 'traditional' },
+    ],
+    blogs: [],
+    recentComments: [],
+  },
+};
+
+// 기업 수집 신청 폼 URL
+export const COMPANY_REGISTRATION_FORM_URL = 'https://forms.gle/example';
