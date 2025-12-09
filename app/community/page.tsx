@@ -347,6 +347,18 @@ function CommunityPageContent() {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [selectedContent, setSelectedContent] = React.useState<SelectedContent | null>(null);
 
+  // Drawer 열릴 때 body 스크롤 막기
+  React.useEffect(() => {
+    if (drawerOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [drawerOpen]);
+
   // 좋아요 상태 관리 (postId -> liked 상태)
   const [likedPosts, setLikedPosts] = React.useState<Record<number, boolean>>({});
   // 북마크 상태 관리 (postId -> saved 상태)
@@ -1296,7 +1308,7 @@ function CommunityPageContent() {
         {selectedContent && (
           <div className="h-full flex flex-col">
             {/* Drawer Header */}
-            <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+            <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between safe-pt">
               {selectedContent.type === 'post' && selectedContent.userProfile ? (
                 <div className="flex items-center gap-3 flex-1">
                   <button

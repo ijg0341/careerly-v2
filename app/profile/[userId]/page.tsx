@@ -44,6 +44,8 @@ import {
   useFollowStatus,
   useFollowUser,
   useUnfollowUser,
+  useUserFollowers,
+  useUserFollowing,
   useCurrentUser,
   useReportContent,
   useBlockUser,
@@ -62,7 +64,8 @@ import {
   searchSkills,
   CONTENT_TYPE,
 } from '@/lib/api';
-import type { Skill } from '@/lib/api';
+import type { Skill, FollowUser } from '@/lib/api';
+import { FollowersModal } from '@/components/ui/followers-modal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -124,6 +127,10 @@ export default function UserProfilePage({ params }: { params: { userId: string }
   // 삭제 확인 다이얼로그 상태
   const [deleteCareerConfirm, setDeleteCareerConfirm] = useState<{ isOpen: boolean; careerId: number | null }>({ isOpen: false, careerId: null });
   const [deleteEducationConfirm, setDeleteEducationConfirm] = useState<{ isOpen: boolean; educationId: number | null }>({ isOpen: false, educationId: null });
+
+  // 팔로워/팔로잉 모달 상태
+  const [followersModalOpen, setFollowersModalOpen] = useState(false);
+  const [followingModalOpen, setFollowingModalOpen] = useState(false);
 
   // 경력 폼 데이터
   const [careerForm, setCareerForm] = useState({
@@ -188,6 +195,14 @@ export default function UserProfilePage({ params }: { params: { userId: string }
   // 팔로우 상태 조회 (로그인한 경우에만, 자기 자신이 아닐 때만)
   const { data: followStatus, isLoading: isLoadingFollowStatus } = useFollowStatus(
     isOwnProfile ? undefined : userId
+  );
+
+  // 팔로워/팔로잉 목록 조회 (모달이 열릴 때만)
+  const { data: followersData, isLoading: isLoadingFollowers } = useUserFollowers(
+    followersModalOpen ? userId : undefined
+  );
+  const { data: followingData, isLoading: isLoadingFollowing } = useUserFollowing(
+    followingModalOpen ? userId : undefined
   );
 
   // 팔로우/언팔로우 mutations
@@ -589,18 +604,24 @@ export default function UserProfilePage({ params }: { params: { userId: string }
 
               {/* 팔로워수, 팔로잉수, 게시글수 */}
               <div className="flex items-center justify-center md:justify-start gap-4 mt-3 text-sm text-slate-600">
-                <div>
+                <button
+                  onClick={() => setFollowersModalOpen(true)}
+                  className="hover:text-slate-900 transition-colors"
+                >
                   <span className="font-semibold text-slate-900">
                     {profile.follower_count ?? 0}
                   </span>{' '}
                   팔로워
-                </div>
-                <div>
+                </button>
+                <button
+                  onClick={() => setFollowingModalOpen(true)}
+                  className="hover:text-slate-900 transition-colors"
+                >
                   <span className="font-semibold text-slate-900">
                     {profile.following_count ?? 0}
                   </span>{' '}
                   팔로잉
-                </div>
+                </button>
                 <div>
                   <span className="font-semibold text-slate-900">
                     {postsData?.pages?.[0]?.count ?? 0}
@@ -1586,6 +1607,42 @@ export default function UserProfilePage({ params }: { params: { userId: string }
         cancelText="취소"
         variant="danger"
         isLoading={deleteEducation.isPending}
+      />
+
+      {/* 팔로워 목록 모달 */}
+      <FollowersModal
+        isOpen={followersModalOpen}
+        onClose={() => setFollowersModalOpen(false)}
+        title="팔로워"
+        users={followersData?.results ?? []}
+        isLoading={isLoadingFollowers}
+        onUserClick={(userId) => {
+          setFollowersModalOpen(false);
+          router.push(`/profile/${userId}`);
+        }}
+        onFollow={(targetUserId) => followMutation.mutate(targetUserId)}
+        onUnfollow={(targetUserId) => unfollowMutation.mutate(targetUserId)}
+        currentUserId={currentUser?.id}
+        followingIds={new Set(followingData?.results?.map(f => f.user?.id).filter(Boolean) as number[] ?? [])}
+        isFollowLoading={followMutation.isPending || unfollowMutation.isPending}
+      />
+
+      {/* 팔로잉 목록 모달 */}
+      <FollowersModal
+        isOpen={followingModalOpen}
+        onClose={() => setFollowingModalOpen(false)}
+        title="팔로잉"
+        users={followingData?.results ?? []}
+        isLoading={isLoadingFollowing}
+        onUserClick={(userId) => {
+          setFollowingModalOpen(false);
+          router.push(`/profile/${userId}`);
+        }}
+        onFollow={(targetUserId) => followMutation.mutate(targetUserId)}
+        onUnfollow={(targetUserId) => unfollowMutation.mutate(targetUserId)}
+        currentUserId={currentUser?.id}
+        followingIds={new Set(followingData?.results?.map(f => f.user?.id).filter(Boolean) as number[] ?? [])}
+        isFollowLoading={followMutation.isPending || unfollowMutation.isPending}
       />
     </div>
   );

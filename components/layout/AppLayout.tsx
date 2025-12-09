@@ -79,37 +79,50 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   };
 
   // 자체 헤더를 가진 페이지들 (모바일 헤더 숨김)
-  const hasOwnHeader = pathname?.startsWith('/settings') || pathname?.startsWith('/community/new');
+  const hasOwnHeader = pathname?.startsWith('/settings') || pathname?.startsWith('/community/new') || pathname?.startsWith('/community/edit');
+
+  // 홈페이지는 전체화면 레이아웃 (헤더 없음, 중앙 정렬)
+  const isHomePage = pathname === '/';
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Mobile Header - 모바일에서만 표시, 자체 헤더가 있는 페이지에서는 숨김 */}
+      {/* Mobile Header - 모바일에서만 표시, 자체 헤더 페이지에서는 숨김 */}
       {!isDrawerMode && !hasOwnHeader && (
-        <header className="fixed top-0 left-0 right-0 h-14 flex items-center justify-between px-4 z-40 md:hidden bg-slate-50 safe-mt">
-          <button
-            onClick={() => setIsMobileNavOpen(true)}
-            className="p-2 -ml-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
-            aria-label="메뉴 열기"
-          >
-            <Menu className="h-6 w-6" />
-          </button>
+        <header className={cn(
+          "fixed top-0 left-0 right-0 z-40 md:hidden",
+          // 홈페이지: 투명 배경, 햄버거 버튼만
+          isHomePage ? "bg-transparent safe-pt" : "bg-slate-50 safe-pt"
+        )}>
+          <div className="h-14 flex items-center justify-between px-4">
+            <button
+              onClick={() => setIsMobileNavOpen(true)}
+              className="p-2 -ml-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+              aria-label="메뉴 열기"
+            >
+              <Menu className="h-6 w-6" />
+            </button>
 
-          {/* 페이지 타이틀 */}
-          {pathname?.startsWith('/community') && (
-            <div className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-slate-700" />
-              <span className="text-base font-semibold text-slate-900">Community</span>
-            </div>
-          )}
-          {pathname?.startsWith('/discover') && (
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-slate-700" />
-              <span className="text-base font-semibold text-slate-900">Discover</span>
-            </div>
-          )}
+            {/* 페이지 타이틀 - 홈페이지에서는 숨김 */}
+            {!isHomePage && (
+              <>
+                {pathname?.startsWith('/community') && (
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5 text-slate-700" />
+                    <span className="text-base font-semibold text-slate-900">Community</span>
+                  </div>
+                )}
+                {pathname?.startsWith('/discover') && (
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-slate-700" />
+                    <span className="text-base font-semibold text-slate-900">Discover</span>
+                  </div>
+                )}
+              </>
+            )}
 
-          {/* 우측 여백 균형용 */}
-          <div className="w-10" />
+            {/* 우측 여백 균형용 - 홈페이지에서는 숨김 */}
+            {!isHomePage && <div className="w-10" />}
+          </div>
         </header>
       )}
 
@@ -136,11 +149,16 @@ function AppLayoutContent({ children }: AppLayoutProps) {
         className={cn(
           'min-h-screen',
           isDrawerMode ? '' : 'md:pl-20',
+          // 홈페이지: 전체화면 중앙 정렬
+          isHomePage && 'flex flex-col',
           // 자체 헤더가 있는 페이지는 모바일에서 상단 패딩 제거
-          !isDrawerMode && !hasOwnHeader && 'pt-14 md:pt-0'
+          // safe-pt-14: safe area + 56px (헤더 높이)
+          !isDrawerMode && !hasOwnHeader && !isHomePage && 'safe-pt-14 md:pt-0'
         )}
       >
-        {pathname === '/community/new/post' || hasOwnHeader ? (
+        {isHomePage ? (
+          children
+        ) : pathname === '/community/new/post' || hasOwnHeader ? (
           children
         ) : (
           <div className="container mx-auto px-4 py-4 md:py-6 max-w-[1280px]">

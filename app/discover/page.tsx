@@ -113,6 +113,18 @@ export default function DiscoverPage() {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [selectedContent, setSelectedContent] = React.useState<any>(null);
 
+  // Drawer 열릴 때 body 스크롤 막기
+  React.useEffect(() => {
+    if (drawerOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [drawerOpen]);
+
   // 위젯 등록
   React.useEffect(() => {
     registerAllWidgets();
@@ -508,7 +520,7 @@ export default function DiscoverPage() {
         {selectedContent && (
           <div className="h-full flex flex-col">
             {/* Drawer Header */}
-            <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+            <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between safe-pt">
               <h2 className="text-lg font-semibold text-slate-900">
                 {selectedContent.title}
               </h2>

@@ -176,6 +176,34 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
       }
     }, [displayContent, contentHtml]);
 
+    // contentHtml에 포함된 이미지 URL 추출
+    const htmlImageUrls = React.useMemo(() => {
+      if (!contentHtml) return [];
+      const imgRegex = /<img[^>]+src=["']([^"']+)["']/gi;
+      const urls: string[] = [];
+      let match;
+      while ((match = imgRegex.exec(contentHtml)) !== null) {
+        urls.push(match[1]);
+      }
+      return urls;
+    }, [contentHtml]);
+
+    // contentHtml에 없는 이미지만 별도 그리드에 표시
+    const standaloneImageUrls = React.useMemo(() => {
+      if (htmlImageUrls.length === 0) return imageUrls;
+      // URL 비교 시 쿼리스트링 제거하고 path만 비교
+      const getPath = (url: string) => {
+        try {
+          const u = new URL(url);
+          return u.pathname;
+        } catch {
+          return url;
+        }
+      };
+      const htmlPaths = new Set(htmlImageUrls.map(getPath));
+      return imageUrls.filter(url => !htmlPaths.has(getPath(url)));
+    }, [imageUrls, htmlImageUrls]);
+
     const actions = [];
 
     if (onLike) {
@@ -351,21 +379,21 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
           )}
         </div>
 
-        {/* Images */}
-        {imageUrls.length > 0 && (
+        {/* Images - contentHtml에 포함되지 않은 이미지만 별도 표시 */}
+        {standaloneImageUrls.length > 0 && (
           <div className={cn(
             'mb-2 rounded-lg overflow-hidden',
-            imageUrls.length === 1 && 'grid grid-cols-1',
-            imageUrls.length === 2 && 'grid grid-cols-2 gap-2',
-            imageUrls.length >= 3 && 'grid grid-cols-2 gap-2'
+            standaloneImageUrls.length === 1 && 'grid grid-cols-1',
+            standaloneImageUrls.length === 2 && 'grid grid-cols-2 gap-2',
+            standaloneImageUrls.length >= 3 && 'grid grid-cols-2 gap-2'
           )}>
-            {imageUrls.slice(0, 4).map((url, idx) => (
+            {standaloneImageUrls.slice(0, 4).map((url, idx) => (
               <div
                 key={idx}
                 className={cn(
                   'relative aspect-video bg-slate-100',
-                  imageUrls.length === 1 && 'aspect-[16/10]',
-                  imageUrls.length === 3 && idx === 0 && 'col-span-2'
+                  standaloneImageUrls.length === 1 && 'aspect-[16/10]',
+                  standaloneImageUrls.length === 3 && idx === 0 && 'col-span-2'
                 )}
               >
                 <img
@@ -373,10 +401,10 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
                   alt={`이미지 ${idx + 1}`}
                   className="w-full h-full object-cover"
                 />
-                {idx === 3 && imageUrls.length > 4 && (
+                {idx === 3 && standaloneImageUrls.length > 4 && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                     <span className="text-white font-semibold text-lg">
-                      +{imageUrls.length - 4}
+                      +{standaloneImageUrls.length - 4}
                     </span>
                   </div>
                 )}

@@ -17,7 +17,7 @@ import {
   getRecommendedFollowers,
   checkFollowStatus,
 } from '../../services/user.service';
-import type { RecommendedFollower, FollowStatus } from '../../services/user.service';
+import type { RecommendedFollower, FollowStatus, PaginatedFollowResponse } from '../../services/user.service';
 import { getCurrentUser } from '../../services/auth.service';
 import type { User } from '../../types/rest.types';
 import type { PaginatedPostResponse } from '../../types/posts.types';
@@ -257,6 +257,38 @@ export function useFollowStatus(
     queryFn: () => checkFollowStatus(userId!),
     enabled: !!userId,
     staleTime: 1 * 60 * 1000, // 1분
+    ...options,
+  });
+}
+
+/**
+ * 특정 유저의 팔로워 목록 조회 훅
+ */
+export function useUserFollowers(
+  userId: number | undefined,
+  options?: Omit<UseQueryOptions<PaginatedFollowResponse, Error>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery<PaginatedFollowResponse, Error>({
+    queryKey: userKeys.followers(String(userId!)),
+    queryFn: () => getFollowers(userId!),
+    enabled: !!userId,
+    staleTime: 2 * 60 * 1000, // 2분
+    ...options,
+  });
+}
+
+/**
+ * 특정 유저의 팔로잉 목록 조회 훅
+ */
+export function useUserFollowing(
+  userId: number | undefined,
+  options?: Omit<UseQueryOptions<PaginatedFollowResponse, Error>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery<PaginatedFollowResponse, Error>({
+    queryKey: userKeys.following(String(userId!)),
+    queryFn: () => getFollowing(userId!),
+    enabled: !!userId,
+    staleTime: 2 * 60 * 1000, // 2분
     ...options,
   });
 }

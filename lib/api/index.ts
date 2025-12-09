@@ -65,7 +65,7 @@ export {
   getRecommendedFollowers,
   checkFollowStatus,
 } from './services/user.service';
-export type { RecommendedFollower, FollowStatus } from './services/user.service';
+export type { RecommendedFollower, FollowStatus, FollowUser, PaginatedFollowResponse } from './services/user.service';
 
 // Discover Service
 export {
@@ -213,6 +213,8 @@ export {
   useFollowers,
   useFollowing,
   useFollowStatus,
+  useUserFollowers,
+  useUserFollowing,
   useMySavedPosts,
   useInfiniteMySavedPosts,
   useMyPosts,

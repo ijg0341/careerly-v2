@@ -204,7 +204,7 @@ export default function EditQnaPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Top Navigation Bar */}
-      <header className="w-full bg-slate-50 sticky top-0 z-50">
+      <header className="w-full bg-slate-50 sticky top-0 z-50 safe-pt">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={handleCancel} className="-ml-2 hover:bg-slate-200">

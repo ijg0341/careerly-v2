@@ -31,7 +31,7 @@ export default function HomePage() {
   // ];
 
   return (
-    <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center px-2 md:px-4">
+    <div className="flex-1 flex items-center justify-center px-4">
       <div className="w-full max-w-3xl space-y-8 md:space-y-12">
         {/* Logo */}
         <div className="flex justify-center">

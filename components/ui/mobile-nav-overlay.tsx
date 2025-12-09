@@ -89,7 +89,7 @@ export function MobileNavOverlay({
       {/* Slide-in Panel - 왼쪽에서 열림 */}
       <div
         className={cn(
-          'fixed top-0 left-0 h-full w-[280px] max-w-[80vw] bg-white z-50 shadow-xl transition-transform duration-300 ease-out md:hidden',
+          'fixed top-0 left-0 h-full w-[280px] max-w-[80vw] bg-white z-50 shadow-xl transition-transform duration-300 ease-out md:hidden flex flex-col',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
         role="dialog"
@@ -97,8 +97,10 @@ export function MobileNavOverlay({
         aria-label="모바일 메뉴"
       >
         {/* Header */}
-        <div className="flex items-center justify-between h-14 px-4 border-b border-slate-200 safe-mt">
-          <span className="font-semibold text-slate-900">메뉴</span>
+        <div className="flex items-center justify-between px-4 border-b border-slate-200 safe-pt shrink-0">
+          <div className="h-14 flex items-center">
+            <span className="font-semibold text-slate-900">메뉴</span>
+          </div>
           <button
             onClick={onClose}
             className="p-2 -mr-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
@@ -109,7 +111,7 @@ export function MobileNavOverlay({
         </div>
 
         {/* Navigation Content */}
-        <div className="flex flex-col h-[calc(100%-56px)] overflow-y-auto">
+        <div className="flex flex-col flex-1 overflow-y-auto">
           {/* Account Section (if logged in) */}
           {sections?.account && (
             <div className="p-4 border-b border-slate-100">

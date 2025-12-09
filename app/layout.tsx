@@ -11,6 +11,8 @@ import {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: 'cover',
 };
 
@@ -98,7 +100,13 @@ export default function RootLayout({
         <GoogleTagManagerNoScript />
         <ReactQueryProvider>
           <AppLayout>{children}</AppLayout>
-          <Toaster position="top-center" />
+          <Toaster
+            position="top-center"
+            visibleToasts={1}
+            toastOptions={{
+              className: 'safe-mt',
+            }}
+          />
         </ReactQueryProvider>
       </body>
     </html>

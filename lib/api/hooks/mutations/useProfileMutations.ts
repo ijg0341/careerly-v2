@@ -21,6 +21,7 @@ import type {
   ReplaceSkillsResponse,
 } from '../../services/profile.service';
 import { profileKeys } from '../queries/useProfile';
+import { userKeys } from '../queries/useUser';
 import type {
   ProfileDetail,
   ProfileUpdateRequest,
@@ -58,6 +59,8 @@ export function useUploadProfileImage() {
     onSuccess: () => {
       // 모든 프로필 관련 쿼리 무효화
       queryClient.invalidateQueries({ queryKey: profileKeys.all });
+      // 현재 사용자 쿼리도 무효화 (사이드바 프로필 이미지 갱신)
+      queryClient.invalidateQueries({ queryKey: userKeys.me() });
       toast.success('프로필 이미지가 변경되었습니다.');
     },
     onError: (error) => {

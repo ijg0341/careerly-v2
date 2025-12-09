@@ -83,10 +83,10 @@ export function LoginModal({ isOpen, onClose, onSignupClick }: LoginModalProps) 
         <Dialog.Content
           className={cn(
             'fixed z-[100] bg-white shadow-xl overflow-y-auto',
-            // 모바일: 전체화면
-            'inset-0 rounded-none',
+            // 모바일: 전체화면 + 중앙 정렬
+            'inset-0 rounded-none flex flex-col justify-center',
             // 데스크톱: 중앙 모달
-            'md:inset-auto md:left-[50%] md:top-[50%] md:w-full md:max-w-md md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-lg md:max-h-[90vh]',
+            'md:inset-auto md:left-[50%] md:top-[50%] md:w-full md:max-w-md md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-lg md:max-h-[90vh] md:block',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
             'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
             'md:data-[state=closed]:zoom-out-95 md:data-[state=open]:zoom-in-95',
@@ -95,7 +95,7 @@ export function LoginModal({ isOpen, onClose, onSignupClick }: LoginModalProps) 
           )}
         >
           {/* Header */}
-          <div className="flex flex-col items-center pt-8 pb-4 px-6 safe-mt">
+          <div className="flex flex-col items-center pt-8 pb-4 px-6">
             <Image
               src="/images/logo.svg"
               alt="Careerly"
@@ -114,7 +114,7 @@ export function LoginModal({ isOpen, onClose, onSignupClick }: LoginModalProps) 
           {/* Close Button */}
           <Dialog.Close asChild>
             <button
-              className="absolute right-4 top-4 rounded-full p-2 hover:bg-slate-100 transition-colors"
+              className="absolute right-4 safe-top-4 rounded-full p-2 hover:bg-slate-100 transition-colors md:top-4"
               aria-label="닫기"
             >
               <X className="h-5 w-5 text-slate-600" />

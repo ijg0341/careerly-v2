@@ -109,9 +109,20 @@
     padding-right: env(safe-area-inset-right, 0px);
   }
 
+  /* Combined safe area + fixed value utilities */
+  .safe-pt-14 {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 3.5rem);
+  }
+  .safe-pb-14 {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 3.5rem);
+  }
+
   /* Position offset versions */
   .safe-top {
     top: env(safe-area-inset-top, 0px);
+  }
+  .safe-top-4 {
+    top: calc(env(safe-area-inset-top, 0px) + 1rem);
   }
   .safe-bottom {
     bottom: env(safe-area-inset-bottom, 0px);

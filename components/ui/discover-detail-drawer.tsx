@@ -60,7 +60,7 @@ export function DiscoverDetailDrawer({
           )}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white sticky top-0 z-10 safe-mt">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white sticky top-0 z-10 safe-pt">
             <Dialog.Title className="text-lg font-semibold text-slate-900 line-clamp-1">
               {content.title}
             </Dialog.Title>

@@ -97,19 +97,42 @@ export async function followUser(userId: string): Promise<void> {
  */
 export async function unfollowUser(userId: string): Promise<void> {
   try {
-    await authClient.delete(`/api/v1/users/${userId}/follow/`);
+    await authClient.delete(`/api/v1/users/${userId}/unfollow/`);
   } catch (error) {
     throw handleApiError(error);
   }
 }
 
+export interface FollowUser {
+  id: number;
+  followeruserid: number;
+  followeeuserid: number;
+  user: {
+    id: number;
+    name: string;
+    image_url: string | null;
+    small_image_url: string | null;
+    headline: string | null;
+  };
+  createdat: string;
+  updatedat: string;
+}
+
+export interface PaginatedFollowResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: FollowUser[];
+}
+
 /**
  * 팔로워 목록 조회
  */
-export async function getFollowers(userId: string): Promise<User[]> {
+export async function getFollowers(userId: number, page?: number): Promise<PaginatedFollowResponse> {
   try {
-    const response = await authClient.get<{ data: User[] }>(`/api/v1/users/${userId}/followers/`);
-    return response.data.data;
+    const params = page ? { page } : {};
+    const response = await restClient.get<PaginatedFollowResponse>(`/api/v1/users/${userId}/followers/`, { params });
+    return response.data;
   } catch (error) {
     throw handleApiError(error);
   }
@@ -118,10 +141,11 @@ export async function getFollowers(userId: string): Promise<User[]> {
 /**
  * 팔로잉 목록 조회
  */
-export async function getFollowing(userId: string): Promise<User[]> {
+export async function getFollowing(userId: number, page?: number): Promise<PaginatedFollowResponse> {
   try {
-    const response = await authClient.get<{ data: User[] }>(`/api/v1/users/${userId}/following/`);
-    return response.data.data;
+    const params = page ? { page } : {};
+    const response = await restClient.get<PaginatedFollowResponse>(`/api/v1/users/${userId}/following/`, { params });
+    return response.data;
   } catch (error) {
     throw handleApiError(error);
   }
