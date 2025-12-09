@@ -24,6 +24,8 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   const isSharePage = pathname?.startsWith('/share');
 
   const [isSignupModalOpen, setIsSignupModalOpen] = React.useState(false);
+  // 모바일 네비게이션 상태 (조건부 return 전에 선언해야 함)
+  const [isMobileNavOpen, setIsMobileNavOpen] = React.useState(false);
 
   // Get modal state from Zustand store
   const { isLoginModalOpen, openLoginModal, closeLoginModal } = useStore();
@@ -51,9 +53,6 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   if (isSharePage) {
     return <>{children}</>;
   }
-
-  // 모바일 네비게이션 상태
-  const [isMobileNavOpen, setIsMobileNavOpen] = React.useState(false);
 
   // 모바일 네비게이션 아이템 설정
   const navItems = {

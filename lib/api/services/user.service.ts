@@ -131,7 +131,7 @@ export interface PaginatedFollowResponse {
 export async function getFollowers(userId: number, page?: number): Promise<PaginatedFollowResponse> {
   try {
     const params = page ? { page } : {};
-    const response = await restClient.get<PaginatedFollowResponse>(`/api/v1/users/${userId}/followers/`, { params });
+    const response = await publicClient.get<PaginatedFollowResponse>(`/api/v1/users/${userId}/followers/`, { params });
     return response.data;
   } catch (error) {
     throw handleApiError(error);
@@ -144,7 +144,7 @@ export async function getFollowers(userId: number, page?: number): Promise<Pagin
 export async function getFollowing(userId: number, page?: number): Promise<PaginatedFollowResponse> {
   try {
     const params = page ? { page } : {};
-    const response = await restClient.get<PaginatedFollowResponse>(`/api/v1/users/${userId}/following/`, { params });
+    const response = await publicClient.get<PaginatedFollowResponse>(`/api/v1/users/${userId}/following/`, { params });
     return response.data;
   } catch (error) {
     throw handleApiError(error);

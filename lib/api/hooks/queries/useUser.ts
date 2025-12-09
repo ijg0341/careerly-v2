@@ -109,13 +109,14 @@ export function useSearchUsers(
  * 팔로워 목록 조회 훅
  */
 export function useFollowers(
-  userId: string,
-  options?: Omit<UseQueryOptions<User[], Error>, 'queryKey' | 'queryFn'>
+  userId: number | string,
+  options?: Omit<UseQueryOptions<PaginatedFollowResponse, Error>, 'queryKey' | 'queryFn'>
 ) {
-  return useQuery<User[], Error>({
-    queryKey: userKeys.followers(userId),
-    queryFn: () => getFollowers(userId),
-    enabled: !!userId,
+  const numericUserId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
+  return useQuery<PaginatedFollowResponse, Error>({
+    queryKey: userKeys.followers(String(userId)),
+    queryFn: () => getFollowers(numericUserId),
+    enabled: !!userId && !isNaN(numericUserId),
     staleTime: 5 * 60 * 1000,
     ...options,
   });
@@ -125,13 +126,14 @@ export function useFollowers(
  * 팔로잉 목록 조회 훅
  */
 export function useFollowing(
-  userId: string,
-  options?: Omit<UseQueryOptions<User[], Error>, 'queryKey' | 'queryFn'>
+  userId: number | string,
+  options?: Omit<UseQueryOptions<PaginatedFollowResponse, Error>, 'queryKey' | 'queryFn'>
 ) {
-  return useQuery<User[], Error>({
-    queryKey: userKeys.following(userId),
-    queryFn: () => getFollowing(userId),
-    enabled: !!userId,
+  const numericUserId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
+  return useQuery<PaginatedFollowResponse, Error>({
+    queryKey: userKeys.following(String(userId)),
+    queryFn: () => getFollowing(numericUserId),
+    enabled: !!userId && !isNaN(numericUserId),
     staleTime: 5 * 60 * 1000,
     ...options,
   });
