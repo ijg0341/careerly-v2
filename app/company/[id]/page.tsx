@@ -322,7 +322,7 @@ export default function CompanyDetailPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm text-slate-700 line-clamp-2">
-                              "{comment.content}"
+                              &quot;{comment.content}&quot;
                             </p>
                             <div className="flex items-center gap-2 mt-1.5 text-xs text-slate-400">
                               <span>{comment.userName}</span>

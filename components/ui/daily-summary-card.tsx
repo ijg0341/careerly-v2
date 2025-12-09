@@ -43,6 +43,11 @@ export interface DailySummaryCardProps {
   selectedDate?: string;
   onDateClick?: (date: string) => void;
   aiStats?: AIStats;
+  // 범용화를 위한 추가 props
+  title?: string;           // 헤더 타이틀 (기본: "최근 1주일간의 채용공고 현황")
+  unitLabel?: string;       // 단위 레이블 (기본: "건 수집")
+  sourceLabel?: string;     // 출처 레이블 (기본: "개 기업")
+  chartColor?: 'teal' | 'purple' | 'amber';  // 차트 색상 (기본: teal)
 }
 
 function formatDayLabel(dateString: string): string {
@@ -59,7 +64,36 @@ export function DailySummaryCard({
   selectedDate,
   onDateClick,
   aiStats,
+  title = '최근 1주일간의 채용공고 현황',
+  unitLabel = '건 수집',
+  sourceLabel = '개 기업',
+  chartColor = 'teal',
 }: DailySummaryCardProps) {
+  // 색상 설정
+  const colorConfig = {
+    teal: {
+      bg: 'rgba(13, 148, 136, 0.1)',
+      border: '#0d9488',
+      point: '#0d9488',
+      pointSelected: '#0f766e',
+      text: 'text-teal-600',
+    },
+    purple: {
+      bg: 'rgba(147, 51, 234, 0.1)',
+      border: '#9333ea',
+      point: '#9333ea',
+      pointSelected: '#7e22ce',
+      text: 'text-purple-600',
+    },
+    amber: {
+      bg: 'rgba(245, 158, 11, 0.1)',
+      border: '#f59e0b',
+      point: '#f59e0b',
+      pointSelected: '#d97706',
+      text: 'text-amber-600',
+    },
+  };
+  const colors = colorConfig[chartColor];
   // Calculate trend
   const trend = React.useMemo(() => {
     if (!weeklyStats || weeklyStats.length < 2) return null;
@@ -78,14 +112,14 @@ export function DailySummaryCard({
       datasets: [{
         data: weeklyStats.map(d => d.count),
         fill: true,
-        backgroundColor: 'rgba(13, 148, 136, 0.1)',
-        borderColor: '#0d9488',
+        backgroundColor: colors.bg,
+        borderColor: colors.border,
         borderWidth: 2,
         pointBackgroundColor: weeklyStats.map(d =>
-          d.date === selectedDate ? '#0f766e' : '#0d9488'
+          d.date === selectedDate ? colors.pointSelected : colors.point
         ),
         pointBorderColor: weeklyStats.map(d =>
-          d.date === selectedDate ? '#fff' : '#0d9488'
+          d.date === selectedDate ? '#fff' : colors.point
         ),
         pointBorderWidth: weeklyStats.map(d =>
           d.date === selectedDate ? 2 : 0
@@ -97,7 +131,7 @@ export function DailySummaryCard({
         tension: 0.4,
       }],
     };
-  }, [weeklyStats, selectedDate]);
+  }, [weeklyStats, selectedDate, colors]);
 
   // Handle chart click
   const handleChartClick = React.useCallback((event: any, elements: any[]) => {
@@ -179,8 +213,8 @@ export function DailySummaryCard({
       <div className="px-5 py-4 border-b border-slate-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-teal-600" />
-            <span className="text-sm font-semibold text-slate-900">최근 1주일간의 채용공고 현황</span>
+            <TrendingUp className={`w-4 h-4 ${colors.text}`} />
+            <span className="text-sm font-semibold text-slate-900">{title}</span>
           </div>
           {trend && (
             <div className={`flex items-center gap-1 text-xs font-medium ${trend.isUp ? 'text-teal-600' : 'text-red-500'}`}>
@@ -209,9 +243,9 @@ export function DailySummaryCard({
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold text-slate-900">{totalJobs}</span>
-            <span className="text-sm text-slate-600">건 수집</span>
+            <span className="text-sm text-slate-600">{unitLabel}</span>
             <span className="text-slate-300 mx-1">·</span>
-            <span className="text-sm text-slate-500">{totalCompanies}개 기업</span>
+            <span className="text-sm text-slate-500">{totalCompanies}{sourceLabel}</span>
           </div>
           {/* AI Stats */}
           {aiStats && (

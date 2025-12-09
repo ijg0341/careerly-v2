@@ -128,12 +128,12 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
     };
 
     return (
-      <Card
+      <div
         ref={ref}
         onClick={onClick}
         className={cn(
-          'p-6 transition-all duration-200',
-          onClick && 'cursor-pointer hover:shadow-md hover:border-coral-200',
+          'group p-6 rounded-2xl border border-slate-100 bg-white hover:border-teal-100 hover:shadow-sm transition-all duration-200',
+          onClick && 'cursor-pointer',
           className
         )}
         {...props}
@@ -277,7 +277,7 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
             )}
           </div>
         )}
-      </Card>
+      </div>
     );
   }
 );

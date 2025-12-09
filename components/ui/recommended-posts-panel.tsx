@@ -37,52 +37,41 @@ export const RecommendedPostsPanel = React.forwardRef<HTMLDivElement, Recommende
     const displayedPosts = posts.slice(0, maxItems);
 
     return (
-      <Card ref={ref} className={cn('p-4', className)} {...props}>
+      <div ref={ref} className={cn('bg-slate-50/50 rounded-2xl p-6', className)} {...props}>
         {/* Header */}
-        <div className="flex items-center gap-2 mb-3">
-          <TrendingUp className="h-5 w-5 text-slate-700" />
-          <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp className="h-5 w-5 text-teal-600" />
+          <h3 className="text-lg font-serif font-bold text-slate-900">{title}</h3>
         </div>
 
         {/* Description */}
-        <p className="text-sm text-slate-600 mb-4">
+        <p className="text-sm text-slate-500 mb-6">
           지금 인기 있는 포스트를 확인해보세요
         </p>
 
         {/* Posts List */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           {displayedPosts.map((post, index) => {
-            const isLast = index === displayedPosts.length - 1;
-
             return (
               <a
                 key={post.id}
                 href={post.href || '#'}
-                className={cn(
-                  'block pb-3 hover:bg-slate-50 -mx-4 px-4 rounded-lg transition-colors',
-                  !isLast && 'border-b border-slate-200'
-                )}
+                className="block group"
               >
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-1">
                   {/* Post Title */}
-                  <h4 className="text-sm font-medium text-slate-900 line-clamp-2 leading-snug">
+                  <h4 className="text-sm font-medium text-slate-900 line-clamp-2 leading-snug group-hover:text-teal-700 transition-colors">
                     {post.title}
                   </h4>
 
                   {/* Author & Stats */}
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mt-1">
                     <div className="flex items-center gap-2">
-                      <Avatar className="h-5 w-5">
-                        <AvatarImage src={post.author.image_url} alt={post.author.name} />
-                        <AvatarFallback className="text-[10px]">
-                          {post.author.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-xs text-slate-600">{post.author.name}</span>
+                      <span className="text-xs text-slate-500">{post.author.name}</span>
                     </div>
 
-                    <div className="flex items-center gap-1 text-slate-500">
-                      <Heart className="h-3.5 w-3.5" />
+                    <div className="flex items-center gap-1 text-slate-400">
+                      <Heart className="h-3 w-3" />
                       <span className="text-xs">{post.likeCount}</span>
                     </div>
                   </div>
@@ -94,13 +83,13 @@ export const RecommendedPostsPanel = React.forwardRef<HTMLDivElement, Recommende
 
         {/* Footer - See More */}
         {posts.length > displayedPosts.length && (
-          <div className="mt-4 pt-4 border-t border-slate-200">
-            <button className="w-full text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors">
-              더 많은 포스트 보기
+          <div className="mt-6 pt-4 border-t border-slate-200/50">
+            <button className="w-full text-sm font-medium text-slate-500 hover:text-teal-700 transition-colors flex items-center justify-center gap-1">
+              더 보기
             </button>
           </div>
         )}
-      </Card>
+      </div>
     );
   }
 );

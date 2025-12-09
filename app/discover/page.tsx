@@ -58,8 +58,21 @@ const availableDates = generateLast7Days();
 // 블로그 AI 카테고리 타입 (5개 카테고리)
 type BlogAICategory = 'ai-dev' | 'ai-design' | 'ai-biz' | 'ai-general' | 'other';
 
+// 도서/강의용 AI 카테고리 타입 (전체 포함)
+type ContentAICategory = 'all' | 'ai-dev' | 'ai-design' | 'ai-biz' | 'ai-general' | 'other';
+
 // 블로그 카테고리 설정
 const blogCategoryConfig: Record<BlogAICategory, { label: string; icon: string; bgClass: string; textClass: string; borderClass: string }> = {
+  'ai-dev': { label: 'AI & Dev', icon: '🤖', bgClass: 'bg-purple-100', textClass: 'text-purple-700', borderClass: 'border-purple-300' },
+  'ai-design': { label: 'AI & Design', icon: '🎨', bgClass: 'bg-pink-100', textClass: 'text-pink-700', borderClass: 'border-pink-300' },
+  'ai-biz': { label: 'AI & Biz', icon: '💼', bgClass: 'bg-amber-100', textClass: 'text-amber-700', borderClass: 'border-amber-300' },
+  'ai-general': { label: 'AI 일반', icon: '✨', bgClass: 'bg-teal-100', textClass: 'text-teal-700', borderClass: 'border-teal-300' },
+  'other': { label: '기타', icon: '📝', bgClass: 'bg-slate-200', textClass: 'text-slate-700', borderClass: 'border-slate-300' },
+};
+
+// 도서/강의용 카테고리 설정 (전체 포함)
+const contentCategoryConfig: Record<ContentAICategory, { label: string; icon: string; bgClass: string; textClass: string; borderClass: string }> = {
+  'all': { label: '전체', icon: '📋', bgClass: 'bg-slate-100', textClass: 'text-slate-700', borderClass: 'border-slate-300' },
   'ai-dev': { label: 'AI & Dev', icon: '🤖', bgClass: 'bg-purple-100', textClass: 'text-purple-700', borderClass: 'border-purple-300' },
   'ai-design': { label: 'AI & Design', icon: '🎨', bgClass: 'bg-pink-100', textClass: 'text-pink-700', borderClass: 'border-pink-300' },
   'ai-biz': { label: 'AI & Biz', icon: '💼', bgClass: 'bg-amber-100', textClass: 'text-amber-700', borderClass: 'border-amber-300' },
@@ -76,6 +89,10 @@ export default function DiscoverPage() {
 
   // 블로그 탭용 상태 (AI & Dev가 기본 선택)
   const [selectedBlogCategory, setSelectedBlogCategory] = React.useState<BlogAICategory>('ai-dev');
+
+  // 도서/강의 탭용 상태 (전체가 기본 선택)
+  const [selectedBookCategory, setSelectedBookCategory] = React.useState<ContentAICategory>('all');
+  const [selectedCourseCategory, setSelectedCourseCategory] = React.useState<ContentAICategory>('all');
 
   // 기업 검색 결과 필터링
   const filteredCompanies = React.useMemo(() => {
@@ -155,7 +172,7 @@ export default function DiscoverPage() {
         title: book.title,
         description: book.summary,
         imageUrl: book.imageUrl,
-        author: { name: book.company.title },
+        author: { name: book.company.title, imageUrl: book.company.image },
         createdAt: book.createdAt || new Date().toISOString(),
         stats: { likes: 80 + index * 25, views: 800 + index * 350 },
         category: '도서',
@@ -166,7 +183,7 @@ export default function DiscoverPage() {
         title: course.title,
         description: course.summary,
         imageUrl: course.imageUrl,
-        author: { name: course.company.title },
+        author: { name: course.company.title, imageUrl: course.company.image },
         createdAt: course.createdAt || new Date().toISOString(),
         stats: { likes: 60 + index * 20, views: 600 + index * 300 },
         category: '강의',
@@ -216,6 +233,7 @@ export default function DiscoverPage() {
       sources: feed.author ? [{
         name: feed.author.name,
         href: `#`,
+        imageUrl: feed.author.imageUrl,
       }] : undefined,
       postedAt: feed.createdAt,
       stats: {
@@ -434,31 +452,48 @@ export default function DiscoverPage() {
                 />
               )}
 
-              {/* Tags (Optional - only show for books/courses tab, not jobs or blogs) */}
-              {contentType !== 'jobs' && contentType !== 'blogs' && allTags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {allTags.slice(0, 6).map(tag => (
-                    <button
-                      key={tag}
-                      onClick={() => {
-                        if (selectedTags.includes(tag)) {
-                          setSelectedTags(prev => prev.filter(t => t !== tag));
-                        } else {
-                          setSelectedTags(prev => [...prev, tag]);
-                        }
-                      }}
-                      className={cn(
-                        "px-2.5 py-1 rounded-md text-xs font-medium transition-colors border",
-                        selectedTags.includes(tag)
-                          ? "bg-teal-50 border-teal-200 text-teal-700"
-                          : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                      )}
-                    >
-                      #{tag}
-                    </button>
-                  ))}
-                </div>
+              {/* Daily Summary Card - 블로그 탭 */}
+              {contentType === 'blogs' && (
+                <DailySummaryCard
+                  date={selectedDate}
+                  summary=""
+                  totalJobs={filteredContentCards.length}
+                  totalCompanies={mockSourcesByCategory.blogs.length}
+                  title="최근 1주일간의 블로그 현황"
+                  unitLabel="개 발행"
+                  sourceLabel="개 블로그"
+                  chartColor="purple"
+                />
               )}
+
+              {/* Daily Summary Card - 도서 탭 */}
+              {contentType === 'books' && (
+                <DailySummaryCard
+                  date={selectedDate}
+                  summary=""
+                  totalJobs={filteredContentCards.length}
+                  totalCompanies={mockSourcesByCategory.books.length}
+                  title="최근 1주일간의 도서 현황"
+                  unitLabel="권 등록"
+                  sourceLabel="개 출판사"
+                  chartColor="teal"
+                />
+              )}
+
+              {/* Daily Summary Card - 강의 탭 */}
+              {contentType === 'courses' && (
+                <DailySummaryCard
+                  date={selectedDate}
+                  summary=""
+                  totalJobs={filteredContentCards.length}
+                  totalCompanies={mockSourcesByCategory.education.length}
+                  title="최근 1주일간의 강의 현황"
+                  unitLabel="개 등록"
+                  sourceLabel="개 플랫폼"
+                  chartColor="amber"
+                />
+              )}
+
             </div>
 
             {/* Content Feed */}
@@ -851,8 +886,313 @@ export default function DiscoverPage() {
                   })()}
                 </div>
               </div>
+            ) : contentType === 'books' ? (
+              // 도서 - 책 표지 스타일 카드 + 주간 구분선
+              <div className="space-y-6">
+                {/* AI 카테고리 필터 (전체 포함) */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {(Object.keys(contentCategoryConfig) as ContentAICategory[]).map((catId) => {
+                      const cat = contentCategoryConfig[catId];
+                      return (
+                        <button
+                          key={catId}
+                          onClick={() => setSelectedBookCategory(catId)}
+                          className={cn(
+                            "px-3 py-1.5 text-sm font-medium rounded-full transition-colors flex items-center gap-1.5 border",
+                            selectedBookCategory === catId
+                              ? `${cat.bgClass} ${cat.borderClass} ${cat.textClass}`
+                              : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
+                          )}
+                        >
+                          <span>{cat.icon}</span>
+                          <span>{cat.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {(() => {
+                  // 카테고리 필터링
+                  let bookCards = selectedBookCategory === 'all'
+                    ? filteredContentCards
+                    : filteredContentCards.filter(card => (card as any).aiCategory === selectedBookCategory);
+
+                  if (bookCards.length === 0) {
+                    return (
+                      <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+                          <Search className="h-7 w-7 text-slate-300" />
+                        </div>
+                        <h3 className="text-base font-medium text-slate-900 mb-1">해당 카테고리의 도서가 없습니다</h3>
+                        <p className="text-sm text-slate-500">다른 카테고리를 선택해보세요.</p>
+                      </div>
+                    );
+                  }
+
+                  // 주간별 그룹화 함수
+                  const getWeekKey = (dateStr: string) => {
+                    const date = new Date(dateStr);
+                    const startOfWeek = new Date(date);
+                    startOfWeek.setDate(date.getDate() - date.getDay()); // 일요일 기준
+                    return startOfWeek.toISOString().split('T')[0];
+                  };
+
+                  const groupedByWeek: Record<string, typeof bookCards> = {};
+                  bookCards.forEach(card => {
+                    const dateStr = card.postedAt ? card.postedAt.split('T')[0] : 'unknown';
+                    const weekKey = dateStr !== 'unknown' ? getWeekKey(dateStr) : 'unknown';
+                    if (!groupedByWeek[weekKey]) {
+                      groupedByWeek[weekKey] = [];
+                    }
+                    groupedByWeek[weekKey].push(card);
+                  });
+
+                  const sortedWeeks = Object.keys(groupedByWeek).sort((a, b) => b.localeCompare(a));
+
+                  const formatWeekHeader = (weekStartStr: string) => {
+                    if (weekStartStr === 'unknown') return '날짜 미상';
+                    const startDate = new Date(weekStartStr);
+                    const endDate = new Date(startDate);
+                    endDate.setDate(startDate.getDate() + 6);
+
+                    const today = new Date();
+                    const thisWeekStart = new Date(today);
+                    thisWeekStart.setDate(today.getDate() - today.getDay());
+                    const lastWeekStart = new Date(thisWeekStart);
+                    lastWeekStart.setDate(thisWeekStart.getDate() - 7);
+
+                    if (startDate.toDateString() === thisWeekStart.toDateString()) {
+                      return '이번 주';
+                    } else if (startDate.toDateString() === lastWeekStart.toDateString()) {
+                      return '지난 주';
+                    }
+
+                    const startMonth = startDate.getMonth() + 1;
+                    const startDay = startDate.getDate();
+                    const endMonth = endDate.getMonth() + 1;
+                    const endDay = endDate.getDate();
+
+                    if (startMonth === endMonth) {
+                      return `${startMonth}월 ${startDay}일 ~ ${endDay}일`;
+                    }
+                    return `${startMonth}/${startDay} ~ ${endMonth}/${endDay}`;
+                  };
+
+                  return sortedWeeks.map(weekKey => (
+                    <div key={weekKey}>
+                      {/* 주간 구분선 */}
+                      <div className="flex items-center gap-3 py-3 mb-4">
+                        <div className="h-px flex-1 bg-slate-200" />
+                        <span className="text-sm font-medium text-slate-500">{formatWeekHeader(weekKey)}</span>
+                        <div className="h-px flex-1 bg-slate-200" />
+                      </div>
+
+                      {/* 책 그리드 - 작은 책 표지 스타일 */}
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
+                        {groupedByWeek[weekKey].map((card) => {
+                          const bookImage = card.thumbnailUrl;
+                          const publisherName = card.sources?.[0]?.name || '출판사';
+
+                          return (
+                            <div
+                              key={card.contentId}
+                              onClick={() => handleCardClick(card)}
+                              className="group cursor-pointer"
+                            >
+                              {/* 책 표지 */}
+                              <div className="aspect-[2/3] rounded-md overflow-hidden bg-slate-100 shadow-md group-hover:shadow-lg transition-shadow mb-2 relative">
+                                {bookImage ? (
+                                  <img src={bookImage} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-100">
+                                    <span className="text-3xl">📚</span>
+                                  </div>
+                                )}
+                                {/* 호버 오버레이 */}
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                              </div>
+                              {/* 책 정보 */}
+                              <h4 className="font-medium text-slate-900 text-xs line-clamp-2 group-hover:text-teal-700 transition-colors mb-1">
+                                {card.title}
+                              </h4>
+                              <div className="flex items-center gap-2 mt-1.5">
+                                {card.sources?.[0]?.imageUrl && (
+                                  <img src={card.sources[0].imageUrl} alt="" className="w-5 h-5 rounded object-contain flex-shrink-0 border border-slate-100" />
+                                )}
+                                <p className="text-xs text-slate-600 truncate font-medium">{publisherName}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
+            ) : contentType === 'courses' ? (
+              // 강의 - 강의 플랫폼 스타일 카드 + 주간 구분선
+              <div className="space-y-6">
+                {/* AI 카테고리 필터 (전체 포함) */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {(Object.keys(contentCategoryConfig) as ContentAICategory[]).map((catId) => {
+                      const cat = contentCategoryConfig[catId];
+                      return (
+                        <button
+                          key={catId}
+                          onClick={() => setSelectedCourseCategory(catId)}
+                          className={cn(
+                            "px-3 py-1.5 text-sm font-medium rounded-full transition-colors flex items-center gap-1.5 border",
+                            selectedCourseCategory === catId
+                              ? `${cat.bgClass} ${cat.borderClass} ${cat.textClass}`
+                              : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
+                          )}
+                        >
+                          <span>{cat.icon}</span>
+                          <span>{cat.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {(() => {
+                  // 카테고리 필터링
+                  let courseCards = selectedCourseCategory === 'all'
+                    ? filteredContentCards
+                    : filteredContentCards.filter(card => (card as any).aiCategory === selectedCourseCategory);
+
+                  if (courseCards.length === 0) {
+                    return (
+                      <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+                          <Search className="h-7 w-7 text-slate-300" />
+                        </div>
+                        <h3 className="text-base font-medium text-slate-900 mb-1">해당 카테고리의 강의가 없습니다</h3>
+                        <p className="text-sm text-slate-500">다른 카테고리를 선택해보세요.</p>
+                      </div>
+                    );
+                  }
+
+                  // 주간별 그룹화 함수
+                  const getWeekKey = (dateStr: string) => {
+                    const date = new Date(dateStr);
+                    const startOfWeek = new Date(date);
+                    startOfWeek.setDate(date.getDate() - date.getDay()); // 일요일 기준
+                    return startOfWeek.toISOString().split('T')[0];
+                  };
+
+                  const groupedByWeek: Record<string, typeof courseCards> = {};
+                  courseCards.forEach(card => {
+                    const dateStr = card.postedAt ? card.postedAt.split('T')[0] : 'unknown';
+                    const weekKey = dateStr !== 'unknown' ? getWeekKey(dateStr) : 'unknown';
+                    if (!groupedByWeek[weekKey]) {
+                      groupedByWeek[weekKey] = [];
+                    }
+                    groupedByWeek[weekKey].push(card);
+                  });
+
+                  const sortedWeeks = Object.keys(groupedByWeek).sort((a, b) => b.localeCompare(a));
+
+                  const formatWeekHeader = (weekStartStr: string) => {
+                    if (weekStartStr === 'unknown') return '날짜 미상';
+                    const startDate = new Date(weekStartStr);
+                    const endDate = new Date(startDate);
+                    endDate.setDate(startDate.getDate() + 6);
+
+                    const today = new Date();
+                    const thisWeekStart = new Date(today);
+                    thisWeekStart.setDate(today.getDate() - today.getDay());
+                    const lastWeekStart = new Date(thisWeekStart);
+                    lastWeekStart.setDate(thisWeekStart.getDate() - 7);
+
+                    if (startDate.toDateString() === thisWeekStart.toDateString()) {
+                      return '이번 주';
+                    } else if (startDate.toDateString() === lastWeekStart.toDateString()) {
+                      return '지난 주';
+                    }
+
+                    const startMonth = startDate.getMonth() + 1;
+                    const startDay = startDate.getDate();
+                    const endMonth = endDate.getMonth() + 1;
+                    const endDay = endDate.getDate();
+
+                    if (startMonth === endMonth) {
+                      return `${startMonth}월 ${startDay}일 ~ ${endDay}일`;
+                    }
+                    return `${startMonth}/${startDay} ~ ${endMonth}/${endDay}`;
+                  };
+
+                  return sortedWeeks.map(weekKey => (
+                    <div key={weekKey}>
+                      {/* 주간 구분선 */}
+                      <div className="flex items-center gap-3 py-3 mb-4">
+                        <div className="h-px flex-1 bg-slate-200" />
+                        <span className="text-sm font-medium text-slate-500">{formatWeekHeader(weekKey)}</span>
+                        <div className="h-px flex-1 bg-slate-200" />
+                      </div>
+
+                      {/* 강의 카드 그리드 - Udemy/인프런 스타일 */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {groupedByWeek[weekKey].map((card) => {
+                          const courseImage = card.thumbnailUrl;
+                          const platformName = card.sources?.[0]?.name || '플랫폼';
+
+                          return (
+                            <div
+                              key={card.contentId}
+                              onClick={() => handleCardClick(card)}
+                              className="group bg-white rounded-xl border border-slate-100 hover:border-amber-200 hover:shadow-md transition-all cursor-pointer overflow-hidden"
+                            >
+                              {/* 강의 썸네일 - 16:9 비율 */}
+                              <div className="aspect-video bg-slate-100 relative overflow-hidden">
+                                {courseImage ? (
+                                  <img src={courseImage} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100">
+                                    <span className="text-4xl">🎓</span>
+                                  </div>
+                                )}
+                              </div>
+                              {/* 강의 정보 */}
+                              <div className="p-3">
+                                {/* 플랫폼 정보 */}
+                                <div className="flex items-center gap-2 mb-2">
+                                  {card.sources?.[0]?.imageUrl && (
+                                    <img src={card.sources[0].imageUrl} alt="" className="w-5 h-5 rounded object-contain flex-shrink-0 border border-slate-100" />
+                                  )}
+                                  <span className="text-xs text-slate-600 font-medium">{platformName}</span>
+                                </div>
+                                <h4 className="font-semibold text-slate-900 text-sm line-clamp-2 group-hover:text-amber-700 transition-colors mb-2">
+                                  {card.title}
+                                </h4>
+                                <p className="text-xs text-slate-500 line-clamp-2 mb-2">
+                                  {card.summary}
+                                </p>
+                                {/* Stats */}
+                                <div className="flex items-center gap-3 text-xs text-slate-400">
+                                  <span className="flex items-center gap-1">
+                                    <Eye className="h-3 w-3" />
+                                    {card.stats?.views?.toLocaleString() || 0}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Heart className="h-3 w-3" />
+                                    {card.stats?.likes || 0}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
             ) : (
-              // 도서, 강의 - 기존 카드 그리드
+              // 기타 - 기본 카드 그리드
               <div className="grid gap-x-6 gap-y-10 grid-cols-1">
                 {filteredContentCards.length > 0 ? (
                   filteredContentCards.map((card) => (
@@ -1120,68 +1460,126 @@ export default function DiscoverPage() {
 
             {/* Education Section - courses 탭에서만 표시 */}
             {contentType === 'courses' && (
-              <div>
-                <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
-                  교육 플랫폼
-                </h4>
-                <div className="space-y-1">
-                  {mockSourcesByCategory.education.slice(0, 4).map((source) => (
-                    <div
-                      key={source.id}
-                      className="group flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-7 h-7 rounded-full bg-white border border-slate-100 flex items-center justify-center overflow-hidden">
-                          {source.logo ? (
-                            <img src={source.logo} alt={source.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-[10px] font-bold text-slate-400">{source.name[0]}</span>
-                          )}
+              <div className="space-y-6">
+                {/* 플랫폼 검색 */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="플랫폼 검색..."
+                    className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder:text-slate-400"
+                  />
+                </div>
+
+                {/* 최근 업데이트된 교육 플랫폼 */}
+                <div>
+                  <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    최근 업데이트 플랫폼
+                  </h4>
+                  <div className="space-y-1">
+                    {mockSourcesByCategory.education.slice(0, 10).map((source, idx) => (
+                      <div
+                        key={source.id}
+                        className="group flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer border border-transparent hover:border-slate-100"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            {source.logo ? (
+                              <img src={source.logo} alt={source.name} className="w-full h-full object-contain p-0.5" />
+                            ) : (
+                              <span className="text-[10px] font-bold text-slate-400">{source.name[0]}</span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-medium text-slate-700 group-hover:text-amber-700 transition-colors truncate block">
+                              {source.name}
+                            </span>
+                            <span className="text-xs text-slate-400">
+                              {idx < 3 ? '오늘' : idx < 5 ? '어제' : `${idx - 2}일 전`} 업데이트
+                            </span>
+                          </div>
                         </div>
-                        <span className="text-sm text-slate-700 group-hover:text-teal-700 transition-colors">
-                          {source.name}
-                        </span>
+                        <div className="flex items-center gap-1 text-xs text-amber-600 font-medium flex-shrink-0">
+                          <span>+{source.activeCount > 100 ? Math.floor(source.activeCount / 20) : Math.ceil(source.activeCount / 10)}</span>
+                        </div>
                       </div>
-                      <span className="text-xs text-slate-400">
-                        {source.activeCount.toLocaleString()}
-                      </span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+
+                  {/* 플랫폼 추가 접수 CTA */}
+                  <a
+                    href={COMPANY_REGISTRATION_FORM_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg text-sm text-amber-700 hover:text-amber-900 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>플랫폼 수집 요청하기</span>
+                  </a>
                 </div>
               </div>
             )}
 
             {/* Books/Publishers Section - books 탭에서만 표시 */}
             {contentType === 'books' && (
-              <div>
-                <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                  도서 출판사
-                </h4>
-                <div className="space-y-1">
-                  {mockSourcesByCategory.books.map((source) => (
-                    <div
-                      key={source.id}
-                      className="group flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-7 h-7 rounded-full bg-white border border-slate-100 flex items-center justify-center overflow-hidden">
-                          {source.logo ? (
-                            <img src={source.logo} alt={source.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-[10px] font-bold text-slate-400">{source.name[0]}</span>
-                          )}
+              <div className="space-y-6">
+                {/* 출판사 검색 */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="출판사 검색..."
+                    className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder:text-slate-400"
+                  />
+                </div>
+
+                {/* 최근 업데이트된 출판사 */}
+                <div>
+                  <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
+                    최근 업데이트 출판사
+                  </h4>
+                  <div className="space-y-1">
+                    {mockSourcesByCategory.books.slice(0, 10).map((source, idx) => (
+                      <div
+                        key={source.id}
+                        className="group flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer border border-transparent hover:border-slate-100"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            {source.logo ? (
+                              <img src={source.logo} alt={source.name} className="w-full h-full object-contain p-0.5" />
+                            ) : (
+                              <span className="text-[10px] font-bold text-slate-400">{source.name[0]}</span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-medium text-slate-700 group-hover:text-teal-700 transition-colors truncate block">
+                              {source.name}
+                            </span>
+                            <span className="text-xs text-slate-400">
+                              {idx < 3 ? '오늘' : idx < 5 ? '어제' : `${idx - 2}일 전`} 업데이트
+                            </span>
+                          </div>
                         </div>
-                        <span className="text-sm text-slate-700 group-hover:text-teal-700 transition-colors">
-                          {source.name}
-                        </span>
+                        <div className="flex items-center gap-1 text-xs text-teal-600 font-medium flex-shrink-0">
+                          <span>+{source.activeCount > 100 ? Math.floor(source.activeCount / 20) : Math.ceil(source.activeCount / 10)}</span>
+                        </div>
                       </div>
-                      <span className="text-xs text-slate-400">
-                        {source.activeCount}
-                      </span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+
+                  {/* 출판사 추가 접수 CTA */}
+                  <a
+                    href={COMPANY_REGISTRATION_FORM_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg text-sm text-teal-700 hover:text-teal-900 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>출판사 수집 요청하기</span>
+                  </a>
                 </div>
               </div>
             )}

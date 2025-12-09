@@ -140,32 +140,44 @@ export default function CommunityPage() {
       <main className="lg:col-span-9">
         <div className="space-y-4">
           {/* Header Section */}
-          <div className="pt-12 pb-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-              <div className="flex items-center gap-3">
-                <h1 className="text-4xl font-serif font-bold text-slate-900">Community</h1>
+          <div className="pt-16 pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-3">
+                  <MessageSquare className="h-10 w-10 text-slate-700" />
+                  <h1 className="text-3xl font-bold text-slate-900">Community</h1>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full pb-1">
-                {[
-                  { id: 'feed', label: 'Feed' },
-                  { id: 'qna', label: 'Q&A' },
-                  { id: 'promotion', label: 'Promotion' },
-                  { id: 'following', label: 'Following' },
-                ].map((filter) => (
-                  <button
-                    key={filter.id}
-                    onClick={() => setContentFilter(filter.id as any)}
-                    className={cn(
-                      "px-4 py-2 text-sm font-medium rounded-full transition-all whitespace-nowrap",
-                      contentFilter === filter.id
-                        ? "bg-teal-50 text-teal-700 font-semibold"
-                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                    )}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Chip
+                    variant={contentFilter === 'feed' ? 'selected' : 'default'}
+                    onClick={() => setContentFilter('feed')}
                   >
-                    {filter.label}
-                  </button>
-                ))}
+                    <MessageSquare className="h-4 w-4" />
+                    Feed
+                  </Chip>
+                  <Chip
+                    variant={contentFilter === 'qna' ? 'selected' : 'default'}
+                    onClick={() => setContentFilter('qna')}
+                  >
+                    Q&A
+                  </Chip>
+                  <Chip
+                    variant={contentFilter === 'promotion' ? 'selected' : 'default'}
+                    onClick={() => setContentFilter('promotion')}
+                  >
+                    홍보
+                  </Chip>
+                  <Chip
+                    variant={contentFilter === 'following' ? 'selected' : 'default'}
+                    onClick={() => setContentFilter('following')}
+                  >
+                    <Users className="h-4 w-4" />
+                    팔로잉
+                  </Chip>
+                </div>
               </div>
             </div>
           </div>

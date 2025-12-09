@@ -68,91 +68,77 @@ export const RecommendedFollowersPanel = React.forwardRef<HTMLDivElement, Recomm
     };
 
     return (
-      <Card ref={ref} className={cn('p-4', className)} {...props}>
+      <div ref={ref} className={cn('bg-slate-50/50 rounded-2xl p-6', className)} {...props}>
         {/* Header */}
-        <div className="flex items-center gap-2 mb-3">
-          <Users className="h-5 w-5 text-slate-700" />
-          <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <Users className="h-5 w-5 text-teal-600" />
+          <h3 className="text-lg font-serif font-bold text-slate-900">{title}</h3>
         </div>
 
         {/* Description */}
-        <p className="text-sm text-slate-600 mb-4">
+        <p className="text-sm text-slate-500 mb-6">
           관심사가 비슷한 사용자를 팔로우해보세요
         </p>
 
         {/* Followers List */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           {displayedFollowers.map((follower, index) => {
-            const isLast = index === displayedFollowers.length - 1;
             const isFollowing = followingState[follower.id] || false;
 
             return (
-              <a
+              <div
                 key={follower.id}
-                href={follower.href || '#'}
-                className={cn(
-                  'block pb-3 hover:bg-slate-50 -mx-4 px-4 rounded-lg transition-colors',
-                  !isLast && 'border-b border-slate-200'
-                )}
+                className="flex items-center justify-between gap-3"
               >
-                <div className="flex items-start justify-between gap-3">
-                  {/* User Info */}
-                  <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <Avatar className="h-10 w-10 flex-shrink-0">
-                      <AvatarImage src={follower.image_url} alt={follower.name} />
-                      <AvatarFallback>{follower.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-semibold text-sm text-slate-900 truncate">
-                        {follower.name}
-                      </span>
-                      {follower.headline && (
-                        <p className="text-xs text-slate-600 line-clamp-2 leading-snug mt-0.5">
-                          {follower.headline}
-                        </p>
-                      )}
-                    </div>
+                {/* User Info */}
+                <a href={follower.href || '#'} className="flex items-center gap-3 flex-1 min-w-0 group">
+                  <Avatar className="h-9 w-9 flex-shrink-0 border border-slate-200">
+                    <AvatarImage src={follower.image_url} alt={follower.name} />
+                    <AvatarFallback>{follower.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-semibold text-sm text-slate-900 truncate group-hover:text-teal-700 transition-colors">
+                      {follower.name}
+                    </span>
+                    {follower.headline && (
+                      <p className="text-xs text-slate-500 line-clamp-1">
+                        {follower.headline}
+                      </p>
+                    )}
                   </div>
+                </a>
 
-                  {/* Follow Button */}
-                  <Button
-                    size="sm"
-                    variant={isFollowing ? 'outline' : 'solid'}
-                    onClick={(e) => handleFollowClick(follower.id, e)}
-                    className={cn(
-                      'flex-shrink-0 h-8 px-3',
-                      isFollowing
-                        ? 'border-slate-300 text-slate-700 hover:bg-slate-50'
-                        : 'bg-coral-500 hover:bg-coral-600 text-white'
-                    )}
-                  >
-                    {isFollowing ? (
-                      <>
-                        <Check className="h-3.5 w-3.5 mr-1" />
-                        팔로잉
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="h-3.5 w-3.5 mr-1" />
-                        팔로우
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </a>
+                {/* Follow Button */}
+                <button
+                  onClick={(e) => handleFollowClick(follower.id, e)}
+                  className={cn(
+                    'flex-shrink-0 p-1.5 rounded-full transition-all',
+                    isFollowing
+                      ? 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                      : 'bg-teal-50 text-teal-600 hover:bg-teal-100'
+                  )}
+                  aria-label={isFollowing ? "언팔로우" : "팔로우"}
+                >
+                  {isFollowing ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             );
           })}
         </div>
 
         {/* Footer - See More */}
         {followers.length > displayedFollowers.length && (
-          <div className="mt-4 pt-4 border-t border-slate-200">
-            <button className="w-full text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors">
-              더 많은 추천 보기
+          <div className="mt-6 pt-4 border-t border-slate-200/50">
+            <button className="w-full text-sm font-medium text-slate-500 hover:text-teal-700 transition-colors flex items-center justify-center gap-1">
+              더 보기
             </button>
           </div>
         )}
-      </Card>
+      </div>
     );
   }
 );
