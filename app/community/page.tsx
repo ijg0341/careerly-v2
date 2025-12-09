@@ -795,20 +795,20 @@ function CommunityPageContent() {
   // Mix all content naturally by interleaving different types
   const allContent = React.useMemo(() => {
     // Use API data for feed and QnA only
-    // Flatten all pages
-    const feedItems = ((postsData?.pages as PaginatedPostResponse[] | undefined)?.flatMap(page => page.results) || []).map((item, idx) => ({
+    // Flatten all pages (filter out pages with undefined results)
+    const feedItems = ((postsData?.pages as PaginatedPostResponse[] | undefined)?.flatMap(page => page.results || []) || []).map((item, idx) => ({
       type: 'feed' as const,
       data: item,
       originalIndex: idx,
     }));
 
-    const recommendedItems = ((recommendedPostsDataPaginated?.pages as PaginatedPostResponse[] | undefined)?.flatMap(page => page.results) || []).map((item, idx) => ({
+    const recommendedItems = ((recommendedPostsDataPaginated?.pages as PaginatedPostResponse[] | undefined)?.flatMap(page => page.results || []) || []).map((item, idx) => ({
       type: 'feed' as const,
       data: item,
       originalIndex: idx,
     }));
 
-    const qnaItems = ((questionsData?.pages as PaginatedQuestionResponse[] | undefined)?.flatMap(page => page.results) || []).map((item, idx) => ({
+    const qnaItems = ((questionsData?.pages as PaginatedQuestionResponse[] | undefined)?.flatMap(page => page.results || []) || []).map((item, idx) => ({
       type: 'qna' as const,
       data: item,
       originalIndex: idx,
