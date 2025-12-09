@@ -10,7 +10,21 @@ interface MarkdownProps {
   className?: string;
 }
 
+// 마크다운 헤딩/리스트 전처리: ## 앞에 빈 줄이 없으면 추가
+function preprocessMarkdown(text: string): string {
+  // 줄바꿈 없이 바로 ## 또는 - 또는 * 또는 숫자. 가 오는 경우 앞에 줄바꿈 추가
+  // 예: "텍스트## 헤딩" → "텍스트\n\n## 헤딩"
+  return text
+    // 헤딩 앞에 줄바꿈이 없는 경우 (줄 시작이 아닌 경우)
+    .replace(/([^\n])(#{1,6}\s)/g, '$1\n\n$2')
+    // 리스트 앞에 줄바꿈이 없는 경우
+    .replace(/([^\n])(\n[-*]\s)/g, '$1\n$2')
+    .replace(/([^\n])(\n\d+\.\s)/g, '$1\n$2');
+}
+
 export function Markdown({ content, className = '' }: MarkdownProps) {
+  const processedContent = preprocessMarkdown(content);
+
   return (
     <div className={`markdown-content overflow-hidden ${className}`}>
       <ReactMarkdown
@@ -64,7 +78,7 @@ export function Markdown({ content, className = '' }: MarkdownProps) {
           ),
         }}
       >
-        {content}
+        {processedContent}
       </ReactMarkdown>
     </div>
   );

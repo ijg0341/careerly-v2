@@ -18,6 +18,7 @@ import { SuggestedFollowUpInput } from '@/components/ui/suggested-follow-up-inpu
 import { ViewModeToggle, type ViewMode } from '@/components/ui/view-mode-toggle';
 import { SearchResultItem } from '@/components/ui/search-result-item';
 import { PopularPostsSlider } from '@/components/ui/popular-posts-slider';
+import { Markdown } from '@/components/common/Markdown';
 
 // 상태 step에 따른 아이콘 매핑
 const STATUS_ICONS: Record<SSEStatusStep, React.ReactNode> = {
@@ -699,11 +700,12 @@ function SearchContent() {
             <>
               {/* 스트리밍 중인 답변 또는 완료된 답변 */}
               {streamingContent ? (
-                <div className="prose prose-slate max-w-none">
-                  <div className="whitespace-pre-wrap text-slate-800 leading-relaxed">
-                    {streamingContent}
-                    <span className="inline-block w-0.5 h-5 bg-teal-500 animate-pulse ml-0.5 align-text-bottom" />
-                  </div>
+                <div className="relative">
+                  <Markdown
+                    content={streamingContent}
+                    className="prose prose-sm prose-slate max-w-none prose-headings:font-semibold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-p:text-slate-700 prose-p:leading-relaxed prose-a:text-teal-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900 prose-ul:list-disc prose-ol:list-decimal"
+                  />
+                  <span className="inline-block w-0.5 h-5 bg-teal-500 animate-pulse ml-0.5 align-text-bottom" />
                 </div>
               ) : completedAnswer ? (
                 <AnswerResponsePanel

@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { SearchComposeInput } from '@/components/ui/search-compose-input';
+import { Markdown } from '@/components/common/Markdown';
 import { cn } from '@/lib/utils';
 import { Bot, Loader2, X, FileText, Share2, Search, Sparkles } from 'lucide-react';
 import { streamChatMessage } from '@/lib/api/services/chat.service';
@@ -316,9 +317,16 @@ export const AiChatPanel = React.forwardRef<HTMLDivElement, AiChatPanelProps>(
                       : 'bg-slate-100 text-slate-900'
                   )}
                 >
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                    {message.content}
-                  </p>
+                  {message.role === 'assistant' ? (
+                    <Markdown
+                      content={message.content}
+                      className="prose prose-sm prose-slate max-w-none prose-headings:font-semibold prose-p:text-slate-700 prose-p:leading-relaxed prose-a:text-teal-600 prose-ul:list-disc prose-ol:list-decimal"
+                    />
+                  ) : (
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                      {message.content}
+                    </p>
+                  )}
                   <p
                     className={cn(
                       'text-xs mt-1',
@@ -381,11 +389,12 @@ export const AiChatPanel = React.forwardRef<HTMLDivElement, AiChatPanelProps>(
                   <Bot className="h-4 w-4 text-coral-500" />
                 </div>
               </Avatar>
-              <div className="max-w-[85%] rounded-lg px-4 py-2.5 bg-slate-100 text-slate-900">
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                  {streamingContent}
-                  <span className="inline-block w-0.5 h-4 bg-blue-500 animate-pulse ml-0.5 align-text-bottom" />
-                </p>
+              <div className="max-w-[85%] rounded-lg px-4 py-2.5 bg-slate-100 text-slate-900 relative">
+                <Markdown
+                  content={streamingContent}
+                  className="prose prose-sm prose-slate max-w-none prose-headings:font-semibold prose-p:text-slate-700 prose-p:leading-relaxed prose-a:text-teal-600 prose-ul:list-disc prose-ol:list-decimal"
+                />
+                <span className="inline-block w-0.5 h-4 bg-blue-500 animate-pulse ml-0.5 align-text-bottom" />
               </div>
             </div>
           )}
