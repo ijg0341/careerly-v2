@@ -867,9 +867,10 @@ function CommunityPageContent() {
 
   // Transform recommended posts data for RecommendedPostsPanel
   const recommendedPosts = React.useMemo(() => {
-    if (!recommendedPostsData || recommendedPostsData.length === 0) return [];
+    const posts = Array.isArray(recommendedPostsData) ? recommendedPostsData : [];
+    if (posts.length === 0) return [];
 
-    return recommendedPostsData.map((post) => ({
+    return posts.map((post) => ({
       id: post.id.toString(),
       title: post.title || post.description.substring(0, 50) + '...',
       author: {
@@ -883,9 +884,10 @@ function CommunityPageContent() {
 
   // Transform recommended followers data for RecommendedFollowersPanel
   const recommendedFollowers = React.useMemo(() => {
-    if (!recommendedFollowersData || recommendedFollowersData.length === 0) return [];
+    const followers = Array.isArray(recommendedFollowersData) ? recommendedFollowersData : [];
+    if (followers.length === 0) return [];
 
-    return recommendedFollowersData.map((follower) => ({
+    return followers.map((follower) => ({
       id: follower.id.toString(),
       name: follower.name,
       image_url: follower.image_url || undefined,
