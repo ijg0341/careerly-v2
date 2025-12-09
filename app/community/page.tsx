@@ -463,7 +463,7 @@ function CommunityPageContent() {
       const initialLikedState: Record<number, boolean> = {};
       const initialSavedState: Record<number, boolean> = {};
       postsData.pages.forEach((page) => {
-        (page as PaginatedPostResponse).results.forEach((post) => {
+        (page as PaginatedPostResponse).results?.forEach((post) => {
           initialLikedState[post.id] = post.is_liked;
           initialSavedState[post.id] = post.is_saved;
         });
@@ -479,7 +479,7 @@ function CommunityPageContent() {
       const initialLikedState: Record<number, boolean> = {};
       const initialSavedState: Record<number, boolean> = {};
       recommendedPostsDataPaginated.pages.forEach((page) => {
-        (page as PaginatedPostResponse).results.forEach((post) => {
+        (page as PaginatedPostResponse).results?.forEach((post) => {
           initialLikedState[post.id] = post.is_liked;
           initialSavedState[post.id] = post.is_saved;
         });
@@ -508,7 +508,7 @@ function CommunityPageContent() {
     if (questionsData?.pages) {
       const initialQuestionLikes: Record<number, { liked: boolean; disliked: boolean }> = {};
       questionsData.pages.forEach((page) => {
-        (page as PaginatedQuestionResponse).results.forEach((question) => {
+        (page as PaginatedQuestionResponse).results?.forEach((question) => {
           initialQuestionLikes[question.id] = {
             liked: question.is_liked || false,
             disliked: false, // API doesn't provide dislike status yet

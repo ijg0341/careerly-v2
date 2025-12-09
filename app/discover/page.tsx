@@ -4,7 +4,8 @@ import * as React from 'react';
 import { DiscoverMinimalCard, DiscoverMinimalCardProps } from '@/components/ui/discover-minimal-card';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Heart, X, ExternalLink, Bookmark, Search, TrendingUp, Eye, MessageCircle, Send, BadgeCheck, Plus, Lock } from 'lucide-react';
+import { Heart, X, ExternalLink, Bookmark, Search, TrendingUp, Eye, MessageCircle, Send, BadgeCheck, Plus, Lock, Sparkles, Briefcase, FileText, BookOpen, GraduationCap } from 'lucide-react';
+import { Chip } from '@/components/ui/chip';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Link from 'next/link';
 
@@ -258,18 +259,16 @@ export default function DiscoverPage() {
     let cards = feedResponse.feeds.map(transformFeedToCard);
 
     // Content Type Filter
-    if (contentType !== 'all') {
-      cards = cards.filter(card => {
-        const category = card.badge?.toLowerCase() || '';
-        switch (contentType) {
-          case 'jobs': return category.includes('job') || category.includes('채용');
-          case 'blogs': return category.includes('blog') || category.includes('블로그');
-          case 'books': return category.includes('book') || category.includes('도서');
-          case 'courses': return category.includes('course') || category.includes('강의');
-          default: return true;
-        }
-      });
-    }
+    cards = cards.filter(card => {
+      const category = card.badge?.toLowerCase() || '';
+      switch (contentType) {
+        case 'jobs': return category.includes('job') || category.includes('채용');
+        case 'blogs': return category.includes('blog') || category.includes('블로그');
+        case 'books': return category.includes('book') || category.includes('도서');
+        case 'courses': return category.includes('course') || category.includes('강의');
+        default: return true;
+      }
+    });
 
     // Tag Filter
     if (selectedTags.length > 0) {
@@ -381,43 +380,58 @@ export default function DiscoverPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white" >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 py-8">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-x-hidden">
+      {/* Main Content */}
+      <main className="lg:col-span-9 min-w-0">
+        <div className="space-y-4">
+          {/* Header Section */}
+          <div className="pt-2 md:pt-16 pb-4">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              {/* 타이틀 - PC에서만 표시 (모바일은 AppLayout 헤더에 표시) */}
+              <div className="hidden md:flex items-center gap-3">
+                <Sparkles className="h-10 w-10 text-slate-700" />
+                <h1 className="text-3xl font-bold text-slate-900">Discover</h1>
+              </div>
 
-          {/* Main Content - Centered and Wider */}
-          <main className="lg:col-span-8 space-y-8">
-
-            {/* Top Navigation & Search Area */}
-            <div className="space-y-6">
-              {/* Navigation & Filters Row */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-                {/* Page Title */}
-                <h1 className="text-2xl font-serif font-bold text-slate-900">Discover</h1>
-
+              <div className="flex items-center justify-between md:justify-end gap-3 min-w-0">
                 {/* Content Type Filters */}
-                <div className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-full">
-                  {[
-                    { id: 'jobs', label: '채용공고' },
-                    { id: 'blogs', label: '블로그' },
-                    { id: 'books', label: '도서' },
-                    { id: 'courses', label: '강의' },
-                  ].map((type) => (
-                    <button
-                      key={type.id}
-                      onClick={() => setContentType(type.id as ContentType)}
-                      className={cn(
-                        "px-3 py-1.5 text-sm font-medium rounded-full transition-colors whitespace-nowrap",
-                        contentType === type.id
-                          ? "bg-teal-50 text-teal-700"
-                          : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                      )}
-                    >
-                      {type.label}
-                    </button>
-                  ))}
+                <div className="flex items-center gap-2 overflow-x-auto flex-nowrap scrollbar-hide min-w-0">
+                  <Chip
+                    variant={contentType === 'jobs' ? 'selected' : 'default'}
+                    onClick={() => setContentType('jobs')}
+                    className="shrink-0"
+                  >
+                    <Briefcase className="h-4 w-4" />
+                    채용공고
+                  </Chip>
+                  <Chip
+                    variant={contentType === 'blogs' ? 'selected' : 'default'}
+                    onClick={() => setContentType('blogs')}
+                    className="shrink-0"
+                  >
+                    <FileText className="h-4 w-4" />
+                    블로그
+                  </Chip>
+                  <Chip
+                    variant={contentType === 'books' ? 'selected' : 'default'}
+                    onClick={() => setContentType('books')}
+                    className="shrink-0"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    도서
+                  </Chip>
+                  <Chip
+                    variant={contentType === 'courses' ? 'selected' : 'default'}
+                    onClick={() => setContentType('courses')}
+                    className="shrink-0"
+                  >
+                    <GraduationCap className="h-4 w-4" />
+                    강의
+                  </Chip>
                 </div>
               </div>
+            </div>
+          </div>
 
               {/* Date Tabs - 채용공고 탭일 때만 표시 */}
               {contentType === 'jobs' && (
@@ -1217,8 +1231,9 @@ export default function DiscoverPage() {
             )}
           </main>
 
-          {/* Right Sidebar - Data Sources */}
-          <aside className="hidden lg:block lg:col-span-4 space-y-6 sticky top-24 h-fit pl-6 border-l border-slate-100">
+          {/* Right Sidebar - 데스크톱에서만 표시 */}
+          <aside className="hidden lg:block lg:col-span-3">
+            <div className="space-y-4 pt-16">
             {/* Header */}
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-slate-900 flex items-center gap-2">
@@ -1594,9 +1609,8 @@ export default function DiscoverPage() {
                 <span>© 2025 Careerly AI</span>
               </div>
             </div>
+            </div>
           </aside>
-        </div>
-      </div>
 
       {/* Detail Drawer */}
       <div
