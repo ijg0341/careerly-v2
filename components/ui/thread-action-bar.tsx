@@ -1,27 +1,32 @@
 'use client';
 
 import * as React from 'react';
-import { Share2, Bookmark, Download, RefreshCw, Check, Loader2 } from 'lucide-react';
+import { Share2, Bookmark, Download, RefreshCw, Check, Loader2, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IconButton } from '@/components/ui/icon-button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useShareSession } from '@/lib/api';
+import { useShareSession, useShareToCommunity } from '@/lib/api';
 
 export interface ThreadActionBarProps extends React.HTMLAttributes<HTMLDivElement> {
   sessionId?: string;
   isPublic?: boolean;
   onShare?: () => void;
+  onShareToCommunity?: () => void;
   onBookmark?: () => void;
   onExport?: () => void;
   onRewrite?: () => void;
   isBookmarked?: boolean;
+  /** 커뮤니티에 이미 공유됐는지 여부 */
+  isSharedToCommunity?: boolean;
 }
 
 const ThreadActionBar = React.forwardRef<HTMLDivElement, ThreadActionBarProps>(
-  ({ sessionId, isPublic = false, onShare, onBookmark, onExport, onRewrite, isBookmarked = false, className, ...props }, ref) => {
+  ({ sessionId, isPublic = false, onShare, onShareToCommunity, onBookmark, onExport, onRewrite, isBookmarked = false, isSharedToCommunity = false, className, ...props }, ref) => {
     const shareSession = useShareSession();
+    const shareToCommunity = useShareToCommunity();
     const [justCopied, setJustCopied] = React.useState(false);
     const [shareStatus, setShareStatus] = React.useState<'idle' | 'copying' | 'copied' | 'error'>('idle');
+    const [communityShareStatus, setCommunityShareStatus] = React.useState<'idle' | 'sharing' | 'shared' | 'error'>('idle');
 
     const handleShareClick = async () => {
       if (!sessionId) {
@@ -64,6 +69,29 @@ const ThreadActionBar = React.forwardRef<HTMLDivElement, ThreadActionBarProps>(
       }
     };
 
+    const handleShareToCommunity = async () => {
+      if (!sessionId) {
+        onShareToCommunity?.();
+        return;
+      }
+
+      // 이미 공유된 상태면 무시
+      if (isSharedToCommunity || communityShareStatus === 'shared') {
+        return;
+      }
+
+      try {
+        setCommunityShareStatus('sharing');
+        await shareToCommunity.mutateAsync({ sessionId });
+        setCommunityShareStatus('shared');
+        onShareToCommunity?.();
+      } catch (error) {
+        console.error('Share to community failed:', error);
+        setCommunityShareStatus('error');
+        setTimeout(() => setCommunityShareStatus('idle'), 3000);
+      }
+    };
+
     return (
       <TooltipProvider>
         <div ref={ref} className={cn('flex items-center gap-1', className)} {...props}>
@@ -88,6 +116,31 @@ const ThreadActionBar = React.forwardRef<HTMLDivElement, ThreadActionBarProps>(
               </TooltipTrigger>
               <TooltipContent>
                 <p>{justCopied ? '복사됨!' : isPublic ? '링크 복사' : '공유하기'}</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+
+          {sessionId && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <IconButton
+                  variant="ghost"
+                  size="md"
+                  onClick={handleShareToCommunity}
+                  disabled={shareToCommunity.isPending || isSharedToCommunity || communityShareStatus === 'shared'}
+                  aria-label="커뮤니티에 공유"
+                >
+                  {shareToCommunity.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (isSharedToCommunity || communityShareStatus === 'shared') ? (
+                    <Check className="h-4 w-4 text-teal-600" />
+                  ) : (
+                    <Users className="h-4 w-4" />
+                  )}
+                </IconButton>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{(isSharedToCommunity || communityShareStatus === 'shared') ? '커뮤니티에 공유됨' : '커뮤니티에 공유'}</p>
               </TooltipContent>
             </Tooltip>
           )}

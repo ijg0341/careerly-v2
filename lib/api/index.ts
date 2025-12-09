@@ -48,6 +48,7 @@ export {
   getChatSession,
   getPublicChatSession,
   shareChatSession,
+  shareSessionToCommunity,
 } from './services/chat.service';
 
 // User Service
@@ -354,11 +355,13 @@ export {
   useChatMessage,
   useChatSearchAllVersions,
   useShareSession,
+  useShareToCommunity,
 } from './hooks/mutations/useChat';
 export type {
   UseChatMutationParams,
   UseChatSearchAllVersionsParams,
   UseShareSessionParams,
+  UseShareToCommunityParams,
 } from './hooks/mutations/useChat';
 
 // Comments Mutations
@@ -478,6 +481,7 @@ export type {
   ChatSession,
   ChatSessionMessage,
   ShareSessionRequest,
+  ShareToCommunityResponse,
   ApiVersion,
 
   // SSE Types

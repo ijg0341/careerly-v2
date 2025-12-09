@@ -11,6 +11,7 @@ import {
   sendChatMessage,
   chatSearchAllVersions,
   shareChatSession,
+  shareSessionToCommunity,
 } from '../../services/chat.service';
 import type {
   ChatRequest,
@@ -18,6 +19,7 @@ import type {
   ChatSearchResult,
   ChatComparisonResult,
   ChatSession,
+  ShareToCommunityResponse,
 } from '../../types/chat.types';
 
 /**
@@ -112,6 +114,38 @@ export function useShareSession(
       // 세션 캐시 업데이트
       queryClient.setQueryData(['chatSession', variables.sessionId], data);
       queryClient.setQueryData(['publicChatSession', variables.sessionId], data);
+    },
+    ...options,
+  });
+}
+
+/**
+ * 커뮤니티 공유 파라미터 타입
+ */
+export interface UseShareToCommunityParams {
+  sessionId: string;
+}
+
+/**
+ * 세션을 커뮤니티에 포스트로 공유하는 훅
+ * ChatSession을 Post로 변환하여 커뮤니티 피드에 노출
+ */
+export function useShareToCommunity(
+  options?: Omit<
+    UseMutationOptions<ShareToCommunityResponse, Error, UseShareToCommunityParams>,
+    'mutationFn'
+  >
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation<ShareToCommunityResponse, Error, UseShareToCommunityParams>({
+    mutationFn: async ({ sessionId }) => {
+      return shareSessionToCommunity(sessionId);
+    },
+    onSuccess: () => {
+      // 포스트 목록 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      queryClient.invalidateQueries({ queryKey: ['followingPosts'] });
     },
     ...options,
   });

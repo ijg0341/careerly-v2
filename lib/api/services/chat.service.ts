@@ -23,6 +23,7 @@ import type {
   SSEAgentProgressEvent,
   ChatSession,
   ShareSessionRequest,
+  ShareToCommunityResponse,
 } from '../types/chat.types';
 
 /**
@@ -429,6 +430,25 @@ export async function shareChatSession(
     const request: ShareSessionRequest = { is_public: isPublic };
     // POST 메서드 사용 (백엔드가 PATCH를 지원하지 않음)
     const response = await chatClient.post<ChatSession>(`/sessions/${sessionId}/share/`, request);
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 세션을 커뮤니티에 포스트로 공유
+ * ChatSession을 Post로 변환하여 커뮤니티 피드에 노출
+ * @param sessionId - 공유할 세션 ID
+ * @returns 생성된 포스트 정보
+ */
+export async function shareSessionToCommunity(
+  sessionId: string
+): Promise<ShareToCommunityResponse> {
+  try {
+    const response = await chatClient.post<ShareToCommunityResponse>(
+      `/sessions/${sessionId}/share-to-community/`
+    );
     return response.data;
   } catch (error) {
     throw handleApiError(error);

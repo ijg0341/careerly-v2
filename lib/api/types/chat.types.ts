@@ -280,3 +280,23 @@ export interface ChatSession {
 export interface ShareSessionRequest {
   is_public: boolean;
 }
+
+/**
+ * 커뮤니티 공유 응답 타입
+ * ChatSession을 Post로 변환하여 커뮤니티에 공유
+ */
+export interface ShareToCommunityResponse {
+  /** 생성된 포스트 ID */
+  id: number;
+  /** 포스트 제목 (세션 첫 질문 기반) */
+  title: string;
+  /** 포스트 설명 */
+  description: string;
+  /** 포스트 타입 (10 = AI 검색 포스트) */
+  posttype: number;
+  /** 채팅 세션 데이터 */
+  chat_data: {
+    session_id: string;
+    messages: ChatSessionMessage[];
+  };
+}
