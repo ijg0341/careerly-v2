@@ -879,7 +879,7 @@ function CommunityPageContent() {
 
     // 이미 팔로우 중인 유저 제외
     const filtered = recommendedFollowersCandidates.filter(
-      (follower) => !myFollowingIds.has(follower.user_id || follower.id)
+      (follower) => !myFollowingIds.has(follower.id)
     );
 
     // Fisher-Yates 셔플 (랜덤 정렬)
