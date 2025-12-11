@@ -32,7 +32,7 @@ export default function HomePage() {
   return (
     <div className="flex-1 flex flex-col px-4 py-8 overflow-auto">
       {/* Hero Section - 검색 영역 */}
-      <div className="flex flex-col items-center justify-center min-h-[40vh] mb-12">
+      <div className="flex flex-col items-center pt-[20vh] mb-12">
         <div className="w-full max-w-3xl space-y-8">
           {/* Logo */}
           <div className="flex justify-center">
