@@ -1,387 +1,696 @@
 'use client';
 
 import * as React from 'react';
-import { DiscoverMinimalCard, DiscoverMinimalCardProps } from '@/components/ui/discover-minimal-card';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Heart, X, ExternalLink, Bookmark, Search, TrendingUp, Eye, MessageCircle, Send, BadgeCheck, Plus, Lock, Sparkles, Briefcase, FileText, BookOpen, GraduationCap } from 'lucide-react';
+import { Search, TrendingUp, BadgeCheck, Plus, Lock, Sparkles, Briefcase, FileText, BookOpen, GraduationCap, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import useEmblaCarousel from 'embla-carousel-react';
 import { Chip } from '@/components/ui/chip';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Link from 'next/link';
+import { DailySummaryCard } from '@/components/ui/daily-summary-card';
+import { SidebarFooter } from '@/components/layout/SidebarFooter';
 
-// Mock 데이터 import (로컬 프로토타이핑용)
+// Discover 컴포넌트
 import {
-  mockDiscoverResponse,
+  JobListItem,
+  BlogCard,
+  BookCard,
+  CourseCard,
+  ContentDetailDrawer,
+  SourceListItem,
+  formatDateTab,
+  generateLast7Days,
+  formatDateHeader,
+  formatShortDate,
+  formatWeekHeader,
+  groupByDate,
+  groupByWeek,
+} from '@/components/discover';
+import type {
+  JobItemData,
+  ContentDetailData,
+  SourceItemData,
+} from '@/components/discover';
+
+// API 훅
+import { useV2MainData, useRecruitsContents, useContentsRanking } from '@/lib/api/hooks/queries/useSomoonRecruits';
+import type { RecruitsV2CompanyJobsData, RecruitsContentType } from '@/lib/api/types/somoon-recruits.types';
+
+// Mock 데이터 (일부만 사용)
+import {
   mockSourceStats,
-  mockSourcesByCategory,
-  mockDailyJobData,
-  mockWeeklyStats,
-  mockRecentlyUpdatedCompanies,
   mockAllCompanies,
   COMPANY_REGISTRATION_FORM_URL,
 } from '@/lib/data/discover-mock';
-import { JobRowItemProps } from '@/components/ui/job-row-item';
-import { DailySummaryCard } from '@/components/ui/daily-summary-card';
 
 type ContentType = 'jobs' | 'blogs' | 'books' | 'courses';
 
-// 날짜 탭 포맷팅 함수
-function formatDateTab(dateString: string): string {
-  const date = new Date(dateString);
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  const isSameDay = (d1: Date, d2: Date) =>
-    d1.getFullYear() === d2.getFullYear() &&
-    d1.getMonth() === d2.getMonth() &&
-    d1.getDate() === d2.getDate();
-
-  if (isSameDay(date, today)) return '오늘';
-  if (isSameDay(date, yesterday)) return '어제';
-  return `${date.getMonth() + 1}/${date.getDate()}`;
+/**
+ * API 날짜(UTC)를 표시용 날짜(KST +1일)로 변환
+ * API가 UTC 기준 어제 데이터를 반환하므로, 표시할 때는 하루 뒤로 보여줌
+ */
+function apiDateToDisplayDate(apiDate: string): string {
+  const date = new Date(apiDate);
+  date.setDate(date.getDate() + 1);
+  return date.toISOString().split('T')[0];
 }
-
-// 최근 7일 날짜 목록 생성 (최신순)
-const generateLast7Days = (): string[] => {
-  const dates: string[] = [];
-  const today = new Date();
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() - i);
-    dates.push(date.toISOString().split('T')[0]);
-  }
-  return dates;
-};
-
-const availableDates = generateLast7Days();
-
-// 블로그 AI 카테고리 타입 (5개 카테고리)
-type BlogAICategory = 'ai-dev' | 'ai-design' | 'ai-biz' | 'ai-general' | 'other';
-
-// 도서/강의용 AI 카테고리 타입 (전체 포함)
-type ContentAICategory = 'all' | 'ai-dev' | 'ai-design' | 'ai-biz' | 'ai-general' | 'other';
-
-// 블로그 카테고리 설정
-const blogCategoryConfig: Record<BlogAICategory, { label: string; icon: string; bgClass: string; textClass: string; borderClass: string }> = {
-  'ai-dev': { label: 'AI & Dev', icon: '🤖', bgClass: 'bg-purple-100', textClass: 'text-purple-700', borderClass: 'border-purple-300' },
-  'ai-design': { label: 'AI & Design', icon: '🎨', bgClass: 'bg-pink-100', textClass: 'text-pink-700', borderClass: 'border-pink-300' },
-  'ai-biz': { label: 'AI & Biz', icon: '💼', bgClass: 'bg-amber-100', textClass: 'text-amber-700', borderClass: 'border-amber-300' },
-  'ai-general': { label: 'AI 일반', icon: '✨', bgClass: 'bg-teal-100', textClass: 'text-teal-700', borderClass: 'border-teal-300' },
-  'other': { label: '기타', icon: '📝', bgClass: 'bg-slate-200', textClass: 'text-slate-700', borderClass: 'border-slate-300' },
-};
-
-// 도서/강의용 카테고리 설정 (전체 포함)
-const contentCategoryConfig: Record<ContentAICategory, { label: string; icon: string; bgClass: string; textClass: string; borderClass: string }> = {
-  'all': { label: '전체', icon: '📋', bgClass: 'bg-slate-100', textClass: 'text-slate-700', borderClass: 'border-slate-300' },
-  'ai-dev': { label: 'AI & Dev', icon: '🤖', bgClass: 'bg-purple-100', textClass: 'text-purple-700', borderClass: 'border-purple-300' },
-  'ai-design': { label: 'AI & Design', icon: '🎨', bgClass: 'bg-pink-100', textClass: 'text-pink-700', borderClass: 'border-pink-300' },
-  'ai-biz': { label: 'AI & Biz', icon: '💼', bgClass: 'bg-amber-100', textClass: 'text-amber-700', borderClass: 'border-amber-300' },
-  'ai-general': { label: 'AI 일반', icon: '✨', bgClass: 'bg-teal-100', textClass: 'text-teal-700', borderClass: 'border-teal-300' },
-  'other': { label: '기타', icon: '📝', bgClass: 'bg-slate-200', textClass: 'text-slate-700', borderClass: 'border-slate-300' },
-};
 
 export default function DiscoverPage() {
   const [contentType, setContentType] = React.useState<ContentType>('jobs');
-  const [selectedDate, setSelectedDate] = React.useState<string>(availableDates[0] || '2025-12-07');
-  const [selectedTags, setSelectedTags] = React.useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = React.useState('');
   const [companySearchQuery, setCompanySearchQuery] = React.useState('');
 
-  // 블로그 탭용 상태 (AI & Dev가 기본 선택)
-  const [selectedBlogCategory, setSelectedBlogCategory] = React.useState<BlogAICategory>('ai-dev');
+  // 회사 필터 상태 (all = 전체)
+  const [selectedBlogCompany, setSelectedBlogCompany] = React.useState<string>('all');
+  const [selectedBookCompany, setSelectedBookCompany] = React.useState<string>('all');
+  const [selectedCourseCompany, setSelectedCourseCompany] = React.useState<string>('all');
 
-  // 도서/강의 탭용 상태 (전체가 기본 선택)
-  const [selectedBookCategory, setSelectedBookCategory] = React.useState<ContentAICategory>('all');
-  const [selectedCourseCategory, setSelectedCourseCategory] = React.useState<ContentAICategory>('all');
+  // Drawer 상태
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const [selectedContent, setSelectedContent] = React.useState<ContentDetailData | null>(null);
+
+  // V2 메인 데이터 API 호출
+  const { data: v2MainData, isLoading: isJobsLoading } = useV2MainData({
+    enabled: contentType === 'jobs',
+  });
+
+  // 최근 한달 날짜 계산
+  const contentDateRange = React.useMemo(() => {
+    const today = new Date();
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    return {
+      created_start: oneMonthAgo.toISOString().split('T')[0],
+      created_end: today.toISOString().split('T')[0],
+    };
+  }, []);
+
+  // 블로그 API 호출 (최근 한달)
+  const { data: blogsData, isLoading: isBlogsLoading } = useRecruitsContents(
+    { content_type: 'blog', ...contentDateRange, limit: 1000 },
+    { enabled: contentType === 'blogs' }
+  );
+
+  // 도서 API 호출 (최근 한달)
+  const { data: booksData, isLoading: isBooksLoading } = useRecruitsContents(
+    { content_type: 'book', ...contentDateRange, limit: 1000 },
+    { enabled: contentType === 'books' }
+  );
+
+  // 강의 API 호출 (최근 한달)
+  const { data: lecturesData, isLoading: isLecturesLoading } = useRecruitsContents(
+    { content_type: 'lecture', ...contentDateRange, limit: 1000 },
+    { enabled: contentType === 'courses' }
+  );
+
+  // 콘텐츠 랭킹 API 호출
+  const { data: blogRankingData } = useContentsRanking('blog', false, {
+    enabled: contentType === 'blogs',
+  });
+  const { data: bookRankingData } = useContentsRanking('book', false, {
+    enabled: contentType === 'books',
+  });
+  const { data: lectureRankingData } = useContentsRanking('lecture', false, {
+    enabled: contentType === 'courses',
+  });
+
+  // API에서 가져온 날짜 목록 (UTC 기준 -> 그대로 사용)
+  // 최신 날짜는 항상 수집 중이므로 제외 (slice(1))
+  const availableDates = React.useMemo(() => {
+    if (!v2MainData?.daily_stats) return generateLast7Days().slice(1);
+    return v2MainData.daily_stats
+      .map((stat) => stat.date)
+      .sort((a, b) => b.localeCompare(a)) // 최신 날짜 먼저
+      .slice(1); // 첫 번째(최신) 제거
+  }, [v2MainData]);
+
+  const [selectedDate, setSelectedDate] = React.useState<string>('');
+
+  // 첫 데이터 로드 시 "오늘" 표시에 해당하는 날짜 선택
+  // 오늘(KST)을 표시하려면 API 날짜는 어제(UTC)여야 함
+  React.useEffect(() => {
+    if (availableDates.length > 0 && !selectedDate) {
+      const today = new Date();
+      const yesterdayApiDate = new Date(today);
+      yesterdayApiDate.setDate(today.getDate() - 1);
+      const targetApiDate = yesterdayApiDate.toISOString().split('T')[0];
+
+      // 오늘에 해당하는 API 날짜가 있으면 선택, 없으면 첫 번째
+      const todayDate = availableDates.find(d => d === targetApiDate);
+      setSelectedDate(todayDate || availableDates[0]);
+    }
+  }, [availableDates]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 선택된 날짜를 그대로 API 날짜로 사용 (UTC 기준)
+  const apiDate = selectedDate;
 
   // 기업 검색 결과 필터링
   const filteredCompanies = React.useMemo(() => {
     if (!companySearchQuery.trim()) return [];
     const query = companySearchQuery.toLowerCase();
-    return mockAllCompanies.filter(c =>
-      c.name.toLowerCase().includes(query) ||
-      c.category.toLowerCase().includes(query)
-    ).slice(0, 8); // 최대 8개 결과
+    return mockAllCompanies
+      .filter(
+        (c) =>
+          c.name.toLowerCase().includes(query) || c.category.toLowerCase().includes(query)
+      )
+      .slice(0, 8);
   }, [companySearchQuery]);
 
-  // Drawer state
-  const [drawerOpen, setDrawerOpen] = React.useState(false);
-  const [selectedContent, setSelectedContent] = React.useState<{
-    id: string;
-    title: string;
-    summary: string;
-    externalUrl?: string;
-    imageUrl?: string;
-    companyName?: string;
-    companyLogo?: string;
-    isLiked: boolean;
-    isBookmarked: boolean;
-    views: number;
-    likes: number;
-    comments: Array<{
-      id: string;
-      userName: string;
-      userImage?: string;
-      userHeadline?: string;
-      content: string;
-      createdAt: string;
-      likeCount: number;
-      liked: boolean;
-    }>;
-  } | null>(null);
-  const [newComment, setNewComment] = React.useState('');
+  // 기업 필터 상태
+  const [selectedCompanyFilter, setSelectedCompanyFilter] = React.useState<string | null>(null);
 
-  // 로컬 Mock 데이터 사용
-  const isLoading = false;
-  const error = null;
+  // 선택된 날짜의 회사 목록 (채용공고 수 기준 정렬)
+  interface CompanyFilterItem {
+    sign: string;
+    name: string;
+    logo: string;
+    jobCount: number;
+    type: 'domestic' | 'global';
+    updatedAt: string;
+  }
 
-  // Mock 데이터를 API 응답 형태로 변환
-  const feedResponse = React.useMemo(() => {
-    const jobs = mockDiscoverResponse?.jobs || [];
-    const blogs = mockDiscoverResponse?.blogs || [];
-    const books = mockDiscoverResponse?.books || [];
-    const courses = mockDiscoverResponse?.courses || [];
+  const companyFilterList = React.useMemo((): CompanyFilterItem[] => {
+    if (!v2MainData?.daily_company_jobs || !apiDate) return [];
 
-    const allFeeds = [
-      ...jobs.map((job, index) => ({
-        id: `job-${job.id}`,
-        title: job.title,
-        description: job.summary,
-        imageUrl: job.company.image,
-        author: { name: job.company.title },
-        createdAt: job.createdAt,
-        stats: { likes: index * 10, views: index * 100 },
-        category: '채용공고',
-        tags: ['채용', '커리어', 'IT', '개발자'],
-      })),
-      ...[...blogs]
-        .sort((a, b) => new Date(b.publishedAt || b.createdAt || 0).getTime() - new Date(a.publishedAt || a.createdAt || 0).getTime()) // 최신순 정렬
-        .map((blog, index) => ({
-        id: `blog-${blog.id}`,
-        title: blog.title,
-        description: blog.summary,
-        imageUrl: blog.company.image, // 회사 로고 (thumbnailUrl로 사용)
-        blogMetaImage: blog.imageUrl, // 블로그 메타 이미지 (실제 포스트 이미지)
-        author: { name: blog.company.title },
-        createdAt: blog.createdAt || new Date().toISOString(),
-        publishedAt: blog.publishedAt || blog.createdAt || new Date().toISOString(),
-        stats: { likes: 50 + index * 15, views: 500 + index * 250 },
-        category: '블로그',
-        tags: ['기술블로그', '개발', '인사이트', 'AI', '성장'],
-        aiScore: blog.aiScore || 0,
-        aiCategory: blog.aiCategory || 'other', // AI 카테고리 추가
-      })),
-      ...books.map((book, index) => ({
-        id: `book-${book.id}`,
-        title: book.title,
-        description: book.summary,
-        imageUrl: book.imageUrl,
-        author: { name: book.company.title, imageUrl: book.company.image },
-        createdAt: book.createdAt || new Date().toISOString(),
-        stats: { likes: 80 + index * 25, views: 800 + index * 350 },
-        category: '도서',
-        tags: ['도서', '학습', '리더십', '프로그래밍', 'React'],
-      })),
-      ...courses.map((course, index) => ({
-        id: `course-${course.id}`,
-        title: course.title,
-        description: course.summary,
-        imageUrl: course.imageUrl,
-        author: { name: course.company.title, imageUrl: course.company.image },
-        createdAt: course.createdAt || new Date().toISOString(),
-        stats: { likes: 60 + index * 20, views: 600 + index * 300 },
-        category: '강의',
-        tags: ['온라인강의', '리더십', '매니지먼트', '커리어', '성장'],
-      })),
-    ];
+    const dailyData = v2MainData.daily_company_jobs.find(d => d.date === apiDate);
+    if (!dailyData) return [];
 
-    return {
-      feeds: allFeeds,
-      hasNext: false,
-      total: allFeeds.length,
-    };
-  }, []);
+    // 선택된 날짜 기준 상대 시간 계산
+    const displayDate = apiDateToDisplayDate(apiDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDateObj = new Date(displayDate);
+    selectedDateObj.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((today.getTime() - selectedDateObj.getTime()) / (1000 * 60 * 60 * 24));
 
-  // Like/Bookmark 동작을 로컬 상태로만 처리
-  const [localLikes, setLocalLikes] = React.useState<Record<string, boolean>>({});
-  const [localBookmarks, setLocalBookmarks] = React.useState<Record<string, boolean>>({});
-
-  const likeMutation = {
-    mutate: (id: string) => setLocalLikes(prev => ({ ...prev, [id]: true })),
-    isPending: false,
-  };
-
-  const unlikeMutation = {
-    mutate: (id: string) => setLocalLikes(prev => ({ ...prev, [id]: false })),
-    isPending: false,
-  };
-
-  const bookmarkMutation = {
-    mutate: (id: string) => setLocalBookmarks(prev => ({ ...prev, [id]: true })),
-    isPending: false,
-  };
-
-  const unbookmarkMutation = {
-    mutate: (id: string) => setLocalBookmarks(prev => ({ ...prev, [id]: false })),
-    isPending: false,
-  };
-
-  // API 응답을 DiscoverMinimalCardProps 형식으로 변환 (블로그용 필드 포함)
-  const transformFeedToCard = React.useCallback((feed: any): DiscoverMinimalCardProps & { aiScore?: number; aiCategory?: string; publishedAt?: string; blogMetaImage?: string } => {
-    return {
-      contentId: feed.id,
-      title: feed.title,
-      summary: feed.description,
-      thumbnailUrl: feed.imageUrl, // 회사 로고
-      blogMetaImage: feed.blogMetaImage, // 블로그 메타 이미지
-      sources: feed.author ? [{
-        name: feed.author.name,
-        href: `#`,
-        imageUrl: feed.author.imageUrl,
-      }] : undefined,
-      postedAt: feed.createdAt,
-      stats: {
-        likes: feed.stats.likes,
-        views: feed.stats.views,
-        bookmarks: 0,
-      },
-      badge: feed.category,
-      tags: feed.tags,
-      liked: localLikes[feed.id] || false,
-      bookmarked: localBookmarks[feed.id] || false,
-      aiScore: feed.aiScore,
-      aiCategory: feed.aiCategory,
-      publishedAt: feed.publishedAt,
-    };
-  }, [localLikes, localBookmarks]);
-
-  // Filtered content cards
-  const filteredContentCards = React.useMemo(() => {
-    if (!feedResponse?.feeds) return [];
-
-    let cards = feedResponse.feeds.map(transformFeedToCard);
-
-    // Content Type Filter
-    cards = cards.filter(card => {
-      const category = card.badge?.toLowerCase() || '';
-      switch (contentType) {
-        case 'jobs': return category.includes('job') || category.includes('채용');
-        case 'blogs': return category.includes('blog') || category.includes('블로그');
-        case 'books': return category.includes('book') || category.includes('도서');
-        case 'courses': return category.includes('course') || category.includes('강의');
-        default: return true;
-      }
-    });
-
-    // Tag Filter
-    if (selectedTags.length > 0) {
-      cards = cards.filter(card =>
-        card.tags && card.tags.some(tag => selectedTags.includes(tag))
-      );
+    let updatedAtLabel: string;
+    if (diffDays === 0) {
+      updatedAtLabel = '오늘';
+    } else if (diffDays === 1) {
+      updatedAtLabel = '어제';
+    } else {
+      updatedAtLabel = `${diffDays}일 전`;
     }
 
-    // Search Filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      cards = cards.filter(card =>
-        card.title.toLowerCase().includes(query) ||
-        card.summary.toLowerCase().includes(query)
-      );
+    const domesticCompanies: RecruitsV2CompanyJobsData[] = dailyData.domestic_company_jobs
+      ? Object.values(dailyData.domestic_company_jobs)
+      : [];
+    const globalCompanies: RecruitsV2CompanyJobsData[] = dailyData.global_company_jobs
+      ? Object.values(dailyData.global_company_jobs)
+      : [];
+
+    const domesticList: CompanyFilterItem[] = domesticCompanies.map(c => ({
+      sign: c.company_sign,
+      name: c.company_title,
+      logo: c.company_image,
+      jobCount: c.jobs.length,
+      type: 'domestic' as const,
+      updatedAt: updatedAtLabel,
+    }));
+
+    const globalList: CompanyFilterItem[] = globalCompanies.map(c => ({
+      sign: c.company_sign,
+      name: c.company_title,
+      logo: c.company_image,
+      jobCount: c.jobs.length,
+      type: 'global' as const,
+      updatedAt: updatedAtLabel,
+    }));
+
+    // 채용공고 수 기준 내림차순 정렬
+    return [...domesticList, ...globalList].sort((a, b) => b.jobCount - a.jobCount);
+  }, [v2MainData, apiDate]);
+
+  // 날짜 변경 시 기업 필터 초기화
+  React.useEffect(() => {
+    setSelectedCompanyFilter(null);
+  }, [apiDate]);
+
+  // 선택된 날짜의 채용공고 데이터를 국내/글로벌로 분리
+  const { domesticJobs, globalJobs } = React.useMemo(() => {
+    if (!v2MainData?.daily_company_jobs || !apiDate) {
+      return { domesticJobs: [] as JobItemData[], globalJobs: [] as JobItemData[] };
     }
 
-    return cards;
-  }, [feedResponse, contentType, selectedTags, searchQuery, transformFeedToCard]);
+    // 선택된 날짜의 데이터 찾기
+    const dailyData = v2MainData.daily_company_jobs.find(d => d.date === apiDate);
+    if (!dailyData) {
+      return { domesticJobs: [] as JobItemData[], globalJobs: [] as JobItemData[] };
+    }
 
-  // Extract all unique tags
-  const allTags = React.useMemo(() => {
-    const tagSet = new Set<string>();
-    (feedResponse?.feeds || []).forEach((feed) => {
-      feed.tags?.forEach((tag) => tagSet.add(tag));
-    });
-    return Array.from(tagSet);
-  }, [feedResponse]);
+    // API 응답이 객체 형태이므로 Object.values로 배열로 변환
+    const globalCompanies: RecruitsV2CompanyJobsData[] = dailyData.global_company_jobs
+      ? Object.values(dailyData.global_company_jobs)
+      : [];
+    const domesticCompanies: RecruitsV2CompanyJobsData[] = dailyData.domestic_company_jobs
+      ? Object.values(dailyData.domestic_company_jobs)
+      : [];
 
-  // 선택된 날짜의 데이터
-  const dailyData = React.useMemo(() => {
-    return mockDailyJobData[selectedDate];
-  }, [selectedDate]);
-
-  // AI 카테고리별로 채용공고 그룹화
-  type JobWithMeta = JobRowItemProps & { companyName: string; companyLogo?: string; views: number; likes: number };
-
-  const jobsByAICategory = React.useMemo(() => {
-    if (!dailyData) return {
-      aiCore: [] as JobWithMeta[],
-      aiEnabled: [] as JobWithMeta[],
-      traditional: [] as JobWithMeta[],
+    // 기업 필터 적용
+    const filterByCompany = (companies: RecruitsV2CompanyJobsData[]) => {
+      if (!selectedCompanyFilter) return companies;
+      return companies.filter(c => c.company_sign === selectedCompanyFilter);
     };
 
-    const aiCore: JobWithMeta[] = [];
-    const aiEnabled: JobWithMeta[] = [];
-    const traditional: JobWithMeta[] = [];
-
-    dailyData.companies.forEach((group, groupIdx) => {
-      group.jobs.forEach((job, jobIdx) => {
-        // Generate consistent mock stats based on indices
-        const seed = groupIdx * 10 + jobIdx;
-        const views = 50 + (seed * 37) % 450;
-        const likes = 2 + (seed * 13) % 28;
-
-        const jobData: JobWithMeta = {
-          id: job.id,
+    const mapToJobItems = (companies: RecruitsV2CompanyJobsData[]): JobItemData[] =>
+      companies.flatMap((company) =>
+        company.jobs.map((job) => ({
+          id: String(job.id),
           title: job.title,
           summary: job.summary || '',
-          createdAt: job.createdAt || new Date().toISOString(),
           url: job.url,
-          companyName: group.company.name,
-          companyLogo: group.company.symbolImageUrl,
-          views,
-          likes,
-        };
+          companyName: company.company_title,
+          companyLogo: company.company_image,
+          createdAt: job.created_at,
+        }))
+      );
 
-        if (job.aiCategory === 'ai-core') aiCore.push(jobData);
-        else if (job.aiCategory === 'ai-enabled') aiEnabled.push(jobData);
-        else traditional.push(jobData);
-      });
-    });
+    return {
+      domesticJobs: mapToJobItems(filterByCompany(domesticCompanies)),
+      globalJobs: mapToJobItems(filterByCompany(globalCompanies)),
+    };
+  }, [v2MainData, apiDate, selectedCompanyFilter]);
 
-    return { aiCore, aiEnabled, traditional };
-  }, [dailyData]);
+  // 전체 채용공고 (국내 + 글로벌)
+  const selectedDateJobs = React.useMemo(() => {
+    return [...domesticJobs, ...globalJobs];
+  }, [domesticJobs, globalJobs]);
 
-  // 총 채용공고 수 계산
+  // 선택된 날짜의 채용공고 총 개수 (daily_stats에서 가져오기)
   const totalJobCount = React.useMemo(() => {
-    return jobsByAICategory.aiCore.length + jobsByAICategory.aiEnabled.length + jobsByAICategory.traditional.length;
-  }, [jobsByAICategory]);
+    if (!v2MainData?.daily_stats || !apiDate) return 0;
+    const stat = v2MainData.daily_stats.find(s => s.date === apiDate);
+    return stat?.count || selectedDateJobs.length;
+  }, [v2MainData, apiDate, selectedDateJobs.length]);
 
-  // Handle card click (블로그용 확장 타입 지원)
-  const handleCardClick = (card: DiscoverMinimalCardProps & { blogMetaImage?: string }) => {
-    const companyName = card.sources?.[0]?.name || '기술 블로그';
-    const companyLogo = card.thumbnailUrl;
+  // 국내/글로벌 채용공고 수 (필터 적용 전 전체)
+  const { domesticJobCount, globalJobCount } = React.useMemo(() => {
+    if (!v2MainData?.daily_company_jobs || !apiDate) {
+      return { domesticJobCount: 0, globalJobCount: 0 };
+    }
 
-    // 블로그용 Mock 댓글
-    const blogComments = [
-      { id: '1', userName: '개발자A', userImage: 'https://i.pravatar.cc/40?u=blog1', userHeadline: 'Frontend Developer @ 네이버', content: '정말 유용한 글이네요! 잘 읽었습니다.', createdAt: '2시간 전', likeCount: 12, liked: false },
-      { id: '2', userName: '시니어B', userImage: 'https://i.pravatar.cc/40?u=blog2', userHeadline: 'Tech Lead @ 카카오', content: '우리 팀에서도 비슷한 고민을 했었는데, 좋은 인사이트 얻어갑니다.', createdAt: '5시간 전', likeCount: 8, liked: true },
-      { id: '3', userName: '주니어C', userImage: 'https://i.pravatar.cc/40?u=blog3', userHeadline: 'Backend Developer', content: '혹시 관련 레포지토리 링크도 공유해주실 수 있나요?', createdAt: '1일 전', likeCount: 3, liked: false },
-    ];
+    const dailyData = v2MainData.daily_company_jobs.find(d => d.date === apiDate);
+    if (!dailyData) {
+      return { domesticJobCount: 0, globalJobCount: 0 };
+    }
 
+    const domesticCompanies = dailyData.domestic_company_jobs
+      ? Object.values(dailyData.domestic_company_jobs)
+      : [];
+    const globalCompanies = dailyData.global_company_jobs
+      ? Object.values(dailyData.global_company_jobs)
+      : [];
+
+    return {
+      domesticJobCount: domesticCompanies.reduce((sum, c) => sum + c.jobs.length, 0),
+      globalJobCount: globalCompanies.reduce((sum, c) => sum + c.jobs.length, 0),
+    };
+  }, [v2MainData, apiDate]);
+
+  // 날짜별 통계 (날짜 탭에 개수 표시용)
+  const dateStats = React.useMemo(() => {
+    if (!v2MainData?.daily_stats) return {};
+    const stats: Record<string, number> = {};
+    v2MainData.daily_stats.forEach((stat) => {
+      stats[stat.date] = stat.count;
+    });
+    return stats;
+  }, [v2MainData]);
+
+  // 주간 통계 (차트용) - daily_stats를 WeeklyStat[] 형태로 변환
+  // 최신 날짜는 항상 수집 중이므로 제외
+  const weeklyStats = React.useMemo(() => {
+    if (!v2MainData?.daily_stats || !v2MainData?.daily_company_jobs) return [];
+
+    const sortedStats = [...v2MainData.daily_stats]
+      .sort((a, b) => b.date.localeCompare(a.date)) // 최신 먼저
+      .slice(1); // 첫 번째(최신) 제거
+
+    return sortedStats
+      .map((stat) => {
+        // 해당 날짜의 회사 수 계산
+        const dailyData = v2MainData.daily_company_jobs.find(d => d.date === stat.date);
+        const globalCount = dailyData?.global_company_jobs ? Object.keys(dailyData.global_company_jobs).length : 0;
+        const domesticCount = dailyData?.domestic_company_jobs ? Object.keys(dailyData.domestic_company_jobs).length : 0;
+
+        return {
+          date: stat.date,
+          count: stat.count,
+          companies: globalCount + domesticCount,
+        };
+      })
+      .sort((a, b) => a.date.localeCompare(b.date)); // 오래된 날짜 먼저 (차트용)
+  }, [v2MainData]);
+
+  // 블로그 데이터 변환 (API 데이터 사용)
+  const blogCards = React.useMemo(() => {
+    if (!blogsData?.contents) return [];
+    return blogsData.contents
+      .sort(
+        (a, b) =>
+          new Date(b.created_at || 0).getTime() -
+          new Date(a.created_at || 0).getTime()
+      )
+      .map((blog, idx) => ({
+        id: `blog-${blog.id}`,
+        title: blog.title,
+        summary: blog.summary || '',
+        companyName: blog.company_title,
+        companyLogo: blog.company_image,
+        companySign: blog.company_sign,
+        blogMetaImage: undefined,
+        publishedAt: blog.created_at,
+        views: 500 + idx * 250,
+        likes: 50 + idx * 15,
+        url: blog.url,
+      }));
+  }, [blogsData]);
+
+  // 도서 데이터 변환 (API 데이터 사용)
+  const bookCards = React.useMemo(() => {
+    if (!booksData?.contents) return [];
+    return booksData.contents.map((book) => ({
+      id: `book-${book.id}`,
+      title: book.title,
+      summary: book.summary || '',
+      imageUrl: (book as any).image, // TODO: 백엔드에서 image 필드 추가 예정
+      publisherName: book.company_title,
+      publisherLogo: book.company_image,
+      companySign: book.company_sign,
+      url: book.url,
+      createdAt: book.created_at,
+    }));
+  }, [booksData]);
+
+  // 강의 데이터 변환 (API 데이터 사용)
+  const courseCards = React.useMemo(() => {
+    if (!lecturesData?.contents) return [];
+    return lecturesData.contents.map((course, idx) => ({
+      id: `course-${course.id}`,
+      title: course.title,
+      summary: course.summary || '',
+      imageUrl: (course as any).image, // TODO: 백엔드에서 image 필드 추가 예정
+      platformName: course.company_title,
+      platformLogo: course.company_image,
+      companySign: course.company_sign,
+      views: 600 + idx * 300,
+      likes: 60 + idx * 20,
+      url: course.url,
+      createdAt: course.created_at,
+    }));
+  }, [lecturesData]);
+
+  // 회사별 카테고리 목록 생성 (최근 업데이트순 정렬)
+  const blogCompanyCategories = React.useMemo(() => {
+    if (!blogsData?.contents) return [];
+    const companyMap = new Map<string, { sign: string; name: string; logo: string; count: number; latestDate: string }>();
+    blogsData.contents.forEach((item) => {
+      const existing = companyMap.get(item.company_sign);
+      if (existing) {
+        existing.count++;
+        if (item.created_at > existing.latestDate) {
+          existing.latestDate = item.created_at;
+        }
+      } else {
+        companyMap.set(item.company_sign, {
+          sign: item.company_sign,
+          name: item.company_title,
+          logo: item.company_image,
+          count: 1,
+          latestDate: item.created_at,
+        });
+      }
+    });
+    return Array.from(companyMap.values()).sort((a, b) => b.latestDate.localeCompare(a.latestDate));
+  }, [blogsData]);
+
+  const bookCompanyCategories = React.useMemo(() => {
+    if (!booksData?.contents) return [];
+    const companyMap = new Map<string, { sign: string; name: string; logo: string; count: number; latestDate: string }>();
+    booksData.contents.forEach((item) => {
+      const existing = companyMap.get(item.company_sign);
+      if (existing) {
+        existing.count++;
+        if (item.created_at > existing.latestDate) {
+          existing.latestDate = item.created_at;
+        }
+      } else {
+        companyMap.set(item.company_sign, {
+          sign: item.company_sign,
+          name: item.company_title,
+          logo: item.company_image,
+          count: 1,
+          latestDate: item.created_at,
+        });
+      }
+    });
+    return Array.from(companyMap.values()).sort((a, b) => b.latestDate.localeCompare(a.latestDate));
+  }, [booksData]);
+
+  const courseCompanyCategories = React.useMemo(() => {
+    if (!lecturesData?.contents) return [];
+    const companyMap = new Map<string, { sign: string; name: string; logo: string; count: number; latestDate: string }>();
+    lecturesData.contents.forEach((item) => {
+      const existing = companyMap.get(item.company_sign);
+      if (existing) {
+        existing.count++;
+        if (item.created_at > existing.latestDate) {
+          existing.latestDate = item.created_at;
+        }
+      } else {
+        companyMap.set(item.company_sign, {
+          sign: item.company_sign,
+          name: item.company_title,
+          logo: item.company_image,
+          count: 1,
+          latestDate: item.created_at,
+        });
+      }
+    });
+    return Array.from(companyMap.values()).sort((a, b) => b.latestDate.localeCompare(a.latestDate));
+  }, [lecturesData]);
+
+  // 회사별 필터링된 블로그
+  const filteredBlogs = React.useMemo(() => {
+    if (selectedBlogCompany === 'all') return blogCards;
+    return blogCards.filter((blog) => blog.companySign === selectedBlogCompany);
+  }, [blogCards, selectedBlogCompany]);
+
+  // 날짜별 그룹화된 블로그
+  const blogsByDate = React.useMemo(() => {
+    return groupByDate(filteredBlogs, (blog) => blog.publishedAt?.split(' ')[0] || 'unknown');
+  }, [filteredBlogs]);
+
+  // 주간별 그룹화된 도서/강의
+  const booksByWeek = React.useMemo(() => {
+    const filtered =
+      selectedBookCompany === 'all'
+        ? bookCards
+        : bookCards.filter((b) => b.companySign === selectedBookCompany);
+    return groupByWeek(filtered, (book) => book.createdAt || 'unknown');
+  }, [bookCards, selectedBookCompany]);
+
+  const coursesByWeek = React.useMemo(() => {
+    const filtered =
+      selectedCourseCompany === 'all'
+        ? courseCards
+        : courseCards.filter((c) => c.companySign === selectedCourseCompany);
+    return groupByWeek(filtered, (course) => course.createdAt || 'unknown');
+  }, [courseCards, selectedCourseCompany]);
+
+  // 채용공고 클릭 핸들러
+  const handleJobClick = (job: JobItemData) => {
     setSelectedContent({
-      id: card.contentId || 'unknown',
-      title: card.title,
-      summary: card.summary || '',
-      imageUrl: card.blogMetaImage || card.thumbnailUrl, // 블로그 메타이미지 우선
-      externalUrl: card.href || '#',
-      companyName,
-      companyLogo,
-      likes: card.stats?.likes || 0,
-      views: card.stats?.views || 0,
-      isLiked: card.liked || false,
-      isBookmarked: card.bookmarked || false,
-      comments: blogComments,
+      id: job.id,
+      title: job.title,
+      summary: job.summary || '',
+      externalUrl: job.url,
+      companyName: job.companyName,
+      companyLogo: job.companyLogo,
+      isLiked: false,
+      isBookmarked: false,
+      views: job.views || 0,
+      likes: job.likes || 0,
+      comments: [],
     });
     setDrawerOpen(true);
   };
+
+  // 블로그 클릭 핸들러
+  const handleBlogClick = (blog: BlogCardData) => {
+    setSelectedContent({
+      id: blog.id,
+      title: blog.title,
+      summary: blog.summary,
+      imageUrl: blog.blogMetaImage,
+      externalUrl: blog.url,
+      companyName: blog.companyName,
+      companyLogo: blog.companyLogo,
+      isLiked: false,
+      isBookmarked: false,
+      views: blog.views,
+      likes: blog.likes,
+      comments: [
+        {
+          id: '1',
+          userName: '개발자A',
+          userImage: 'https://i.pravatar.cc/40?u=blog1',
+          userHeadline: 'Frontend Developer @ 네이버',
+          content: '정말 유용한 글이네요! 잘 읽었습니다.',
+          createdAt: '2시간 전',
+          likeCount: 12,
+          liked: false,
+        },
+      ],
+    });
+    setDrawerOpen(true);
+  };
+
+  // 도서/강의 클릭 핸들러
+  const handleContentClick = (item: BookCardData | CourseCardData, type: 'book' | 'course') => {
+    const isBook = type === 'book';
+    const bookItem = item as BookCardData;
+    const courseItem = item as CourseCardData;
+
+    setSelectedContent({
+      id: item.id,
+      title: item.title,
+      summary: item.summary || '',
+      imageUrl: item.imageUrl,
+      externalUrl: (item as any).url,
+      companyName: isBook ? bookItem.publisherName : courseItem.platformName,
+      companyLogo: isBook ? bookItem.publisherLogo : courseItem.platformLogo,
+      isLiked: false,
+      isBookmarked: false,
+      views: isBook ? 800 : courseItem.views,
+      likes: isBook ? 80 : courseItem.likes,
+      comments: [],
+    });
+    setDrawerOpen(true);
+  };
+
+  // 콘텐츠 데이터에서 회사별 로고 매핑 추출
+  const blogLogoMap = React.useMemo(() => {
+    if (!blogsData?.contents) return {};
+    const map: Record<string, string> = {};
+    blogsData.contents.forEach((item) => {
+      if (item.company_sign && item.company_image) {
+        map[item.company_sign] = item.company_image;
+      }
+    });
+    return map;
+  }, [blogsData]);
+
+  const bookLogoMap = React.useMemo(() => {
+    if (!booksData?.contents) return {};
+    const map: Record<string, string> = {};
+    booksData.contents.forEach((item) => {
+      if (item.company_sign && item.company_image) {
+        map[item.company_sign] = item.company_image;
+      }
+    });
+    return map;
+  }, [booksData]);
+
+  const lectureLogoMap = React.useMemo(() => {
+    if (!lecturesData?.contents) return {};
+    const map: Record<string, string> = {};
+    lecturesData.contents.forEach((item) => {
+      if (item.company_sign && item.company_image) {
+        map[item.company_sign] = item.company_image;
+      }
+    });
+    return map;
+  }, [lecturesData]);
+
+  // 랭킹 API 데이터를 SourceItemData로 변환 (로고 매핑 적용)
+  const blogSourceItems: SourceItemData[] = React.useMemo(() => {
+    if (!blogRankingData?.rankings) return [];
+    return blogRankingData.rankings.slice(0, 10).map((item, idx) => ({
+      id: item.company_sign,
+      name: item.company_name,
+      logo: blogLogoMap[item.company_sign] || '',
+      updateLabel: idx < 3 ? '오늘' : idx < 5 ? '어제' : `${idx - 2}일 전`,
+      changeCount: item.count,
+    }));
+  }, [blogRankingData, blogLogoMap]);
+
+  const bookSourceItems: SourceItemData[] = React.useMemo(() => {
+    if (!bookRankingData?.rankings) return [];
+    return bookRankingData.rankings.slice(0, 10).map((item, idx) => ({
+      id: item.company_sign,
+      name: item.company_name,
+      logo: bookLogoMap[item.company_sign] || '',
+      updateLabel: idx < 3 ? '오늘' : idx < 5 ? '어제' : `${idx - 2}일 전`,
+      changeCount: item.count,
+    }));
+  }, [bookRankingData, bookLogoMap]);
+
+  const lectureSourceItems: SourceItemData[] = React.useMemo(() => {
+    if (!lectureRankingData?.rankings) return [];
+    return lectureRankingData.rankings.slice(0, 10).map((item, idx) => ({
+      id: item.company_sign,
+      name: item.company_name,
+      logo: lectureLogoMap[item.company_sign] || '',
+      updateLabel: idx < 3 ? '오늘' : idx < 5 ? '어제' : `${idx - 2}일 전`,
+      changeCount: item.count,
+    }));
+  }, [lectureRankingData, lectureLogoMap]);
+
+  // 회사 필터 컴포넌트
+  const CompanyFilter = ({
+    companies,
+    selected,
+    onChange,
+    totalCount,
+  }: {
+    companies: { sign: string; name: string; logo: string; count: number }[];
+    selected: string;
+    onChange: (sign: string) => void;
+    totalCount: number;
+  }) => (
+    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
+      <button
+        onClick={() => onChange('all')}
+        className={cn(
+          'flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border',
+          selected === 'all'
+            ? 'bg-slate-900 text-white border-slate-900'
+            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+        )}
+      >
+        전체
+        <span className={cn(
+          'text-xs px-1.5 py-0.5 rounded-full',
+          selected === 'all' ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-500'
+        )}>
+          {totalCount}
+        </span>
+      </button>
+      {companies.map((company) => (
+        <button
+          key={company.sign}
+          onClick={() => onChange(company.sign)}
+          className={cn(
+            'flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border max-w-[200px]',
+            selected === company.sign
+              ? 'bg-slate-900 text-white border-slate-900'
+              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+          )}
+        >
+          {company.logo && (
+            <img src={company.logo} alt="" className="w-4 h-4 rounded object-contain flex-shrink-0" />
+          )}
+          <span className="truncate">{company.name}</span>
+          <span className={cn(
+            'flex-shrink-0 text-xs px-1.5 py-0.5 rounded-full',
+            selected === company.sign ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-500'
+          )}>
+            {company.count}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-x-hidden">
@@ -391,1461 +700,937 @@ export default function DiscoverPage() {
           {/* Header Section */}
           <div className="pt-2 md:pt-16 pb-4">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              {/* 타이틀 - PC에서만 표시 (모바일은 AppLayout 헤더에 표시) */}
               <div className="hidden md:flex items-center gap-3">
                 <Sparkles className="h-10 w-10 text-slate-700" />
                 <h1 className="text-3xl font-bold text-slate-900">Discover</h1>
               </div>
 
               <div className="flex items-center justify-between md:justify-end gap-3 min-w-0">
-                {/* Content Type Filters */}
                 <div className="flex items-center gap-2 overflow-x-auto flex-nowrap scrollbar-hide min-w-0">
-                  <Chip
-                    variant={contentType === 'jobs' ? 'selected' : 'default'}
-                    onClick={() => setContentType('jobs')}
-                    className="shrink-0"
-                  >
-                    <Briefcase className="h-4 w-4" />
-                    채용공고
-                  </Chip>
-                  <Chip
-                    variant={contentType === 'blogs' ? 'selected' : 'default'}
-                    onClick={() => setContentType('blogs')}
-                    className="shrink-0"
-                  >
-                    <FileText className="h-4 w-4" />
-                    블로그
-                  </Chip>
-                  <Chip
-                    variant={contentType === 'books' ? 'selected' : 'default'}
-                    onClick={() => setContentType('books')}
-                    className="shrink-0"
-                  >
-                    <BookOpen className="h-4 w-4" />
-                    도서
-                  </Chip>
-                  <Chip
-                    variant={contentType === 'courses' ? 'selected' : 'default'}
-                    onClick={() => setContentType('courses')}
-                    className="shrink-0"
-                  >
-                    <GraduationCap className="h-4 w-4" />
-                    강의
-                  </Chip>
-                </div>
-              </div>
-            </div>
-          </div>
-
-              {/* Date Tabs - 채용공고 탭일 때만 표시 */}
-              {contentType === 'jobs' && (
-                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-                  {availableDates.map((date) => (
-                    <button
-                      key={date}
-                      onClick={() => setSelectedDate(date)}
-                      className={cn(
-                        "px-3 py-1.5 text-sm rounded-full whitespace-nowrap transition-colors",
-                        selectedDate === date
-                          ? "bg-slate-900 text-white"
-                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                      )}
+                  {[
+                    { type: 'jobs' as const, icon: Briefcase, label: '채용공고' },
+                    { type: 'blogs' as const, icon: FileText, label: '블로그' },
+                    { type: 'books' as const, icon: BookOpen, label: '도서' },
+                    { type: 'courses' as const, icon: GraduationCap, label: '강의' },
+                  ].map(({ type, icon: Icon, label }) => (
+                    <Chip
+                      key={type}
+                      variant={contentType === type ? 'selected' : 'default'}
+                      onClick={() => setContentType(type)}
+                      className="shrink-0"
                     >
-                      {formatDateTab(date)}
-                    </button>
+                      <Icon className="h-4 w-4" />
+                      {label}
+                    </Chip>
                   ))}
                 </div>
-              )}
-
-              {/* Daily Summary Card - 채용공고 탭일 때만 표시 */}
-              {contentType === 'jobs' && dailyData && (
-                <DailySummaryCard
-                  date={selectedDate}
-                  summary={dailyData.summary}
-                  totalJobs={totalJobCount}
-                  totalCompanies={Object.keys(dailyData.companies).length}
-                  weeklyStats={mockWeeklyStats}
-                  selectedDate={selectedDate}
-                  onDateClick={(date) => setSelectedDate(date)}
-                />
-              )}
-
-              {/* Daily Summary Card - 블로그 탭 */}
-              {contentType === 'blogs' && (
-                <DailySummaryCard
-                  date={selectedDate}
-                  summary=""
-                  totalJobs={filteredContentCards.length}
-                  totalCompanies={mockSourcesByCategory.blogs.length}
-                  title="최근 1주일간의 블로그 현황"
-                  unitLabel="개 발행"
-                  sourceLabel="개 블로그"
-                  chartColor="purple"
-                />
-              )}
-
-              {/* Daily Summary Card - 도서 탭 */}
-              {contentType === 'books' && (
-                <DailySummaryCard
-                  date={selectedDate}
-                  summary=""
-                  totalJobs={filteredContentCards.length}
-                  totalCompanies={mockSourcesByCategory.books.length}
-                  title="최근 1주일간의 도서 현황"
-                  unitLabel="권 등록"
-                  sourceLabel="개 출판사"
-                  chartColor="teal"
-                />
-              )}
-
-              {/* Daily Summary Card - 강의 탭 */}
-              {contentType === 'courses' && (
-                <DailySummaryCard
-                  date={selectedDate}
-                  summary=""
-                  totalJobs={filteredContentCards.length}
-                  totalCompanies={mockSourcesByCategory.education.length}
-                  title="최근 1주일간의 강의 현황"
-                  unitLabel="개 등록"
-                  sourceLabel="개 플랫폼"
-                  chartColor="amber"
-                />
-              )}
-
-            </div>
-
-            {/* Content Feed */}
-            {contentType === 'jobs' ? (
-              // 채용공고 - AI 카테고리별 섹션
-              // AI 직무: 제목에 "AI"가 명시적으로 포함된 포지션
-              // AI 활용: 제목에는 AI가 없지만, 자격요건/업무내용에 AI 관련 요소가 높은 포지션
-              // 기타: AI와 직접적 관련이 없는 전통적 포지션
-              <div className="space-y-6">
-                {/* AI Category Sections - 플랫 리스트 형태 */}
-                {totalJobCount > 0 ? (
-                  <>
-                    {/* AI 직무 섹션 */}
-                    {jobsByAICategory.aiCore.length > 0 && (
-                      <div className="bg-purple-50/50 rounded-xl p-4">
-                        {/* 섹션 헤더 */}
-                        <div className="flex items-center gap-2 mb-3">
-                          <h3 className="text-sm font-bold text-purple-900">AI 직무</h3>
-                          <span className="text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">{jobsByAICategory.aiCore.length}</span>
-                        </div>
-                        {/* 공고 리스트 */}
-                        <div className="space-y-1">
-                          {jobsByAICategory.aiCore.map((job) => (
-                            <div
-                              key={job.id}
-                              onClick={() => {
-                                setSelectedContent({
-                                  id: job.id,
-                                  title: job.title,
-                                  summary: job.summary,
-                                  externalUrl: job.url,
-                                  companyName: job.companyName,
-                                  companyLogo: job.companyLogo,
-                                  isLiked: false,
-                                  isBookmarked: false,
-                                  views: job.views,
-                                  likes: job.likes,
-                                  comments: [
-                                    { id: '1', userName: '개발자A', userImage: 'https://i.pravatar.cc/40?u=dev1', userHeadline: 'Frontend Developer @ 네이버', content: '좋은 기회네요! 지원해봐야겠어요.', createdAt: '2시간 전', likeCount: 3, liked: false },
-                                    { id: '2', userName: '취준생B', userImage: 'https://i.pravatar.cc/40?u=job2', userHeadline: 'CS 전공 졸업생', content: '이 회사 복지가 좋다고 들었는데 맞나요?', createdAt: '5시간 전', likeCount: 7, liked: true },
-                                  ],
-                                });
-                                setDrawerOpen(true);
-                              }}
-                              className="group flex items-center gap-3 py-2.5 px-2 -mx-2 rounded-lg hover:bg-white/70 transition-colors cursor-pointer"
-                            >
-                              <div className="w-8 h-8 rounded-md bg-white border border-slate-200 overflow-hidden flex-shrink-0">
-                                {job.companyLogo ? (
-                                  <img src={job.companyLogo} alt={job.companyName} className="w-full h-full object-contain p-0.5" />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-xs font-bold text-slate-400 bg-slate-50">
-                                    {job.companyName.charAt(0)}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-medium text-slate-900 group-hover:text-purple-700 transition-colors truncate text-sm">
-                                  {job.title}
-                                </h4>
-                              </div>
-                              <div className="flex items-center gap-3 flex-shrink-0">
-                                <div className="flex items-center gap-2 text-xs text-slate-400">
-                                  <span className="flex items-center gap-0.5">
-                                    <Eye className="h-3 w-3" />
-                                    {job.views}
-                                  </span>
-                                  <span className="flex items-center gap-0.5">
-                                    <Heart className="h-3 w-3" />
-                                    {job.likes}
-                                  </span>
-                                </div>
-                                <span className="text-xs text-slate-500">{job.companyName}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* AI 활용 섹션 */}
-                    {jobsByAICategory.aiEnabled.length > 0 && (
-                      <div className="bg-teal-50/50 rounded-xl p-4">
-                        {/* 섹션 헤더 */}
-                        <div className="flex items-center gap-2 mb-3">
-                          <h3 className="text-sm font-bold text-teal-900">AI 활용</h3>
-                          <span className="text-xs text-teal-600 bg-teal-100 px-2 py-0.5 rounded-full">{jobsByAICategory.aiEnabled.length}</span>
-                        </div>
-                        {/* 공고 리스트 */}
-                        <div className="space-y-1">
-                          {jobsByAICategory.aiEnabled.map((job) => (
-                            <div
-                              key={job.id}
-                              onClick={() => {
-                                setSelectedContent({
-                                  id: job.id,
-                                  title: job.title,
-                                  summary: job.summary,
-                                  externalUrl: job.url,
-                                  companyName: job.companyName,
-                                  companyLogo: job.companyLogo,
-                                  isLiked: false,
-                                  isBookmarked: false,
-                                  views: job.views,
-                                  likes: job.likes,
-                                  comments: [
-                                    { id: '1', userName: '마케터C', userImage: 'https://i.pravatar.cc/40?u=mark3', userHeadline: '브랜드 마케터 @ 토스', content: 'AI 툴 활용 경험이 있으면 유리할까요?', createdAt: '1시간 전', likeCount: 2, liked: false },
-                                  ],
-                                });
-                                setDrawerOpen(true);
-                              }}
-                              className="group flex items-center gap-3 py-2.5 px-2 -mx-2 rounded-lg hover:bg-white/70 transition-colors cursor-pointer"
-                            >
-                              <div className="w-8 h-8 rounded-md bg-white border border-slate-200 overflow-hidden flex-shrink-0">
-                                {job.companyLogo ? (
-                                  <img src={job.companyLogo} alt={job.companyName} className="w-full h-full object-contain p-0.5" />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-xs font-bold text-slate-400 bg-slate-50">
-                                    {job.companyName.charAt(0)}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-medium text-slate-900 group-hover:text-teal-700 transition-colors truncate text-sm">
-                                  {job.title}
-                                </h4>
-                              </div>
-                              <div className="flex items-center gap-3 flex-shrink-0">
-                                <div className="flex items-center gap-2 text-xs text-slate-400">
-                                  <span className="flex items-center gap-0.5">
-                                    <Eye className="h-3 w-3" />
-                                    {job.views}
-                                  </span>
-                                  <span className="flex items-center gap-0.5">
-                                    <Heart className="h-3 w-3" />
-                                    {job.likes}
-                                  </span>
-                                </div>
-                                <span className="text-xs text-slate-500">{job.companyName}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 일반 섹션 */}
-                    {jobsByAICategory.traditional.length > 0 && (
-                      <div className="bg-slate-50/70 rounded-xl p-4">
-                        {/* 섹션 헤더 */}
-                        <div className="flex items-center gap-2 mb-3">
-                          <h3 className="text-sm font-bold text-slate-700">일반</h3>
-                          <span className="text-xs text-slate-500 bg-slate-200 px-2 py-0.5 rounded-full">{jobsByAICategory.traditional.length}</span>
-                        </div>
-                        {/* 공고 리스트 */}
-                        <div className="space-y-1">
-                          {jobsByAICategory.traditional.map((job) => (
-                            <div
-                              key={job.id}
-                              onClick={() => {
-                                setSelectedContent({
-                                  id: job.id,
-                                  title: job.title,
-                                  summary: job.summary,
-                                  externalUrl: job.url,
-                                  companyName: job.companyName,
-                                  companyLogo: job.companyLogo,
-                                  isLiked: false,
-                                  isBookmarked: false,
-                                  views: job.views,
-                                  likes: job.likes,
-                                  comments: [],
-                                });
-                                setDrawerOpen(true);
-                              }}
-                              className="group flex items-center gap-3 py-2.5 px-2 -mx-2 rounded-lg hover:bg-white/70 transition-colors cursor-pointer"
-                            >
-                              <div className="w-8 h-8 rounded-md bg-white border border-slate-200 overflow-hidden flex-shrink-0">
-                                {job.companyLogo ? (
-                                  <img src={job.companyLogo} alt={job.companyName} className="w-full h-full object-contain p-0.5" />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-xs font-bold text-slate-400 bg-slate-50">
-                                    {job.companyName.charAt(0)}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-medium text-slate-900 group-hover:text-slate-700 transition-colors truncate text-sm">
-                                  {job.title}
-                                </h4>
-                              </div>
-                              <div className="flex items-center gap-3 flex-shrink-0">
-                                <div className="flex items-center gap-2 text-xs text-slate-400">
-                                  <span className="flex items-center gap-0.5">
-                                    <Eye className="h-3 w-3" />
-                                    {job.views}
-                                  </span>
-                                  <span className="flex items-center gap-0.5">
-                                    <Heart className="h-3 w-3" />
-                                    {job.likes}
-                                  </span>
-                                </div>
-                                <span className="text-xs text-slate-500">{job.companyName}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-                      <Search className="h-8 w-8 text-slate-300" />
-                    </div>
-                    <h3 className="text-lg font-medium text-slate-900 mb-1">채용공고가 없습니다</h3>
-                    <p className="text-slate-500">이 날짜에 수집된 채용공고가 없습니다.</p>
-                  </div>
-                )}
-              </div>
-            ) : contentType === 'blogs' ? (
-              // 블로그 - 카테고리별 필터 + 날짜별 그룹화 피드
-              <div className="space-y-6">
-                {/* AI 카테고리 필터 (5개) */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {(Object.keys(blogCategoryConfig) as BlogAICategory[]).map((catId) => {
-                      const cat = blogCategoryConfig[catId];
-                      return (
-                        <button
-                          key={catId}
-                          onClick={() => setSelectedBlogCategory(catId)}
-                          className={cn(
-                            "px-3 py-1.5 text-sm font-medium rounded-full transition-colors flex items-center gap-1.5 border",
-                            selectedBlogCategory === catId
-                              ? `${cat.bgClass} ${cat.borderClass} ${cat.textClass}`
-                              : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
-                          )}
-                        >
-                          <span>{cat.icon}</span>
-                          <span>{cat.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {/* AI 분류 안내 텍스트 */}
-                  <p className="text-xs text-slate-400">
-                    AI가 콘텐츠를 분석하여 자동 분류합니다
-                  </p>
-                </div>
-
-                {/* 날짜별 그룹화 블로그 피드 */}
-                <div className="space-y-6">
-                  {(() => {
-                    // 카테고리 필터링
-                    let blogCards = filteredContentCards.filter(card => (card as any).aiCategory === selectedBlogCategory);
-
-                    if (blogCards.length === 0) {
-                      return (
-                        <div className="flex flex-col items-center justify-center py-16 text-center">
-                          <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mb-3">
-                            <Search className="h-7 w-7 text-slate-300" />
-                          </div>
-                          <h3 className="text-base font-medium text-slate-900 mb-1">해당 카테고리의 블로그가 없습니다</h3>
-                          <p className="text-sm text-slate-500">다른 카테고리를 선택해보세요.</p>
-                        </div>
-                      );
-                    }
-
-                    // 날짜별 그룹화
-                    const groupedByDate: Record<string, typeof blogCards> = {};
-                    blogCards.forEach(card => {
-                      const publishedAt = (card as any).publishedAt;
-                      const dateKey = publishedAt ? publishedAt.split(' ')[0] : 'unknown';
-                      if (!groupedByDate[dateKey]) {
-                        groupedByDate[dateKey] = [];
-                      }
-                      groupedByDate[dateKey].push(card);
-                    });
-
-                    // 날짜 키를 최신순으로 정렬
-                    const sortedDates = Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a));
-
-                    // 날짜 포맷팅 함수
-                    const formatDateHeader = (dateStr: string) => {
-                      if (dateStr === 'unknown') return '날짜 미상';
-                      const date = new Date(dateStr);
-                      const month = date.getMonth() + 1;
-                      const day = date.getDate();
-                      const days = ['일', '월', '화', '수', '목', '금', '토'];
-                      return `${month}월 ${day}일 (${days[date.getDay()]})`;
-                    };
-
-                    const formatShortDate = (dateStr: string) => {
-                      if (dateStr === 'unknown') return '';
-                      const date = new Date(dateStr);
-                      return `${date.getMonth() + 1}/${date.getDate()}`;
-                    };
-
-                    return sortedDates.map(dateKey => (
-                      <div key={dateKey}>
-                        {/* 날짜 그룹 헤더 */}
-                        <div className="flex items-center gap-3 py-3 mb-3">
-                          <div className="h-px flex-1 bg-slate-200" />
-                          <span className="text-sm font-medium text-slate-500">{formatDateHeader(dateKey)}</span>
-                          <div className="h-px flex-1 bg-slate-200" />
-                        </div>
-
-                        {/* 해당 날짜의 블로그 카드들 */}
-                        <div className="space-y-3">
-                          {groupedByDate[dateKey].map((card) => {
-                            const extendedCard = card as typeof card & { aiCategory?: BlogAICategory; blogMetaImage?: string };
-                            const aiCategory = extendedCard.aiCategory || 'other';
-                            const catConfig = blogCategoryConfig[aiCategory];
-                            // 실제 블로그 메타이미지만 표시 (회사 로고는 제외)
-                            const blogMetaImage = extendedCard.blogMetaImage;
-                            const hasMetaImage = blogMetaImage && !blogMetaImage.includes('favicon') && !blogMetaImage.includes('logo');
-                            const companyLogo = card.thumbnailUrl;
-                            const companyName = card.sources?.[0]?.name || '기술 블로그';
-
-                            return (
-                              <div
-                                key={card.contentId}
-                                onClick={() => handleCardClick(extendedCard)}
-                                className="group bg-white rounded-xl border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all cursor-pointer"
-                              >
-                                <div className="flex gap-4 p-4">
-                                  {/* 블로그 메타 이미지 (실제 있을 때만) */}
-                                  {hasMetaImage && (
-                                    <div className="w-28 h-28 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100">
-                                      <img src={blogMetaImage} alt="" className="w-full h-full object-cover" />
-                                    </div>
-                                  )}
-
-                                  {/* 콘텐츠 */}
-                                  <div className="flex-1 min-w-0 flex flex-col">
-                                    {/* 기업 정보 (로고 + 이름) */}
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <div className="w-6 h-6 rounded-md bg-white border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                                        {companyLogo ? (
-                                          <img src={companyLogo} alt={companyName} className="w-full h-full object-contain p-0.5" />
-                                        ) : (
-                                          <span className="text-[10px] font-bold text-slate-400">{companyName.charAt(0)}</span>
-                                        )}
-                                      </div>
-                                      <span className="text-sm font-medium text-slate-700 truncate">{companyName}</span>
-                                      <span className="text-slate-300">·</span>
-                                      <span className="text-xs text-slate-400">{formatShortDate(dateKey)}</span>
-                                    </div>
-
-                                    {/* 제목 */}
-                                    <h3 className="font-semibold text-slate-900 group-hover:text-teal-700 transition-colors line-clamp-2 mb-1.5">
-                                      {card.title}
-                                    </h3>
-
-                                    {/* 요약 */}
-                                    <p className="text-sm text-slate-500 line-clamp-2 mb-2 flex-1">
-                                      {card.summary}
-                                    </p>
-
-                                    {/* 하단: Stats + 카테고리 라벨 */}
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex items-center gap-3 text-xs text-slate-400">
-                                        <span className="flex items-center gap-1">
-                                          <Eye className="h-3 w-3" />
-                                          {card.stats?.views?.toLocaleString() || 0}
-                                        </span>
-                                        <span className="flex items-center gap-1">
-                                          <Heart className="h-3 w-3" />
-                                          {card.stats?.likes || 0}
-                                        </span>
-                                      </div>
-                                      {/* 카테고리 라벨 */}
-                                      <span className={cn(
-                                        "inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded-full border",
-                                        catConfig.bgClass.replace('100', '50'),
-                                        catConfig.textClass.replace('700', '600'),
-                                        catConfig.borderClass.replace('300', '200')
-                                      )}>
-                                        {catConfig.icon} {catConfig.label}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              </div>
-            ) : contentType === 'books' ? (
-              // 도서 - 책 표지 스타일 카드 + 주간 구분선
-              <div className="space-y-6">
-                {/* AI 카테고리 필터 (전체 포함) */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {(Object.keys(contentCategoryConfig) as ContentAICategory[]).map((catId) => {
-                      const cat = contentCategoryConfig[catId];
-                      return (
-                        <button
-                          key={catId}
-                          onClick={() => setSelectedBookCategory(catId)}
-                          className={cn(
-                            "px-3 py-1.5 text-sm font-medium rounded-full transition-colors flex items-center gap-1.5 border",
-                            selectedBookCategory === catId
-                              ? `${cat.bgClass} ${cat.borderClass} ${cat.textClass}`
-                              : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
-                          )}
-                        >
-                          <span>{cat.icon}</span>
-                          <span>{cat.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {(() => {
-                  // 카테고리 필터링
-                  let bookCards = selectedBookCategory === 'all'
-                    ? filteredContentCards
-                    : filteredContentCards.filter(card => (card as any).aiCategory === selectedBookCategory);
-
-                  if (bookCards.length === 0) {
-                    return (
-                      <div className="flex flex-col items-center justify-center py-16 text-center">
-                        <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mb-3">
-                          <Search className="h-7 w-7 text-slate-300" />
-                        </div>
-                        <h3 className="text-base font-medium text-slate-900 mb-1">해당 카테고리의 도서가 없습니다</h3>
-                        <p className="text-sm text-slate-500">다른 카테고리를 선택해보세요.</p>
-                      </div>
-                    );
-                  }
-
-                  // 주간별 그룹화 함수
-                  const getWeekKey = (dateStr: string) => {
-                    const date = new Date(dateStr);
-                    const startOfWeek = new Date(date);
-                    startOfWeek.setDate(date.getDate() - date.getDay()); // 일요일 기준
-                    return startOfWeek.toISOString().split('T')[0];
-                  };
-
-                  const groupedByWeek: Record<string, typeof bookCards> = {};
-                  bookCards.forEach(card => {
-                    const dateStr = card.postedAt ? card.postedAt.split('T')[0] : 'unknown';
-                    const weekKey = dateStr !== 'unknown' ? getWeekKey(dateStr) : 'unknown';
-                    if (!groupedByWeek[weekKey]) {
-                      groupedByWeek[weekKey] = [];
-                    }
-                    groupedByWeek[weekKey].push(card);
-                  });
-
-                  const sortedWeeks = Object.keys(groupedByWeek).sort((a, b) => b.localeCompare(a));
-
-                  const formatWeekHeader = (weekStartStr: string) => {
-                    if (weekStartStr === 'unknown') return '날짜 미상';
-                    const startDate = new Date(weekStartStr);
-                    const endDate = new Date(startDate);
-                    endDate.setDate(startDate.getDate() + 6);
-
-                    const today = new Date();
-                    const thisWeekStart = new Date(today);
-                    thisWeekStart.setDate(today.getDate() - today.getDay());
-                    const lastWeekStart = new Date(thisWeekStart);
-                    lastWeekStart.setDate(thisWeekStart.getDate() - 7);
-
-                    if (startDate.toDateString() === thisWeekStart.toDateString()) {
-                      return '이번 주';
-                    } else if (startDate.toDateString() === lastWeekStart.toDateString()) {
-                      return '지난 주';
-                    }
-
-                    const startMonth = startDate.getMonth() + 1;
-                    const startDay = startDate.getDate();
-                    const endMonth = endDate.getMonth() + 1;
-                    const endDay = endDate.getDate();
-
-                    if (startMonth === endMonth) {
-                      return `${startMonth}월 ${startDay}일 ~ ${endDay}일`;
-                    }
-                    return `${startMonth}/${startDay} ~ ${endMonth}/${endDay}`;
-                  };
-
-                  return sortedWeeks.map(weekKey => (
-                    <div key={weekKey}>
-                      {/* 주간 구분선 */}
-                      <div className="flex items-center gap-3 py-3 mb-4">
-                        <div className="h-px flex-1 bg-slate-200" />
-                        <span className="text-sm font-medium text-slate-500">{formatWeekHeader(weekKey)}</span>
-                        <div className="h-px flex-1 bg-slate-200" />
-                      </div>
-
-                      {/* 책 그리드 - 작은 책 표지 스타일 */}
-                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
-                        {groupedByWeek[weekKey].map((card) => {
-                          const bookImage = card.thumbnailUrl;
-                          const publisherName = card.sources?.[0]?.name || '출판사';
-
-                          return (
-                            <div
-                              key={card.contentId}
-                              onClick={() => handleCardClick(card)}
-                              className="group cursor-pointer"
-                            >
-                              {/* 책 표지 */}
-                              <div className="aspect-[2/3] rounded-md overflow-hidden bg-slate-100 shadow-md group-hover:shadow-lg transition-shadow mb-2 relative">
-                                {bookImage ? (
-                                  <img src={bookImage} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-100">
-                                    <span className="text-3xl">📚</span>
-                                  </div>
-                                )}
-                                {/* 호버 오버레이 */}
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-                              </div>
-                              {/* 책 정보 */}
-                              <h4 className="font-medium text-slate-900 text-xs line-clamp-2 group-hover:text-teal-700 transition-colors mb-1">
-                                {card.title}
-                              </h4>
-                              <div className="flex items-center gap-2 mt-1.5">
-                                {card.sources?.[0]?.imageUrl && (
-                                  <img src={card.sources[0].imageUrl} alt="" className="w-5 h-5 rounded object-contain flex-shrink-0 border border-slate-100" />
-                                )}
-                                <p className="text-xs text-slate-600 truncate font-medium">{publisherName}</p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ));
-                })()}
-              </div>
-            ) : contentType === 'courses' ? (
-              // 강의 - 강의 플랫폼 스타일 카드 + 주간 구분선
-              <div className="space-y-6">
-                {/* AI 카테고리 필터 (전체 포함) */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {(Object.keys(contentCategoryConfig) as ContentAICategory[]).map((catId) => {
-                      const cat = contentCategoryConfig[catId];
-                      return (
-                        <button
-                          key={catId}
-                          onClick={() => setSelectedCourseCategory(catId)}
-                          className={cn(
-                            "px-3 py-1.5 text-sm font-medium rounded-full transition-colors flex items-center gap-1.5 border",
-                            selectedCourseCategory === catId
-                              ? `${cat.bgClass} ${cat.borderClass} ${cat.textClass}`
-                              : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
-                          )}
-                        >
-                          <span>{cat.icon}</span>
-                          <span>{cat.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {(() => {
-                  // 카테고리 필터링
-                  let courseCards = selectedCourseCategory === 'all'
-                    ? filteredContentCards
-                    : filteredContentCards.filter(card => (card as any).aiCategory === selectedCourseCategory);
-
-                  if (courseCards.length === 0) {
-                    return (
-                      <div className="flex flex-col items-center justify-center py-16 text-center">
-                        <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mb-3">
-                          <Search className="h-7 w-7 text-slate-300" />
-                        </div>
-                        <h3 className="text-base font-medium text-slate-900 mb-1">해당 카테고리의 강의가 없습니다</h3>
-                        <p className="text-sm text-slate-500">다른 카테고리를 선택해보세요.</p>
-                      </div>
-                    );
-                  }
-
-                  // 주간별 그룹화 함수
-                  const getWeekKey = (dateStr: string) => {
-                    const date = new Date(dateStr);
-                    const startOfWeek = new Date(date);
-                    startOfWeek.setDate(date.getDate() - date.getDay()); // 일요일 기준
-                    return startOfWeek.toISOString().split('T')[0];
-                  };
-
-                  const groupedByWeek: Record<string, typeof courseCards> = {};
-                  courseCards.forEach(card => {
-                    const dateStr = card.postedAt ? card.postedAt.split('T')[0] : 'unknown';
-                    const weekKey = dateStr !== 'unknown' ? getWeekKey(dateStr) : 'unknown';
-                    if (!groupedByWeek[weekKey]) {
-                      groupedByWeek[weekKey] = [];
-                    }
-                    groupedByWeek[weekKey].push(card);
-                  });
-
-                  const sortedWeeks = Object.keys(groupedByWeek).sort((a, b) => b.localeCompare(a));
-
-                  const formatWeekHeader = (weekStartStr: string) => {
-                    if (weekStartStr === 'unknown') return '날짜 미상';
-                    const startDate = new Date(weekStartStr);
-                    const endDate = new Date(startDate);
-                    endDate.setDate(startDate.getDate() + 6);
-
-                    const today = new Date();
-                    const thisWeekStart = new Date(today);
-                    thisWeekStart.setDate(today.getDate() - today.getDay());
-                    const lastWeekStart = new Date(thisWeekStart);
-                    lastWeekStart.setDate(thisWeekStart.getDate() - 7);
-
-                    if (startDate.toDateString() === thisWeekStart.toDateString()) {
-                      return '이번 주';
-                    } else if (startDate.toDateString() === lastWeekStart.toDateString()) {
-                      return '지난 주';
-                    }
-
-                    const startMonth = startDate.getMonth() + 1;
-                    const startDay = startDate.getDate();
-                    const endMonth = endDate.getMonth() + 1;
-                    const endDay = endDate.getDate();
-
-                    if (startMonth === endMonth) {
-                      return `${startMonth}월 ${startDay}일 ~ ${endDay}일`;
-                    }
-                    return `${startMonth}/${startDay} ~ ${endMonth}/${endDay}`;
-                  };
-
-                  return sortedWeeks.map(weekKey => (
-                    <div key={weekKey}>
-                      {/* 주간 구분선 */}
-                      <div className="flex items-center gap-3 py-3 mb-4">
-                        <div className="h-px flex-1 bg-slate-200" />
-                        <span className="text-sm font-medium text-slate-500">{formatWeekHeader(weekKey)}</span>
-                        <div className="h-px flex-1 bg-slate-200" />
-                      </div>
-
-                      {/* 강의 카드 그리드 - Udemy/인프런 스타일 */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {groupedByWeek[weekKey].map((card) => {
-                          const courseImage = card.thumbnailUrl;
-                          const platformName = card.sources?.[0]?.name || '플랫폼';
-
-                          return (
-                            <div
-                              key={card.contentId}
-                              onClick={() => handleCardClick(card)}
-                              className="group bg-white rounded-xl border border-slate-100 hover:border-amber-200 hover:shadow-md transition-all cursor-pointer overflow-hidden"
-                            >
-                              {/* 강의 썸네일 - 16:9 비율 */}
-                              <div className="aspect-video bg-slate-100 relative overflow-hidden">
-                                {courseImage ? (
-                                  <img src={courseImage} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100">
-                                    <span className="text-4xl">🎓</span>
-                                  </div>
-                                )}
-                              </div>
-                              {/* 강의 정보 */}
-                              <div className="p-3">
-                                {/* 플랫폼 정보 */}
-                                <div className="flex items-center gap-2 mb-2">
-                                  {card.sources?.[0]?.imageUrl && (
-                                    <img src={card.sources[0].imageUrl} alt="" className="w-5 h-5 rounded object-contain flex-shrink-0 border border-slate-100" />
-                                  )}
-                                  <span className="text-xs text-slate-600 font-medium">{platformName}</span>
-                                </div>
-                                <h4 className="font-semibold text-slate-900 text-sm line-clamp-2 group-hover:text-amber-700 transition-colors mb-2">
-                                  {card.title}
-                                </h4>
-                                <p className="text-xs text-slate-500 line-clamp-2 mb-2">
-                                  {card.summary}
-                                </p>
-                                {/* Stats */}
-                                <div className="flex items-center gap-3 text-xs text-slate-400">
-                                  <span className="flex items-center gap-1">
-                                    <Eye className="h-3 w-3" />
-                                    {card.stats?.views?.toLocaleString() || 0}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <Heart className="h-3 w-3" />
-                                    {card.stats?.likes || 0}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ));
-                })()}
-              </div>
-            ) : (
-              // 기타 - 기본 카드 그리드
-              <div className="grid gap-x-6 gap-y-10 grid-cols-1">
-                {filteredContentCards.length > 0 ? (
-                  filteredContentCards.map((card) => (
-                    <div key={card.contentId} className="col-span-1">
-                      <DiscoverMinimalCard
-                        {...card}
-                        variant="default"
-                        onCardClick={() => handleCardClick(card)}
-                      />
-                    </div>
-                  ))
-                ) : (
-                  <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
-                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-                      <Search className="h-8 w-8 text-slate-300" />
-                    </div>
-                    <h3 className="text-lg font-medium text-slate-900 mb-1">검색 결과가 없습니다</h3>
-                    <p className="text-slate-500">다른 키워드로 검색하거나 필터를 변경해보세요.</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </main>
-
-          {/* Right Sidebar - 데스크톱에서만 표시 */}
-          <aside className="hidden lg:block lg:col-span-3">
-            <div className="space-y-4 pt-16">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-slate-900 flex items-center gap-2">
-                <div className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-teal-500"></span>
-                </div>
-                수집 출처
-              </h3>
-              <span className="text-xs text-slate-400">
-                {mockSourceStats.totalSources.toLocaleString()}개 소스
-              </span>
-            </div>
-
-            {/* Today Update Stats */}
-            <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-100 flex items-center justify-between">
-              <div>
-                <div className="text-xs text-teal-600 mb-1 font-medium">오늘 업데이트</div>
-                <div className="text-xl font-bold text-teal-700">
-                  +{mockSourceStats.updatesToday.toLocaleString()}건
-                </div>
-              </div>
-              <TrendingUp className="h-8 w-8 text-teal-200" />
-            </div>
-
-            {/* 기업 검색 및 리스트 - jobs 탭에서만 표시 */}
-            {contentType === 'jobs' && (
-              <div className="space-y-4">
-                {/* 기업 검색창 */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="기업 검색..."
-                    value={companySearchQuery}
-                    onChange={(e) => setCompanySearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder:text-slate-400"
-                  />
-                </div>
-
-                {/* 검색 결과 */}
-                {companySearchQuery.trim() && (
-                  <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
-                    <div className="px-3 py-2 bg-slate-50 border-b border-slate-200">
-                      <span className="text-xs font-medium text-slate-500">검색 결과 ({filteredCompanies.length})</span>
-                    </div>
-                    {filteredCompanies.length > 0 ? (
-                      <div className="divide-y divide-slate-100">
-                        {filteredCompanies.map((company) => (
-                          company.isPremium ? (
-                            <Link
-                              key={company.id}
-                              href={`/company/${company.id}`}
-                              className="group flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 transition-colors"
-                            >
-                              <div className="relative flex-shrink-0">
-                                <div className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center overflow-hidden">
-                                  {company.logo ? (
-                                    <img src={company.logo} alt={company.name} className="w-full h-full object-contain p-0.5" />
-                                  ) : (
-                                    <span className="text-xs font-bold text-slate-400">{company.name[0]}</span>
-                                  )}
-                                </div>
-                                <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-teal-500 rounded-full flex items-center justify-center">
-                                  <BadgeCheck className="w-2.5 h-2.5 text-white" />
-                                </div>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-sm font-medium text-slate-900 group-hover:text-teal-700 transition-colors truncate">
-                                    {company.name}
-                                  </span>
-                                  <span className="text-[10px] text-teal-600 font-medium">인증</span>
-                                </div>
-                                <span className="text-xs text-slate-400">{company.category} · {company.totalJobs}건</span>
-                              </div>
-                            </Link>
-                          ) : (
-                            <div
-                              key={company.id}
-                              className="flex items-center gap-3 px-3 py-2.5 opacity-50 cursor-not-allowed"
-                            >
-                              <div className="relative flex-shrink-0">
-                                <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden">
-                                  {company.logo ? (
-                                    <img src={company.logo} alt={company.name} className="w-full h-full object-contain p-0.5 grayscale" />
-                                  ) : (
-                                    <span className="text-xs font-bold text-slate-400">{company.name[0]}</span>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-sm font-medium text-slate-500 truncate">
-                                    {company.name}
-                                  </span>
-                                  <Lock className="w-3 h-3 text-slate-400" />
-                                </div>
-                                <span className="text-xs text-slate-400">{company.category} · {company.totalJobs}건</span>
-                              </div>
-                            </div>
-                          )
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="px-3 py-4 text-center text-sm text-slate-400">
-                        검색 결과가 없습니다
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* 최근 업데이트 기업 */}
-                <div>
-                  <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                    최근 업데이트 기업
-                  </h4>
-                  <div className="space-y-2">
-                    {mockRecentlyUpdatedCompanies.slice(0, 10).map((company) => (
-                      <Link
-                        key={company.id}
-                        href={`/company/${company.id}`}
-                        className="group block p-2.5 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100"
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="relative flex-shrink-0">
-                            <div className="w-10 h-10 rounded-lg bg-white border border-slate-100 flex items-center justify-center overflow-hidden">
-                              {company.logo ? (
-                                <img src={company.logo} alt={company.name} className="w-full h-full object-contain p-0.5" />
-                              ) : (
-                                <span className="text-xs font-bold text-slate-400">{company.name[0]}</span>
-                              )}
-                            </div>
-                            {company.isPremium && (
-                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-teal-500 rounded-full flex items-center justify-center">
-                                <BadgeCheck className="w-3 h-3 text-white" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-sm font-medium text-slate-900 group-hover:text-teal-700 transition-colors truncate">
-                                {company.name}
-                              </span>
-                              {company.isPremium && (
-                                <span className="text-[10px] text-teal-600 font-medium">인증</span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
-                              <span className="text-teal-600 font-medium">+{company.updatedJobCount}건</span>
-                              <span>·</span>
-                              <span className="text-slate-400">전체 {company.totalJobs}건</span>
-                              <span>·</span>
-                              <span>{company.updatedAt}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-
-                  {/* 기업 수집 신청 CTA */}
-                  <a
-                    href={COMPANY_REGISTRATION_FORM_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-600 hover:text-slate-900 transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>우리 회사도 등록 신청하기</span>
-                  </a>
-                </div>
-              </div>
-            )}
-
-            {/* Tech Blogs Section - blogs 탭에서만 표시 */}
-            {contentType === 'blogs' && (
-              <div className="space-y-6">
-                {/* 블로그 검색 */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="블로그 검색..."
-                    className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder:text-slate-400"
-                  />
-                </div>
-
-                {/* 최근 업데이트된 블로그 (10개) */}
-                <div>
-                  <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-                    최근 업데이트 블로그
-                  </h4>
-                  <div className="space-y-1">
-                    {mockSourcesByCategory.blogs.slice(0, 10).map((source, idx) => (
-                      <div
-                        key={source.id}
-                        className="group flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer border border-transparent hover:border-slate-100"
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-                            {source.logo ? (
-                              <img src={source.logo} alt={source.name} className="w-full h-full object-contain p-0.5" />
-                            ) : (
-                              <span className="text-[10px] font-bold text-slate-400">{source.name[0]}</span>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <span className="text-sm font-medium text-slate-700 group-hover:text-purple-700 transition-colors truncate block">
-                              {source.name}
-                            </span>
-                            <span className="text-xs text-slate-400">
-                              {idx < 3 ? '오늘' : idx < 5 ? '어제' : `${idx - 2}일 전`} 업데이트
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-purple-600 font-medium flex-shrink-0">
-                          <span>+{source.activeCount > 100 ? Math.floor(source.activeCount / 20) : Math.ceil(source.activeCount / 10)}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* 블로그 추가 접수 CTA */}
-                  <a
-                    href={COMPANY_REGISTRATION_FORM_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg text-sm text-purple-700 hover:text-purple-900 transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>블로그 수집 요청하기</span>
-                  </a>
-                </div>
-              </div>
-            )}
-
-            {/* Education Section - courses 탭에서만 표시 */}
-            {contentType === 'courses' && (
-              <div className="space-y-6">
-                {/* 플랫폼 검색 */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="플랫폼 검색..."
-                    className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder:text-slate-400"
-                  />
-                </div>
-
-                {/* 최근 업데이트된 교육 플랫폼 */}
-                <div>
-                  <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                    최근 업데이트 플랫폼
-                  </h4>
-                  <div className="space-y-1">
-                    {mockSourcesByCategory.education.slice(0, 10).map((source, idx) => (
-                      <div
-                        key={source.id}
-                        className="group flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer border border-transparent hover:border-slate-100"
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-                            {source.logo ? (
-                              <img src={source.logo} alt={source.name} className="w-full h-full object-contain p-0.5" />
-                            ) : (
-                              <span className="text-[10px] font-bold text-slate-400">{source.name[0]}</span>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <span className="text-sm font-medium text-slate-700 group-hover:text-amber-700 transition-colors truncate block">
-                              {source.name}
-                            </span>
-                            <span className="text-xs text-slate-400">
-                              {idx < 3 ? '오늘' : idx < 5 ? '어제' : `${idx - 2}일 전`} 업데이트
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-amber-600 font-medium flex-shrink-0">
-                          <span>+{source.activeCount > 100 ? Math.floor(source.activeCount / 20) : Math.ceil(source.activeCount / 10)}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* 플랫폼 추가 접수 CTA */}
-                  <a
-                    href={COMPANY_REGISTRATION_FORM_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg text-sm text-amber-700 hover:text-amber-900 transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>플랫폼 수집 요청하기</span>
-                  </a>
-                </div>
-              </div>
-            )}
-
-            {/* Books/Publishers Section - books 탭에서만 표시 */}
-            {contentType === 'books' && (
-              <div className="space-y-6">
-                {/* 출판사 검색 */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="출판사 검색..."
-                    className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder:text-slate-400"
-                  />
-                </div>
-
-                {/* 최근 업데이트된 출판사 */}
-                <div>
-                  <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
-                    최근 업데이트 출판사
-                  </h4>
-                  <div className="space-y-1">
-                    {mockSourcesByCategory.books.slice(0, 10).map((source, idx) => (
-                      <div
-                        key={source.id}
-                        className="group flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer border border-transparent hover:border-slate-100"
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-                            {source.logo ? (
-                              <img src={source.logo} alt={source.name} className="w-full h-full object-contain p-0.5" />
-                            ) : (
-                              <span className="text-[10px] font-bold text-slate-400">{source.name[0]}</span>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <span className="text-sm font-medium text-slate-700 group-hover:text-teal-700 transition-colors truncate block">
-                              {source.name}
-                            </span>
-                            <span className="text-xs text-slate-400">
-                              {idx < 3 ? '오늘' : idx < 5 ? '어제' : `${idx - 2}일 전`} 업데이트
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-teal-600 font-medium flex-shrink-0">
-                          <span>+{source.activeCount > 100 ? Math.floor(source.activeCount / 20) : Math.ceil(source.activeCount / 10)}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* 출판사 추가 접수 CTA */}
-                  <a
-                    href={COMPANY_REGISTRATION_FORM_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg text-sm text-teal-700 hover:text-teal-900 transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>출판사 수집 요청하기</span>
-                  </a>
-                </div>
-              </div>
-            )}
-
-            {/* Quick Links / Footer-like content */}
-            <div className="pt-6 border-t border-slate-100">
-              <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-400">
-                <a href="#" className="hover:text-slate-600">About</a>
-                <a href="#" className="hover:text-slate-600">Privacy</a>
-                <a href="#" className="hover:text-slate-600">Terms</a>
-                <a href="#" className="hover:text-slate-600">Help</a>
-                <span>© 2025 Careerly AI</span>
-              </div>
-            </div>
-            </div>
-          </aside>
-
-      {/* Detail Drawer */}
-      <div
-        className={
-          cn(
-            "fixed inset-y-0 right-0 z-50 w-full md:w-[600px] bg-white shadow-2xl transform transition-transform duration-300 ease-in-out overflow-y-auto border-l border-slate-100",
-            drawerOpen ? "translate-x-0" : "translate-x-full"
-          )
-        }
-      >
-        {selectedContent && (
-          <div className="h-full flex flex-col">
-            {/* Header */}
-            <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {selectedContent.companyLogo && (
-                  <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 overflow-hidden">
-                    <img src={selectedContent.companyLogo} alt={selectedContent.companyName} className="w-full h-full object-contain p-1" />
-                  </div>
-                )}
-                <div>
-                  <span className="text-sm font-medium text-slate-900">{selectedContent.companyName}</span>
-                </div>
-              </div>
-              <button
-                onClick={() => setDrawerOpen(false)}
-                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-              >
-                <X className="h-5 w-5 text-slate-500" />
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto">
-              <div className="p-6">
-                <h1 className="text-2xl font-bold text-slate-900 mb-4 leading-tight">
-                  {selectedContent.title}
-                </h1>
-
-                {/* Stats Bar */}
-                <div className="flex items-center gap-4 mb-6 pb-4 border-b border-slate-100">
-                  <div className="flex items-center gap-1.5 text-slate-500">
-                    <Eye className="h-4 w-4" />
-                    <span className="text-sm">{selectedContent.views}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-slate-500">
-                    <Heart className="h-4 w-4" />
-                    <span className="text-sm">{selectedContent.likes}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-slate-500">
-                    <MessageCircle className="h-4 w-4" />
-                    <span className="text-sm">{selectedContent.comments.length}</span>
-                  </div>
-                </div>
-
-                {/* Summary */}
-                <div className="prose prose-slate max-w-none mb-6">
-                  <p className="text-slate-700 leading-relaxed">
-                    {selectedContent.summary}
-                  </p>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-2 mb-8">
-                  <Button className="flex-1 bg-teal-600 hover:bg-teal-700 text-white shadow-sm">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    공고 보기
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className={cn(
-                      "border-slate-200",
-                      selectedContent.isLiked && "bg-red-50 border-red-200"
-                    )}
-                    onClick={() => {
-                      setSelectedContent(prev => prev ? {...prev, isLiked: !prev.isLiked, likes: prev.isLiked ? prev.likes - 1 : prev.likes + 1} : null);
-                    }}
-                  >
-                    <Heart className={cn("h-4 w-4", selectedContent.isLiked && "fill-red-500 text-red-500")} />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className={cn(
-                      "border-slate-200",
-                      selectedContent.isBookmarked && "bg-teal-50 border-teal-200"
-                    )}
-                    onClick={() => {
-                      setSelectedContent(prev => prev ? {...prev, isBookmarked: !prev.isBookmarked} : null);
-                    }}
-                  >
-                    <Bookmark className={cn("h-4 w-4", selectedContent.isBookmarked && "fill-teal-500 text-teal-500")} />
-                  </Button>
-                </div>
-
-                {/* Comments Section */}
-                <div className="border-t border-slate-100 pt-6">
-                  <h3 className="text-lg font-semibold text-slate-900 mb-4">
-                    댓글 {selectedContent.comments.length}
-                  </h3>
-
-                  {/* Comment Input */}
-                  <div className="flex gap-2 mb-6">
-                    <Avatar className="h-10 w-10 flex-shrink-0">
-                      <AvatarFallback className="bg-slate-200 text-slate-600">U</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 flex gap-2">
-                      <input
-                        type="text"
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        placeholder="댓글을 입력하세요..."
-                        className="flex-1 px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && newComment.trim()) {
-                            setSelectedContent(prev => prev ? {
-                              ...prev,
-                              comments: [
-                                { id: Date.now().toString(), userName: '나', userImage: undefined, userHeadline: undefined, content: newComment, createdAt: '방금 전', likeCount: 0, liked: false },
-                                ...prev.comments
-                              ]
-                            } : null);
-                            setNewComment('');
-                          }
-                        }}
-                      />
-                      <Button
-                        size="icon"
-                        className="bg-teal-600 hover:bg-teal-700"
-                        disabled={!newComment.trim()}
-                        onClick={() => {
-                          if (newComment.trim()) {
-                            setSelectedContent(prev => prev ? {
-                              ...prev,
-                              comments: [
-                                { id: Date.now().toString(), userName: '나', userImage: undefined, userHeadline: undefined, content: newComment, createdAt: '방금 전', likeCount: 0, liked: false },
-                                ...prev.comments
-                              ]
-                            } : null);
-                            setNewComment('');
-                          }
-                        }}
-                      >
-                        <Send className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Comments List */}
-                  {selectedContent.comments.length > 0 ? (
-                    <div className="divide-y divide-slate-200">
-                      {selectedContent.comments.map((comment) => (
-                        <div key={comment.id} className="py-4 first:pt-0">
-                          <div className="flex items-start gap-3">
-                            <Avatar className="h-10 w-10 flex-shrink-0">
-                              <AvatarImage src={comment.userImage} alt={comment.userName} />
-                              <AvatarFallback className="bg-slate-200 text-slate-600">{comment.userName.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between mb-1">
-                                <div className="flex-1">
-                                  <span className="font-semibold text-slate-900 text-sm">
-                                    {comment.userName}
-                                  </span>
-                                  {comment.userHeadline && (
-                                    <p className="text-xs text-slate-500">{comment.userHeadline}</p>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-3 ml-2 flex-shrink-0">
-                                  <button
-                                    onClick={() => {
-                                      setSelectedContent(prev => {
-                                        if (!prev) return null;
-                                        return {
-                                          ...prev,
-                                          comments: prev.comments.map(c =>
-                                            c.id === comment.id
-                                              ? { ...c, liked: !c.liked, likeCount: c.liked ? c.likeCount - 1 : c.likeCount + 1 }
-                                              : c
-                                          )
-                                        };
-                                      });
-                                    }}
-                                    className={cn(
-                                      'flex items-center gap-1 text-xs transition-colors',
-                                      comment.liked
-                                        ? 'text-red-500'
-                                        : 'text-slate-400 hover:text-red-500'
-                                    )}
-                                  >
-                                    <Heart
-                                      className={cn(
-                                        'h-3.5 w-3.5',
-                                        comment.liked && 'fill-current'
-                                      )}
-                                    />
-                                    {comment.likeCount > 0 && <span>{comment.likeCount}</span>}
-                                  </button>
-                                  <span className="text-xs text-slate-400">{comment.createdAt}</span>
-                                </div>
-                              </div>
-                              <p className="text-sm text-slate-700 leading-relaxed">{comment.content}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-slate-400">
-                      <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">아직 댓글이 없습니다.</p>
-                      <p className="text-xs">첫 번째 댓글을 남겨보세요!</p>
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
           </div>
-        )}
-      </div >
 
-      {/* Backdrop */}
-      {
-        drawerOpen && (
-          <div
-            className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40 transition-opacity duration-300"
-            onClick={() => setDrawerOpen(false)}
+          {/* Date Tabs - 채용공고 탭 */}
+          {contentType === 'jobs' && (
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+              {availableDates.map((apiDate) => (
+                <button
+                  key={apiDate}
+                  onClick={() => setSelectedDate(apiDate)}
+                  className={cn(
+                    'px-3 py-1.5 text-sm rounded-full whitespace-nowrap transition-colors flex items-center gap-1.5',
+                    selectedDate === apiDate
+                      ? 'bg-slate-900 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  )}
+                >
+                  {formatDateTab(apiDateToDisplayDate(apiDate))}
+                  {dateStats[apiDate] && (
+                    <span className={cn(
+                      'text-xs px-1.5 py-0.5 rounded-full',
+                      selectedDate === apiDate
+                        ? 'bg-slate-700 text-slate-200'
+                        : 'bg-slate-200 text-slate-500'
+                    )}>
+                      {dateStats[apiDate].toLocaleString()}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Daily Summary Cards */}
+          {contentType === 'jobs' && (
+            <DailySummaryCard
+              date={selectedDate ? apiDateToDisplayDate(selectedDate) : ''}
+              summary={`${totalJobCount.toLocaleString()}개의 새로운 채용공고가 등록되었습니다.`}
+              totalJobs={totalJobCount}
+              totalCompanies={v2MainData?.company_count || new Set(selectedDateJobs.map(j => j.companyName)).size}
+              weeklyStats={weeklyStats.map(stat => ({
+                ...stat,
+                date: apiDateToDisplayDate(stat.date),
+              }))}
+              selectedDate={selectedDate ? apiDateToDisplayDate(selectedDate) : ''}
+              onDateClick={(displayDate) => {
+                // 표시 날짜를 API 날짜로 역변환
+                const date = new Date(displayDate);
+                date.setDate(date.getDate() - 1);
+                setSelectedDate(date.toISOString().split('T')[0]);
+              }}
+            />
+          )}
+          {contentType === 'blogs' && (
+            <DailySummaryCard
+              date={selectedDate}
+              summary=""
+              totalJobs={blogCards.length}
+              totalCompanies={blogRankingData?.rankings?.length || 0}
+              title="최근 1주일간의 블로그 현황"
+              unitLabel="개 발행"
+              sourceLabel="개 블로그"
+              chartColor="purple"
+            />
+          )}
+          {contentType === 'books' && (
+            <DailySummaryCard
+              date={selectedDate}
+              summary=""
+              totalJobs={bookCards.length}
+              totalCompanies={bookRankingData?.rankings?.length || 0}
+              title="최근 1주일간의 도서 현황"
+              unitLabel="권 등록"
+              sourceLabel="개 출판사"
+              chartColor="teal"
+            />
+          )}
+          {contentType === 'courses' && (
+            <DailySummaryCard
+              date={selectedDate}
+              summary=""
+              totalJobs={courseCards.length}
+              totalCompanies={lectureRankingData?.rankings?.length || 0}
+              title="최근 1주일간의 강의 현황"
+              unitLabel="개 등록"
+              sourceLabel="개 플랫폼"
+              chartColor="amber"
+            />
+          )}
+        </div>
+
+        {/* Content Feed */}
+        {contentType === 'jobs' ? (
+          <div className="space-y-4 mt-6">
+            {/* 기업 필터 - Embla Carousel */}
+            {companyFilterList.length > 0 && (
+              <CompanyFilterCarousel
+                companies={companyFilterList}
+                selectedCompany={selectedCompanyFilter}
+                onSelectCompany={setSelectedCompanyFilter}
+              />
+            )}
+
+            {isJobsLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+              </div>
+            ) : selectedDateJobs.length > 0 ? (
+              <div className="space-y-4">
+                {/* 국내 기업 */}
+                {domesticJobs.length > 0 && (
+                  <>
+                    <div className="flex items-center gap-2 pt-2">
+                      <span className="text-sm font-semibold text-slate-700">국내 기업</span>
+                      <span className="text-xs text-slate-400">{domesticJobs.length.toLocaleString()}건</span>
+                    </div>
+                    <div className="space-y-2">
+                      {domesticJobs.map((job) => (
+                        <JobListItem
+                          key={job.id}
+                          job={job}
+                          onClick={() => handleJobClick(job)}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* 글로벌 기업 */}
+                {globalJobs.length > 0 && (
+                  <>
+                    <div className="flex items-center gap-2 pt-4 border-t border-slate-200 mt-4">
+                      <span className="text-sm font-semibold text-slate-700">글로벌 기업</span>
+                      <span className="text-xs text-slate-400">{globalJobs.length.toLocaleString()}건</span>
+                    </div>
+                    <div className="space-y-2">
+                      {globalJobs.map((job) => (
+                        <JobListItem
+                          key={job.id}
+                          job={job}
+                          onClick={() => handleJobClick(job)}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <EmptyState message="채용공고가 없습니다" description="이 날짜에 수집된 채용공고가 없습니다." />
+            )}
+          </div>
+        ) : contentType === 'blogs' ? (
+          <div className="space-y-6 mt-6">
+            <CompanyFilter
+              companies={blogCompanyCategories}
+              selected={selectedBlogCompany}
+              onChange={setSelectedBlogCompany}
+              totalCount={blogCards.length}
+            />
+
+            {isBlogsLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+              </div>
+            ) : filteredBlogs.length > 0 ? (
+              Object.keys(blogsByDate)
+                .sort((a, b) => b.localeCompare(a))
+                .map((dateKey) => (
+                  <div key={dateKey}>
+                    <DateDivider label={formatDateHeader(dateKey)} />
+                    <div className="space-y-3">
+                      {blogsByDate[dateKey].map((blog) => (
+                        <BlogCard
+                          key={blog.id}
+                          blog={blog}
+                          dateLabel={formatShortDate(dateKey)}
+                          onClick={() => handleBlogClick(blog)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))
+            ) : (
+              <EmptyState message="해당 회사의 블로그가 없습니다" description="다른 회사를 선택해보세요." />
+            )}
+          </div>
+        ) : contentType === 'books' ? (
+          <div className="space-y-6 mt-6">
+            <CompanyFilter
+              companies={bookCompanyCategories}
+              selected={selectedBookCompany}
+              onChange={setSelectedBookCompany}
+              totalCount={bookCards.length}
+            />
+
+            {isBooksLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+              </div>
+            ) : Object.keys(booksByWeek).length > 0 ? (
+              Object.keys(booksByWeek)
+                .sort((a, b) => b.localeCompare(a))
+                .map((weekKey) => (
+                  <div key={weekKey}>
+                    <DateDivider label={formatWeekHeader(weekKey)} />
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
+                      {booksByWeek[weekKey].map((book) => (
+                        <BookCard
+                          key={book.id}
+                          book={book}
+                          onClick={() => handleContentClick(book, 'book')}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))
+            ) : (
+              <EmptyState message="해당 출판사의 도서가 없습니다" description="다른 출판사를 선택해보세요." />
+            )}
+          </div>
+        ) : contentType === 'courses' ? (
+          <div className="space-y-6 mt-6">
+            <CompanyFilter
+              companies={courseCompanyCategories}
+              selected={selectedCourseCompany}
+              onChange={setSelectedCourseCompany}
+              totalCount={courseCards.length}
+            />
+
+            {isLecturesLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+              </div>
+            ) : Object.keys(coursesByWeek).length > 0 ? (
+              Object.keys(coursesByWeek)
+                .sort((a, b) => b.localeCompare(a))
+                .map((weekKey) => (
+                  <div key={weekKey}>
+                    <DateDivider label={formatWeekHeader(weekKey)} />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {coursesByWeek[weekKey].map((course) => (
+                        <CourseCard
+                          key={course.id}
+                          course={course}
+                          onClick={() => handleContentClick(course, 'course')}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))
+            ) : (
+              <EmptyState message="해당 플랫폼의 강의가 없습니다" description="다른 플랫폼을 선택해보세요." />
+            )}
+          </div>
+        ) : null}
+      </main>
+
+      {/* Right Sidebar */}
+      <aside className="hidden lg:block lg:col-span-3">
+        <div className="space-y-4 pt-16">
+          {/* Header - 콘텐츠 타입별 */}
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+              <div className="relative flex h-2.5 w-2.5">
+                <span className={cn(
+                  'animate-ping absolute inline-flex h-full w-full rounded-full opacity-75',
+                  contentType === 'jobs' ? 'bg-teal-400' :
+                  contentType === 'blogs' ? 'bg-purple-400' :
+                  contentType === 'books' ? 'bg-emerald-400' : 'bg-amber-400'
+                )}></span>
+                <span className={cn(
+                  'relative inline-flex rounded-full h-2.5 w-2.5',
+                  contentType === 'jobs' ? 'bg-teal-500' :
+                  contentType === 'blogs' ? 'bg-purple-500' :
+                  contentType === 'books' ? 'bg-emerald-500' : 'bg-amber-500'
+                )}></span>
+              </div>
+              {contentType === 'jobs' ? '수집 출처' :
+               contentType === 'blogs' ? '블로그 출처' :
+               contentType === 'books' ? '도서 출처' : '강의 출처'}
+            </h3>
+            <span className="text-xs text-slate-400">
+              {contentType === 'jobs' ? `${mockSourceStats.totalSources.toLocaleString()}개 소스` :
+               contentType === 'blogs' ? `${blogCompanyCategories.length}개 출처` :
+               contentType === 'books' ? `${bookCompanyCategories.length}개 출처` :
+               `${courseCompanyCategories.length}개 출처`}
+            </span>
+          </div>
+
+          {/* Stats - 콘텐츠 타입별 */}
+          {contentType === 'jobs' ? (
+            <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-teal-600 mb-1 font-medium">
+                    {selectedDate ? formatDateTab(apiDateToDisplayDate(selectedDate)) : '오늘'} 업데이트
+                  </div>
+                  <div className="text-xl font-bold text-teal-700">
+                    +{totalJobCount.toLocaleString()}건
+                  </div>
+                </div>
+                <TrendingUp className="h-8 w-8 text-teal-200" />
+              </div>
+              <div className="flex items-center gap-3 mt-3 pt-3 border-t border-teal-100">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-teal-600">국내</span>
+                  <span className="text-sm font-semibold text-teal-700">+{domesticJobCount.toLocaleString()}</span>
+                </div>
+                <div className="w-px h-3 bg-teal-200" />
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-teal-600">글로벌</span>
+                  <span className="text-sm font-semibold text-teal-700">+{globalJobCount.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          ) : contentType === 'blogs' ? (
+            <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-purple-600 mb-1 font-medium">최근 1개월 수집</div>
+                  <div className="text-xl font-bold text-purple-700">
+                    {blogCards.length.toLocaleString()}건
+                  </div>
+                </div>
+                <TrendingUp className="h-8 w-8 text-purple-200" />
+              </div>
+              <div className="flex items-center gap-3 mt-3 pt-3 border-t border-purple-100">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-purple-600">출처</span>
+                  <span className="text-sm font-semibold text-purple-700">{blogCompanyCategories.length}개</span>
+                </div>
+              </div>
+            </div>
+          ) : contentType === 'books' ? (
+            <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-emerald-600 mb-1 font-medium">최근 1개월 수집</div>
+                  <div className="text-xl font-bold text-emerald-700">
+                    {bookCards.length.toLocaleString()}건
+                  </div>
+                </div>
+                <TrendingUp className="h-8 w-8 text-emerald-200" />
+              </div>
+              <div className="flex items-center gap-3 mt-3 pt-3 border-t border-emerald-100">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-emerald-600">출판사</span>
+                  <span className="text-sm font-semibold text-emerald-700">{bookCompanyCategories.length}개</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-amber-600 mb-1 font-medium">최근 1개월 수집</div>
+                  <div className="text-xl font-bold text-amber-700">
+                    {courseCards.length.toLocaleString()}건
+                  </div>
+                </div>
+                <TrendingUp className="h-8 w-8 text-amber-200" />
+              </div>
+              <div className="flex items-center gap-3 mt-3 pt-3 border-t border-amber-100">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-amber-600">플랫폼</span>
+                  <span className="text-sm font-semibold text-amber-700">{courseCompanyCategories.length}개</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Jobs Sidebar */}
+          {contentType === 'jobs' && (
+            <JobsSidebar
+              companySearchQuery={companySearchQuery}
+              setCompanySearchQuery={setCompanySearchQuery}
+              filteredCompanies={filteredCompanies}
+              recentCompanies={companyFilterList}
+              formUrl={COMPANY_REGISTRATION_FORM_URL}
+            />
+          )}
+
+          {/* Blogs Sidebar */}
+          {contentType === 'blogs' && (
+            <SourceSidebar
+              title="블로그 랭킹"
+              sources={blogSourceItems}
+              variant="purple"
+              searchPlaceholder="블로그 검색..."
+              ctaLabel="블로그 수집 요청하기"
+              ctaUrl={COMPANY_REGISTRATION_FORM_URL}
+            />
+          )}
+
+          {/* Books Sidebar */}
+          {contentType === 'books' && (
+            <SourceSidebar
+              title="출판사 랭킹"
+              sources={bookSourceItems}
+              variant="teal"
+              searchPlaceholder="출판사 검색..."
+              ctaLabel="출판사 수집 요청하기"
+              ctaUrl={COMPANY_REGISTRATION_FORM_URL}
+            />
+          )}
+
+          {/* Courses Sidebar */}
+          {contentType === 'courses' && (
+            <SourceSidebar
+              title="플랫폼 랭킹"
+              sources={lectureSourceItems}
+              variant="amber"
+              searchPlaceholder="플랫폼 검색..."
+              ctaLabel="플랫폼 수집 요청하기"
+              ctaUrl={COMPANY_REGISTRATION_FORM_URL}
+            />
+          )}
+
+          {/* Footer */}
+          <SidebarFooter />
+        </div>
+      </aside>
+
+      {/* Detail Drawer */}
+      <ContentDetailDrawer
+        open={drawerOpen}
+        content={selectedContent}
+        onClose={() => setDrawerOpen(false)}
+        onContentChange={setSelectedContent}
+      />
+    </div>
+  );
+}
+
+// 하위 컴포넌트들
+
+function EmptyState({ message, description }: { message: string; description: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+        <Search className="h-7 w-7 text-slate-300" />
+      </div>
+      <h3 className="text-base font-medium text-slate-900 mb-1">{message}</h3>
+      <p className="text-sm text-slate-500">{description}</p>
+    </div>
+  );
+}
+
+function DateDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 py-3 mb-3">
+      <div className="h-px flex-1 bg-slate-200" />
+      <span className="text-sm font-medium text-slate-500">{label}</span>
+      <div className="h-px flex-1 bg-slate-200" />
+    </div>
+  );
+}
+
+interface InfiniteScrollTriggerProps {
+  onIntersect: () => void;
+  isLoading: boolean;
+}
+
+function InfiniteScrollTrigger({ onIntersect, isLoading }: InfiniteScrollTriggerProps) {
+  const triggerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isLoading) {
+          onIntersect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (triggerRef.current) {
+      observer.observe(triggerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [onIntersect, isLoading]);
+
+  return (
+    <div ref={triggerRef} className="flex items-center justify-center py-8">
+      <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+    </div>
+  );
+}
+
+interface RecentCompanyItem {
+  sign: string;
+  name: string;
+  logo: string;
+  jobCount: number;
+  type: 'domestic' | 'global';
+  updatedAt: string;
+}
+
+interface JobsSidebarProps {
+  companySearchQuery: string;
+  setCompanySearchQuery: (q: string) => void;
+  filteredCompanies: typeof mockAllCompanies;
+  recentCompanies: RecentCompanyItem[];
+  formUrl: string;
+}
+
+function JobsSidebar({
+  companySearchQuery,
+  setCompanySearchQuery,
+  filteredCompanies,
+  recentCompanies,
+  formUrl,
+}: JobsSidebarProps) {
+  return (
+    <div className="space-y-4">
+      {/* 기업 검색창 */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <input
+          type="text"
+          placeholder="기업 검색..."
+          value={companySearchQuery}
+          onChange={(e) => setCompanySearchQuery(e.target.value)}
+          className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder:text-slate-400"
+        />
+      </div>
+
+      {/* 검색 결과 */}
+      {companySearchQuery.trim() && (
+        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+          <div className="px-3 py-2 bg-slate-50 border-b border-slate-200">
+            <span className="text-xs font-medium text-slate-500">
+              검색 결과 ({filteredCompanies.length})
+            </span>
+          </div>
+          {filteredCompanies.length > 0 ? (
+            <div className="divide-y divide-slate-100">
+              {filteredCompanies.map((company) =>
+                company.isPremium ? (
+                  <Link
+                    key={company.id}
+                    href={`/company/${company.id}`}
+                    className="group flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 transition-colors"
+                  >
+                    <CompanyLogo company={company} showBadge />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-medium text-slate-900 group-hover:text-teal-700 transition-colors truncate">
+                          {company.name}
+                        </span>
+                        <span className="text-[10px] text-teal-600 font-medium">인증</span>
+                      </div>
+                      <span className="text-xs text-slate-400">
+                        {company.category} · {company.totalJobs}건
+                      </span>
+                    </div>
+                  </Link>
+                ) : (
+                  <div
+                    key={company.id}
+                    className="flex items-center gap-3 px-3 py-2.5 opacity-50 cursor-not-allowed"
+                  >
+                    <CompanyLogo company={company} grayscale />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-medium text-slate-500 truncate">
+                          {company.name}
+                        </span>
+                        <Lock className="w-3 h-3 text-slate-400" />
+                      </div>
+                      <span className="text-xs text-slate-400">
+                        {company.category} · {company.totalJobs}건
+                      </span>
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+          ) : (
+            <div className="px-3 py-4 text-center text-sm text-slate-400">검색 결과가 없습니다</div>
+          )}
+        </div>
+      )}
+
+      {/* 최근 업데이트 기업 */}
+      <div>
+        <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+          최근 업데이트 기업
+        </h4>
+        <div className="space-y-2">
+          {recentCompanies.slice(0, 10).map((company) => (
+            <div
+              key={company.sign}
+              className="group block p-2.5 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100"
+            >
+              <div className="flex items-start gap-3">
+                <CompanyLogo company={{ name: company.name, logo: company.logo }} size="lg" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-medium text-slate-900 group-hover:text-teal-700 transition-colors truncate">
+                      {company.name}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
+                    <span className="text-teal-600 font-medium">+{company.jobCount}건</span>
+                    <span>·</span>
+                    <span className="text-slate-400">{company.type === 'domestic' ? '국내' : '글로벌'}</span>
+                    <span>·</span>
+                    <span className="text-slate-400">{company.updatedAt}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <a
+          href={formUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-600 hover:text-slate-900 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          <span>우리 회사도 등록 신청하기</span>
+        </a>
+      </div>
+    </div>
+  );
+}
+
+interface SourceSidebarProps {
+  title: string;
+  sources: SourceItemData[];
+  variant: 'purple' | 'teal' | 'amber';
+  searchPlaceholder: string;
+  ctaLabel: string;
+  ctaUrl: string;
+}
+
+function SourceSidebar({
+  title,
+  sources,
+  variant,
+  searchPlaceholder,
+  ctaLabel,
+  ctaUrl,
+}: SourceSidebarProps) {
+  const colorConfig = {
+    purple: {
+      ring: 'focus:ring-purple-500',
+      dot: 'bg-purple-500',
+      ctaBg: 'bg-purple-50 hover:bg-purple-100',
+      ctaBorder: 'border-purple-200',
+      ctaText: 'text-purple-700 hover:text-purple-900',
+    },
+    teal: {
+      ring: 'focus:ring-teal-500',
+      dot: 'bg-teal-500',
+      ctaBg: 'bg-teal-50 hover:bg-teal-100',
+      ctaBorder: 'border-teal-200',
+      ctaText: 'text-teal-700 hover:text-teal-900',
+    },
+    amber: {
+      ring: 'focus:ring-amber-500',
+      dot: 'bg-amber-500',
+      ctaBg: 'bg-amber-50 hover:bg-amber-100',
+      ctaBorder: 'border-amber-200',
+      ctaText: 'text-amber-700 hover:text-amber-900',
+    },
+  };
+
+  const config = colorConfig[variant];
+
+  return (
+    <div className="space-y-6">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <input
+          type="text"
+          placeholder={searchPlaceholder}
+          className={cn(
+            'w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent placeholder:text-slate-400',
+            config.ring
+          )}
+        />
+      </div>
+
+      <div>
+        <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+          <span className={cn('w-1.5 h-1.5 rounded-full', config.dot)}></span>
+          {title}
+        </h4>
+        <div className="space-y-1">
+          {sources.map((source) => (
+            <SourceListItem key={source.id} source={source} variant={variant} />
+          ))}
+        </div>
+
+        <a
+          href={ctaUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            'mt-4 flex items-center justify-center gap-2 w-full py-2.5 px-4 border rounded-lg text-sm transition-colors',
+            config.ctaBg,
+            config.ctaBorder,
+            config.ctaText
+          )}
+        >
+          <Plus className="w-4 h-4" />
+          <span>{ctaLabel}</span>
+        </a>
+      </div>
+    </div>
+  );
+}
+
+// 기업 필터 캐러셀 컴포넌트
+interface CompanyFilterCarouselProps {
+  companies: {
+    sign: string;
+    name: string;
+    logo: string;
+    jobCount: number;
+    type: 'domestic' | 'global';
+  }[];
+  selectedCompany: string | null;
+  onSelectCompany: (sign: string | null) => void;
+}
+
+function CompanyFilterCarousel({ companies, selectedCompany, onSelectCompany }: CompanyFilterCarouselProps) {
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    align: 'start',
+    containScroll: 'trimSnaps',
+    dragFree: true,
+  });
+
+  const [canScrollPrev, setCanScrollPrev] = React.useState(false);
+  const [canScrollNext, setCanScrollNext] = React.useState(false);
+
+  const scrollPrev = React.useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
+  const scrollNext = React.useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
+
+  const onSelect = React.useCallback(() => {
+    if (!emblaApi) return;
+    setCanScrollPrev(emblaApi.canScrollPrev());
+    setCanScrollNext(emblaApi.canScrollNext());
+  }, [emblaApi]);
+
+  React.useEffect(() => {
+    if (!emblaApi) return;
+    onSelect();
+    emblaApi.on('select', onSelect);
+    emblaApi.on('reInit', onSelect);
+    return () => {
+      emblaApi.off('select', onSelect);
+      emblaApi.off('reInit', onSelect);
+    };
+  }, [emblaApi, onSelect]);
+
+  const totalJobCount = companies.reduce((sum, c) => sum + c.jobCount, 0);
+
+  return (
+    <div className="relative group">
+      {/* 좌측 그라데이션 & 버튼 */}
+      <div className={cn(
+        'absolute left-0 top-0 bottom-0 z-10 flex items-center transition-opacity duration-200',
+        canScrollPrev ? 'opacity-100' : 'opacity-0 pointer-events-none'
+      )}>
+        <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-white to-transparent" />
+        <button
+          onClick={scrollPrev}
+          className="relative z-10 w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded-full shadow-sm hover:bg-slate-50 transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4 text-slate-600" />
+        </button>
+      </div>
+
+      {/* 캐러셀 컨테이너 */}
+      <div className="overflow-hidden" ref={emblaRef}>
+        <div className="flex gap-2">
+          {/* 전체 버튼 */}
+          <button
+            onClick={() => onSelectCompany(null)}
+            className={cn(
+              'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm whitespace-nowrap transition-all duration-200 shrink-0',
+              !selectedCompany
+                ? 'bg-slate-900 text-white shadow-md'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            )}
+          >
+            전체
+            <span className={cn(
+              'text-xs px-1.5 py-0.5 rounded-full font-medium',
+              !selectedCompany
+                ? 'bg-slate-700 text-slate-200'
+                : 'bg-slate-200 text-slate-500'
+            )}>
+              {totalJobCount.toLocaleString()}
+            </span>
+          </button>
+
+          {/* 기업 버튼들 */}
+          {companies.map((company) => (
+            <button
+              key={company.sign}
+              onClick={() => onSelectCompany(
+                selectedCompany === company.sign ? null : company.sign
+              )}
+              className={cn(
+                'flex items-center gap-1.5 px-2 py-1 rounded-full text-sm whitespace-nowrap transition-all duration-200 shrink-0',
+                selectedCompany === company.sign
+                  ? 'bg-slate-900 text-white shadow-md'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              )}
+            >
+              {company.logo && (
+                <div className={cn(
+                  'w-7 h-7 rounded-full border-2 transition-colors flex-shrink-0 bg-white flex items-center justify-center overflow-hidden',
+                  selectedCompany === company.sign
+                    ? 'border-slate-700'
+                    : 'border-slate-200'
+                )}>
+                  <img
+                    src={company.logo}
+                    alt={company.name}
+                    className="w-5 h-5 object-contain"
+                  />
+                </div>
+              )}
+              <span className="max-w-[100px] truncate font-medium">{company.name}</span>
+              <span className={cn(
+                'text-xs px-1.5 py-0.5 rounded-full font-medium',
+                selectedCompany === company.sign
+                  ? 'bg-slate-700 text-slate-200'
+                  : 'bg-slate-200 text-slate-500'
+              )}>
+                {company.jobCount}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 우측 그라데이션 & 버튼 */}
+      <div className={cn(
+        'absolute right-0 top-0 bottom-0 z-10 flex items-center transition-opacity duration-200',
+        canScrollNext ? 'opacity-100' : 'opacity-0 pointer-events-none'
+      )}>
+        <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-white to-transparent" />
+        <button
+          onClick={scrollNext}
+          className="relative z-10 w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded-full shadow-sm hover:bg-slate-50 transition-colors"
+        >
+          <ChevronRight className="w-4 h-4 text-slate-600" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+interface CompanyLogoProps {
+  company: { name: string; logo?: string; isPremium?: boolean };
+  size?: 'sm' | 'lg';
+  showBadge?: boolean;
+  grayscale?: boolean;
+}
+
+function CompanyLogo({ company, size = 'sm', showBadge = false, grayscale = false }: CompanyLogoProps) {
+  const sizeClass = size === 'lg' ? 'w-10 h-10' : 'w-8 h-8';
+  const badgeSize = size === 'lg' ? 'w-4 h-4' : 'w-3.5 h-3.5';
+  const badgeIconSize = size === 'lg' ? 'w-3 h-3' : 'w-2.5 h-2.5';
+  const badgePosition = size === 'lg' ? '-top-1 -right-1' : '-top-0.5 -right-0.5';
+
+  return (
+    <div className="relative flex-shrink-0">
+      <div
+        className={cn(
+          sizeClass,
+          'rounded-lg bg-white border flex items-center justify-center overflow-hidden',
+          grayscale ? 'border-slate-200 bg-slate-100' : 'border-slate-100'
+        )}
+      >
+        {company.logo ? (
+          <img
+            src={company.logo}
+            alt={company.name}
+            className={cn('w-full h-full object-contain p-0.5', grayscale && 'grayscale')}
           />
-        )
-      }
-    </div >
+        ) : (
+          <span className="text-xs font-bold text-slate-400">{company.name[0]}</span>
+        )}
+      </div>
+      {showBadge && (
+        <div
+          className={cn(
+            'absolute bg-teal-500 rounded-full flex items-center justify-center',
+            badgePosition,
+            badgeSize
+          )}
+        >
+          <BadgeCheck className={cn('text-white', badgeIconSize)} />
+        </div>
+      )}
+    </div>
   );
 }

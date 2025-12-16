@@ -10,9 +10,13 @@ export const API_CONFIG = {
   // Widget API URL (Django Backend)
   WIDGET_API_URL: process.env.NEXT_PUBLIC_WIDGET_API_URL || 'http://localhost:8000/api/v1/widgets',
 
-  // Somoon API
+  // Somoon API (Legacy - somoon.ai)
   SOMOON_API_URL: process.env.NEXT_PUBLIC_SOMOON_API_URL || '/api/somoon',
   SOMOON_CSRF_TOKEN: process.env.NEXT_PUBLIC_SOMOON_CSRF_TOKEN || '',
+
+  // Somoon Recruits API (recruits.somoon.ai)
+  SOMOON_RECRUITS_API_URL: process.env.NEXT_PUBLIC_SOMOON_RECRUITS_API_URL || '/api/somoon-recruits',
+  SOMOON_RECRUITS_API_TOKEN: process.env.SOMOON_RECRUITS_API_TOKEN || '',
 
   // API 타임아웃 (밀리초)
   TIMEOUT: Number(process.env.NEXT_PUBLIC_API_TIMEOUT) || 10000,

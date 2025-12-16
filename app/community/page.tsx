@@ -20,6 +20,7 @@ import { useInfinitePosts, useInfiniteRecommendedPosts, useInfiniteQuestions, us
 import { toast } from 'sonner';
 import { QnaDetail } from '@/components/ui/qna-detail';
 import { PostDetail } from '@/components/ui/post-detail';
+import { SidebarFooter } from '@/components/layout/SidebarFooter';
 import type { QuestionListItem, PaginatedPostResponse, PaginatedQuestionResponse } from '@/lib/api';
 import { useStore } from '@/hooks/useStore';
 import { useImpressionTracker } from '@/lib/hooks/useImpressionTracker';
@@ -391,8 +392,8 @@ function PostDetailDrawerContent({
         onCommentSubmit={handleCommentSubmit}
         onCommentEdit={handleCommentEdit}
         onCommentDelete={handleCommentDelete}
-        liked={isLiked}
-        bookmarked={isSaved}
+        liked={isLiked || post.is_liked}
+        bookmarked={isSaved || post.is_saved}
         currentUser={user ? { id: user.id, name: user.name, image_url: user.image_url } : undefined}
       />
     </div>
@@ -1068,12 +1069,12 @@ function CommunityPageContent() {
 
     // 상위 5명만 선택
     return shuffled.slice(0, 5).map((follower) => ({
-      id: follower.id.toString(),
+      id: follower.user_id.toString(),
       name: follower.name,
       image_url: follower.image_url || undefined,
       headline: follower.headline || undefined,
       isFollowing: false,
-      href: `/profile/${follower.id}`,
+      href: `/profile/${follower.user_id}`,
     }));
   }, [recommendedFollowersCandidates, myFollowingData]);
 
@@ -1544,6 +1545,9 @@ function CommunityPageContent() {
             onFollow={(userId) => followUser.mutate(parseInt(userId, 10))}
             onUnfollow={(userId) => unfollowUser.mutate(parseInt(userId, 10))}
           />
+
+          {/* Footer */}
+          <SidebarFooter />
         </div>
       </aside>
 

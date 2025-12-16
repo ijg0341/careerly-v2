@@ -218,7 +218,8 @@ export async function checkFollowStatus(userId: number): Promise<FollowStatus> {
  * 추천 팔로워 타입
  */
 export interface RecommendedFollower {
-  id: number;
+  id: number; // Profile ID
+  user_id: number; // User ID (프로필 링크에 사용)
   name: string;
   image_url: string | null;
   headline: string | null;

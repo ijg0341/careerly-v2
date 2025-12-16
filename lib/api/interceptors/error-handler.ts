@@ -162,8 +162,8 @@ export function handleApiError(
 
   const apiError = normalizeError(error);
 
-  // 토스트 표시
-  if (showToast) {
+  // 토스트 표시 (401 에러는 인터셉터에서 로그인 모달을 열기 때문에 toast 표시하지 않음)
+  if (showToast && apiError.status !== 401) {
     const message = customMessage || apiError.message;
     toast.error(message);
   }

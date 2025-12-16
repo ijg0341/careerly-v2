@@ -10,6 +10,7 @@ export { publicClient, authClient } from './clients/rest-client';
 export { SSEClient, getSSEClient, createSSEClient } from './clients/sse-client';
 export type { SSEOptions, SSEEventHandlers } from './clients/sse-client';
 export { somoonClient } from './clients/somoon-client';
+export { somoonRecruitsClient } from './clients/somoon-recruits-client';
 
 // ============================================================
 // Services
@@ -144,6 +145,17 @@ export { getDailyContents } from './services/contents.service';
 
 // Jobs Service (Somoon)
 export { getDailyJobs } from './services/jobs.service';
+
+// Somoon Recruits Service
+export {
+  getRecruitsContents,
+  searchCompaniesJobs,
+  getTrendReport,
+  generateTrendReport,
+  getCompanyInfo,
+  getContentsRanking,
+  searchJobsByKeyword,
+} from './services/somoon-recruits.service';
 
 // Profile Service
 export {
@@ -286,6 +298,18 @@ export {
   useInfiniteDailyJobs,
   jobsKeys,
 } from './hooks/queries/useJobs';
+
+// Somoon Recruits Queries
+export {
+  useRecruitsContents,
+  useSearchCompaniesJobs,
+  useInfiniteSearchCompaniesJobs,
+  useTrendReport,
+  useCompanyInfo,
+  useContentsRanking,
+  useSearchJobsByKeyword,
+  somoonRecruitsKeys,
+} from './hooks/queries/useSomoonRecruits';
 
 // Profile Queries
 export {
@@ -561,6 +585,26 @@ export type {
   SomoonJobItem,
   GetDailyJobsParams,
 } from './types/somoon.types';
+
+// Somoon Recruits Types
+export type {
+  RecruitsContentType,
+  RecruitsContent,
+  RecruitsContentsMainResponse,
+  GetRecruitsContentsParams,
+  RecruitsJobCategory,
+  RecruitsJobAttributes,
+  RecruitsJob,
+  SearchCompaniesJobsParams,
+  RecruitsSearchJobItem,
+  RecruitsSearchJobsResponse,
+  RecruitsTrendReportResponse,
+  GetTrendReportParams,
+  RecruitsCompanyInfo,
+  RecruitsCompanyInfoResponse,
+  RecruitsContentRanking,
+  RecruitsContentRankingResponse,
+} from './types/somoon-recruits.types';
 
 // ============================================================
 // Auth Utilities (Client)

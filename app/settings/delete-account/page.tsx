@@ -82,26 +82,25 @@ export default function DeleteAccountPage() {
             <div>
               <h2 className="font-semibold text-red-700 mb-2">계정 탈퇴 안내</h2>
               <p className="text-sm text-red-600 mb-3">
-                계정을 탈퇴하면 다음 데이터가 모두 삭제되며 복구할 수 없습니다:
+                계정을 탈퇴하면 다음과 같이 처리됩니다:
               </p>
               <ul className="text-sm text-red-600 space-y-1.5">
                 <li className="flex items-start">
                   <span className="mr-2">•</span>
-                  <span>프로필 정보</span>
+                  <span>계정이 비활성화되어 더 이상 로그인할 수 없습니다</span>
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">•</span>
-                  <span>작성한 게시글 및 댓글</span>
+                  <span>프로필이 다른 사용자에게 표시되지 않습니다</span>
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">•</span>
-                  <span>팔로우/팔로워 관계</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="mr-2">•</span>
-                  <span>북마크 및 좋아요</span>
+                  <span>동일한 이메일로 재가입이 제한될 수 있습니다</span>
                 </li>
               </ul>
+              <p className="text-sm text-red-600 mt-3">
+                탈퇴 후에는 계정을 복구할 수 없습니다.
+              </p>
             </div>
           </div>
         </div>

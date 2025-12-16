@@ -1,12 +1,14 @@
 'use client';
 
 import { BookmarkIcon, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useInfiniteMySavedPosts } from '@/lib/api';
 import { CommunityFeedCard } from '@/components/ui/community-feed-card';
 import { LoadMore } from '@/components/ui/load-more';
 import type { PaginatedPostResponse } from '@/lib/api';
 
 export default function BookmarksPage() {
+  const router = useRouter();
   const {
     data,
     isLoading,
@@ -65,12 +67,13 @@ export default function BookmarksPage() {
                 content={post.description}
                 createdAt={post.createdat}
                 stats={{
-                  likeCount: 0,
+                  likeCount: post.like_count || 0,
                   replyCount: post.comment_count || 0,
-                  repostCount: 0,
-                  viewCount: 0,
+                  viewCount: post.view_count || 0,
                 }}
-                onClick={() => window.location.href = `/community/post/${post.id}`}
+                onClick={() => router.push(`/community?post=${post.id}`)}
+                liked={post.is_liked}
+                bookmarked={true}
               />
             ))}
             <LoadMore

@@ -15,6 +15,7 @@ import {
   unlikeComment,
 } from '../../services/comments.service';
 import { commentKeys } from '../queries/useComments';
+import { postsKeys } from '../queries/usePosts';
 import type {
   Comment,
   CommentCreateRequest,
@@ -40,6 +41,17 @@ export function useCreateComment(
       // 전체 댓글 목록도 무효화 (postId 필터 없는 경우)
       queryClient.invalidateQueries({
         queryKey: commentKeys.lists(),
+      });
+
+      // 피드 목록의 댓글 카운트 업데이트를 위해 posts 캐시 무효화
+      queryClient.invalidateQueries({
+        queryKey: postsKeys.lists(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: postsKeys.detail(data.post_id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: postsKeys.recommendedPaginated(),
       });
 
       toast.success('댓글이 작성되었습니다.');
@@ -144,6 +156,17 @@ export function useDeleteComment(
       });
       queryClient.invalidateQueries({
         queryKey: commentKeys.lists(),
+      });
+
+      // 피드 목록의 댓글 카운트 업데이트를 위해 posts 캐시 무효화
+      queryClient.invalidateQueries({
+        queryKey: postsKeys.lists(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: postsKeys.detail(variables.postId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: postsKeys.recommendedPaginated(),
       });
 
       toast.success('댓글이 삭제되었습니다.');

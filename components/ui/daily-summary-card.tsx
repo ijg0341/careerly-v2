@@ -242,10 +242,10 @@ export function DailySummaryCard({
       <div className="px-5 py-3 bg-slate-50 border-t border-slate-100">
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-slate-900">{totalJobs}</span>
+            <span className="text-2xl font-bold text-slate-900">{totalJobs.toLocaleString()}</span>
             <span className="text-sm text-slate-600">{unitLabel}</span>
             <span className="text-slate-300 mx-1">·</span>
-            <span className="text-sm text-slate-500">{totalCompanies}{sourceLabel}</span>
+            <span className="text-sm text-slate-500">{totalCompanies.toLocaleString()}{sourceLabel}</span>
           </div>
           {/* AI Stats */}
           {aiStats && (

@@ -62,6 +62,22 @@ import {
   useInfiniteMySavedPosts,
   useReplaceProfileSkills,
   searchSkills,
+  usePost,
+  useComments,
+  useCreateComment,
+  useUpdateComment,
+  useDeleteComment,
+  useLikeComment,
+  useUnlikeComment,
+  useLikePost,
+  useUnlikePost,
+  useSavePost,
+  useUnsavePost,
+  useViewPost,
+  useQuestion,
+  useCreateQuestionAnswer,
+  useUpdateAnswer,
+  useDeleteAnswer,
   CONTENT_TYPE,
 } from '@/lib/api';
 import type { Skill, FollowUser } from '@/lib/api';
@@ -75,6 +91,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { LoadMore } from '@/components/ui/load-more';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { PostDetail } from '@/components/ui/post-detail';
+import { QnaDetail } from '@/components/ui/qna-detail';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import { formatRelativeTime } from '@/lib/utils/date';
 
 type ContentTab = 'posts' | 'qna' | 'bookmarks';
 
@@ -131,6 +152,12 @@ export default function UserProfilePage({ params }: { params: { userId: string }
   // 팔로워/팔로잉 모달 상태
   const [followersModalOpen, setFollowersModalOpen] = useState(false);
   const [followingModalOpen, setFollowingModalOpen] = useState(false);
+
+  // 상세 drawer 상태
+  const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
+  const [selectedQnaId, setSelectedQnaId] = useState<number | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerType, setDrawerType] = useState<'post' | 'qna'>('post');
 
   // 낙관적 업데이트를 위한 로컬 팔로잉 상태
   // optimisticFollowIds: 팔로우한 ID (추가)
@@ -317,6 +344,227 @@ export default function UserProfilePage({ params }: { params: { userId: string }
   const addEducation = useAddEducation();
   const updateEducation = useUpdateEducation();
   const replaceSkills = useReplaceProfileSkills();
+
+  // 게시글 상세 관련 hooks
+  const { data: selectedPost, isLoading: isLoadingSelectedPost } = usePost(selectedPostId || 0, {
+    enabled: !!selectedPostId,
+  });
+  const { data: commentsData } = useComments(
+    { postId: selectedPostId || 0 },
+    { enabled: !!selectedPostId }
+  );
+  const createComment = useCreateComment();
+  const updateCommentMutation = useUpdateComment();
+  const deleteCommentMutation = useDeleteComment();
+  const likeCommentMutation = useLikeComment();
+  const unlikeCommentMutation = useUnlikeComment();
+  const likePostMutation = useLikePost();
+  const unlikePostMutation = useUnlikePost();
+  const savePostMutation = useSavePost();
+  const unsavePostMutation = useUnsavePost();
+  const viewPostMutation = useViewPost();
+
+  // 게시글 상세 drawer 좋아요/북마크 상태
+  const [postLiked, setPostLiked] = useState(false);
+  const [postSaved, setPostSaved] = useState(false);
+  const [commentLikes, setCommentLikes] = useState<Record<number, boolean>>({});
+
+  // 선택된 게시글 데이터 로드 시 상태 초기화
+  useEffect(() => {
+    if (selectedPost) {
+      setPostLiked(selectedPost.is_liked || false);
+      setPostSaved(selectedPost.is_saved || false);
+      // 조회수 증가
+      viewPostMutation.mutate(selectedPost.id);
+    }
+  }, [selectedPost]);
+
+  // 댓글 좋아요 상태 초기화
+  useEffect(() => {
+    if (commentsData?.results) {
+      const initialLikes: Record<number, boolean> = {};
+      commentsData.results.forEach(comment => {
+        initialLikes[comment.id] = comment.is_liked || false;
+      });
+      setCommentLikes(initialLikes);
+    }
+  }, [commentsData]);
+
+  // Drawer 열릴 때 body 스크롤 막기
+  useEffect(() => {
+    if (drawerOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [drawerOpen]);
+
+  // 게시글 클릭 핸들러
+  const handleOpenPost = (postId: number) => {
+    setSelectedPostId(postId);
+    setDrawerType('post');
+    setDrawerOpen(true);
+  };
+
+  const handleCloseDrawer = () => {
+    setDrawerOpen(false);
+    setTimeout(() => {
+      setSelectedPostId(null);
+      setSelectedQnaId(null);
+    }, 300);
+  };
+
+  // 게시글 좋아요 핸들러
+  const handlePostLike = () => {
+    if (!currentUser || !selectedPostId) return;
+    const isCurrentlyLiked = postLiked;
+    setPostLiked(!isCurrentlyLiked);
+    if (isCurrentlyLiked) {
+      unlikePostMutation.mutate(selectedPostId, {
+        onError: () => setPostLiked(true),
+      });
+    } else {
+      likePostMutation.mutate(selectedPostId, {
+        onError: () => setPostLiked(false),
+      });
+    }
+  };
+
+  // 게시글 북마크 핸들러
+  const handlePostBookmark = () => {
+    if (!currentUser || !selectedPostId) return;
+    const isCurrentlySaved = postSaved;
+    setPostSaved(!isCurrentlySaved);
+    if (isCurrentlySaved) {
+      unsavePostMutation.mutate(selectedPostId, {
+        onError: () => setPostSaved(true),
+      });
+    } else {
+      savePostMutation.mutate(selectedPostId, {
+        onError: () => setPostSaved(false),
+      });
+    }
+  };
+
+  // 댓글 작성 핸들러
+  const handleCommentSubmit = async (content: string) => {
+    if (!currentUser || !selectedPostId) return;
+    try {
+      await createComment.mutateAsync({
+        post_id: selectedPostId,
+        content,
+      });
+    } catch (error) {
+      console.error('Failed to create comment:', error);
+    }
+  };
+
+  // 댓글 좋아요 핸들러
+  const handleCommentLike = (commentId: number) => {
+    if (!currentUser) return;
+    const isCurrentlyLiked = commentLikes[commentId] || false;
+    setCommentLikes(prev => ({ ...prev, [commentId]: !isCurrentlyLiked }));
+    if (isCurrentlyLiked) {
+      unlikeCommentMutation.mutate(commentId, {
+        onError: () => setCommentLikes(prev => ({ ...prev, [commentId]: true })),
+      });
+    } else {
+      likeCommentMutation.mutate(commentId, {
+        onError: () => setCommentLikes(prev => ({ ...prev, [commentId]: false })),
+      });
+    }
+  };
+
+  // 댓글 수정 핸들러
+  const handleCommentEdit = (commentId: number, content: string) => {
+    updateCommentMutation.mutate({ id: commentId, data: { content } });
+  };
+
+  // 댓글 삭제 핸들러
+  const handleCommentDelete = (commentId: number) => {
+    if (!selectedPostId) return;
+    deleteCommentMutation.mutate({ id: commentId, postId: selectedPostId });
+  };
+
+  // 댓글 데이터 변환
+  const transformedComments = commentsData?.results?.map((comment) => ({
+    id: comment.id,
+    userId: comment.user_id,
+    userName: comment.author_name,
+    userImage: comment.author_image_url,
+    userHeadline: comment.author_headline,
+    content: comment.content,
+    createdAt: formatRelativeTime(comment.createdat),
+    likeCount: comment.like_count || 0,
+    liked: commentLikes[comment.id] ?? comment.is_liked ?? false,
+  })) || [];
+
+  // Q&A 상세 관련 hooks
+  const { data: selectedQuestion, isLoading: isLoadingSelectedQuestion } = useQuestion(
+    selectedQnaId || 0,
+    { enabled: !!selectedQnaId }
+  );
+  const createAnswer = useCreateQuestionAnswer();
+  const updateAnswerMutation = useUpdateAnswer();
+  const deleteAnswerMutation = useDeleteAnswer();
+
+  // Q&A 클릭 핸들러
+  const handleOpenQna = (qnaId: number) => {
+    setSelectedQnaId(qnaId);
+    setDrawerType('qna');
+    setDrawerOpen(true);
+  };
+
+  // 답변 작성 핸들러
+  const handleAnswerSubmit = async (content: string) => {
+    if (!currentUser || !selectedQnaId) return;
+    try {
+      await createAnswer.mutateAsync({
+        questionId: selectedQnaId,
+        description: content,
+      });
+    } catch (error) {
+      console.error('Failed to create answer:', error);
+    }
+  };
+
+  // 답변 수정 핸들러
+  const handleAnswerEdit = (answerId: number, content: string) => {
+    if (!selectedQnaId) return;
+    updateAnswerMutation.mutate({
+      id: answerId,
+      questionId: selectedQnaId,
+      data: { description: content },
+    });
+  };
+
+  // 답변 삭제 핸들러
+  const handleAnswerDelete = (answerId: number) => {
+    if (!selectedQnaId) return;
+    deleteAnswerMutation.mutate({
+      id: answerId,
+      questionId: selectedQnaId,
+    });
+  };
+
+  // 답변 데이터 변환
+  const transformedAnswers = (selectedQuestion as any)?.answers?.map((answer: any) => ({
+    id: answer.id,
+    userId: answer.user_id,
+    userName: answer.author_name,
+    userImage: answer.author_image_url,
+    userHeadline: answer.author_headline,
+    content: answer.description || '',
+    createdAt: answer.createdat || '',
+    likeCount: answer.like_count || 0,
+    dislikeCount: 0,
+    isAccepted: answer.is_accepted || false,
+    liked: answer.is_liked || false,
+    disliked: false,
+  })) || [];
 
   // 프로필 이미지 업로드용 ref
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1517,6 +1765,9 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                 >
                   <Bookmark className="h-4 w-4" />
                   북마크
+                  {myBookmarksData?.pages?.[0]?.count !== undefined && myBookmarksData.pages[0].count > 0 && (
+                    <Badge tone="default" className="text-xs">{myBookmarksData.pages[0].count}</Badge>
+                  )}
                 </button>
               )}
             </div>
@@ -1542,6 +1793,8 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                           name: profile?.name || post.author?.name || '',
                           image_url: profile?.image_url || post.author?.image_url || '',
                           headline: profile?.headline || post.author?.headline || '',
+                          description: profile?.long_description || '',
+                          small_image_url: profile?.image_url || post.author?.image_url || '',
                         };
                         return (
                           <CommunityFeedCard
@@ -1549,14 +1802,42 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                             postId={post.id}
                             authorId={post.author?.id || userId}
                             userProfile={userProfile}
+                            title={post.title ?? undefined}
                             content={post.description}
+                            contentHtml={post.descriptionhtml}
                             createdAt={post.createdat}
                             stats={{
                               likeCount: post.like_count || 0,
                               replyCount: post.comment_count || 0,
                               viewCount: post.view_count || 0,
                             }}
-                            onClick={() => router.push(`/community?post=${post.id}`)}
+                            imageUrls={post.images || []}
+                            onClick={() => handleOpenPost(post.id)}
+                            onLike={() => {
+                              if (!currentUser) return;
+                              if (post.is_liked) {
+                                unlikePostMutation.mutate(post.id);
+                              } else {
+                                likePostMutation.mutate(post.id);
+                              }
+                            }}
+                            onShare={() => {
+                              const url = `${window.location.origin}/community/post/${post.id}`;
+                              navigator.clipboard.writeText(url);
+                              toast.success('링크가 복사되었습니다');
+                            }}
+                            onBookmark={() => {
+                              if (!currentUser) return;
+                              if (post.is_saved) {
+                                unsavePostMutation.mutate(post.id);
+                              } else {
+                                savePostMutation.mutate(post.id);
+                              }
+                            }}
+                            onEdit={isOwnProfile ? () => router.push(`/community/edit/post/${post.id}`) : undefined}
+                            onDelete={isOwnProfile ? () => {
+                              // TODO: 삭제 확인 다이얼로그 추가
+                            } : undefined}
                             liked={post.is_liked}
                             bookmarked={post.is_saved}
                           />
@@ -1590,19 +1871,39 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                 ) : (
                   <>
                     <div className="space-y-4">
-                      {questionsData.pages.flatMap(page => page.results).map((question) => (
-                        <QnaCard
-                          key={question.id}
-                          qnaId={question.id}
-                          title={question.title}
-                          description=""
-                          createdAt={question.createdat}
-                          answerCount={question.answer_count || 0}
-                          viewCount={0}
-                          status={question.status}
-                          onClick={() => router.push(`/community?qna=${question.id}`)}
-                        />
-                      ))}
+                      {questionsData.pages.flatMap(page => page.results).map((question) => {
+                        // API에서 반환하는 필드 우선 사용, 없으면 프로필 정보 사용
+                        const q = question as any;
+                        const author = {
+                          id: q.user_id || Number(userId),
+                          name: q.author_name || profile?.name || '알 수 없음',
+                          email: '',
+                          image_url: q.author_image_url || profile?.image_url || '',
+                          headline: q.author_headline || profile?.headline || '',
+                        };
+                        return (
+                          <QnaCard
+                            key={question.id}
+                            qnaId={question.id}
+                            title={question.title}
+                            description={q.description || ''}
+                            author={author}
+                            createdAt={question.createdat}
+                            updatedAt={question.updatedat}
+                            status={question.status}
+                            isPublic={question.ispublic}
+                            answerCount={question.answer_count || 0}
+                            commentCount={0}
+                            viewCount={0}
+                            hashTagNames=""
+                            onClick={() => handleOpenQna(question.id)}
+                            onEdit={isOwnProfile ? () => router.push(`/community/edit/qna/${question.id}`) : undefined}
+                            onDelete={isOwnProfile ? () => {
+                              // TODO: 삭제 확인 다이얼로그 추가
+                            } : undefined}
+                          />
+                        );
+                      })}
                     </div>
                     <LoadMore
                       hasMore={!!hasNextQuestions}
@@ -1637,6 +1938,8 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                           name: post.author?.name || '',
                           image_url: post.author?.image_url || '',
                           headline: post.author?.headline || '',
+                          description: '',
+                          small_image_url: post.author?.image_url || '',
                         };
                         return (
                           <CommunityFeedCard
@@ -1644,14 +1947,34 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                             postId={post.id}
                             authorId={post.author?.id || 0}
                             userProfile={userProfile}
+                            title={post.title ?? undefined}
                             content={post.description}
+                            contentHtml={post.descriptionhtml}
                             createdAt={post.createdat}
                             stats={{
                               likeCount: post.like_count || 0,
                               replyCount: post.comment_count || 0,
                               viewCount: post.view_count || 0,
                             }}
-                            onClick={() => router.push(`/community?post=${post.id}`)}
+                            imageUrls={post.images || []}
+                            onClick={() => handleOpenPost(post.id)}
+                            onLike={() => {
+                              if (!currentUser) return;
+                              if (post.is_liked) {
+                                unlikePostMutation.mutate(post.id);
+                              } else {
+                                likePostMutation.mutate(post.id);
+                              }
+                            }}
+                            onShare={() => {
+                              const url = `${window.location.origin}/community/post/${post.id}`;
+                              navigator.clipboard.writeText(url);
+                              toast.success('링크가 복사되었습니다');
+                            }}
+                            onBookmark={() => {
+                              if (!currentUser) return;
+                              unsavePostMutation.mutate(post.id);
+                            }}
                             liked={post.is_liked}
                             bookmarked={true}
                           />
@@ -1742,6 +2065,136 @@ export default function UserProfilePage({ params }: { params: { userId: string }
         fetchNextPage={fetchNextFollowing}
         totalCount={followingCount}
       />
+
+      {/* 상세 Drawer */}
+      <div
+        className={cn(
+          "fixed inset-y-0 right-0 z-50 w-full md:w-[600px] lg:w-[700px] bg-white shadow-2xl transform transition-transform duration-300 ease-in-out overflow-y-auto",
+          drawerOpen ? "translate-x-0" : "translate-x-full"
+        )}
+      >
+        {(selectedPostId || selectedQnaId) && (
+          <div className="h-full flex flex-col">
+            {/* Drawer Header */}
+            <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-900">
+                {drawerType === 'post' ? '게시글' : 'Q&A'}
+              </h2>
+              <button
+                onClick={handleCloseDrawer}
+                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                aria-label="닫기"
+              >
+                <X className="h-5 w-5 text-slate-600" />
+              </button>
+            </div>
+
+            {/* Drawer Content */}
+            <div className="flex-1 overflow-y-auto">
+              {drawerType === 'post' && selectedPostId && (
+                <>
+                  {isLoadingSelectedPost ? (
+                    <div className="flex items-center justify-center h-full">
+                      <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+                    </div>
+                  ) : selectedPost ? (
+                    <div className="p-4">
+                      <PostDetail
+                        postId={selectedPostId.toString()}
+                        authorId={selectedPost.author?.id || selectedPost.userid}
+                        userProfile={{
+                          id: selectedPost.author?.id || selectedPost.userid,
+                          name: selectedPost.author?.name || '알 수 없는 사용자',
+                          image_url: selectedPost.author?.image_url,
+                          headline: selectedPost.author?.headline || '',
+                          title: selectedPost.author?.headline || '',
+                        }}
+                        content={selectedPost.description}
+                        contentHtml={selectedPost.descriptionhtml}
+                        createdAt={selectedPost.createdat}
+                        stats={{
+                          likeCount: selectedPost.like_count || 0,
+                          replyCount: commentsData?.count || selectedPost.comment_count || 0,
+                          viewCount: selectedPost.view_count || 0,
+                        }}
+                        imageUrls={selectedPost.images || []}
+                        comments={transformedComments}
+                        onLike={handlePostLike}
+                        onShare={() => {
+                          const url = `${window.location.origin}/community/post/${selectedPostId}`;
+                          navigator.clipboard.writeText(url);
+                          toast.success('링크가 복사되었습니다');
+                        }}
+                        onBookmark={handlePostBookmark}
+                        onEdit={() => {
+                          handleCloseDrawer();
+                          router.push(`/community/edit/post/${selectedPostId}`);
+                        }}
+                        onDelete={() => {
+                          handleCloseDrawer();
+                        }}
+                        onCommentLike={handleCommentLike}
+                        onCommentSubmit={handleCommentSubmit}
+                        onCommentEdit={handleCommentEdit}
+                        onCommentDelete={handleCommentDelete}
+                        liked={postLiked}
+                        bookmarked={postSaved}
+                        currentUser={currentUser ? { id: currentUser.id, name: currentUser.name, image_url: currentUser.image_url } : undefined}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <p className="text-slate-600">게시글을 불러올 수 없습니다.</p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {drawerType === 'qna' && selectedQnaId && (
+                <>
+                  {isLoadingSelectedQuestion ? (
+                    <div className="flex items-center justify-center h-full">
+                      <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+                    </div>
+                  ) : selectedQuestion ? (
+                    <div className="p-6">
+                      <QnaDetail
+                        qnaId={selectedQuestion.id.toString()}
+                        title={selectedQuestion.title}
+                        description={(selectedQuestion as any).description || selectedQuestion.title}
+                        createdAt={selectedQuestion.createdat}
+                        updatedAt={selectedQuestion.updatedat}
+                        hashTagNames=""
+                        viewCount={0}
+                        status={selectedQuestion.status}
+                        isPublic={selectedQuestion.ispublic}
+                        answers={transformedAnswers}
+                        onAnswerSubmit={handleAnswerSubmit}
+                        onAcceptAnswer={() => {}}
+                        onAnswerEdit={handleAnswerEdit}
+                        onAnswerDelete={handleAnswerDelete}
+                        currentUser={currentUser ? { id: currentUser.id, name: currentUser.name, image_url: currentUser.image_url } : undefined}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <p className="text-slate-600">질문을 불러올 수 없습니다.</p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Backdrop */}
+      {drawerOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-300"
+          onClick={handleCloseDrawer}
+        />
+      )}
     </div>
   );
 }
