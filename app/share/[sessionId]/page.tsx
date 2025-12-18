@@ -3,7 +3,7 @@
 import { useParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { Loader2, AlertCircle } from 'lucide-react';
-import { useSharePageSession } from '@/lib/api';
+import { useSharePageSession, useTrendingSessions, useCurrentUser } from '@/lib/api';
 import {
   AuthorProfileCard,
   QuestionCard,
@@ -21,40 +21,6 @@ import {
  * SNS/Community style layout for sharing AI search results
  */
 
-// Mock data for features not yet supported by backend
-const MOCK_AUTHOR: AuthorInfo = {
-  name: '익명 사용자',
-  jobTitle: 'Careerly 회원',
-  avatarUrl: undefined,
-};
-
-const MOCK_ENGAGEMENT: EngagementStats = {
-  likes: 0,
-  bookmarks: 0,
-  comments: 0,
-};
-
-const MOCK_RELATED_QUESTIONS: RelatedQuestion[] = [
-  {
-    id: 'mock-1',
-    title: '프론트엔드 개발자로 이직하기 위해 어떤 준비가 필요한가요?',
-    viewCount: 1234,
-    likeCount: 89,
-  },
-  {
-    id: 'mock-2',
-    title: '주니어 개발자의 포트폴리오는 어떻게 작성하면 좋을까요?',
-    viewCount: 987,
-    likeCount: 67,
-  },
-  {
-    id: 'mock-3',
-    title: '스타트업과 대기업, 신입 개발자에게 더 좋은 선택은?',
-    viewCount: 2341,
-    likeCount: 145,
-  },
-];
-
 function SharePageContent() {
   const params = useParams();
   const sessionId = params?.sessionId as string;
@@ -62,6 +28,12 @@ function SharePageContent() {
   // 공개 API 먼저 시도 → 실패 시 인증 API fallback
   // 로그인 없이도 공개 세션 조회 가능, 로그인한 경우 비공개 세션도 미리보기 가능
   const { data: session, isLoading, error } = useSharePageSession(sessionId);
+
+  // 현재 사용자 정보 (로그인 여부 확인 및 본인 세션 판별)
+  const { data: currentUser } = useCurrentUser();
+
+  // 트렌딩 세션 조회 (연관 질문용)
+  const { data: trendingData } = useTrendingSessions(3);
 
   // Loading state
   if (isLoading) {
@@ -113,6 +85,47 @@ function SharePageContent() {
   const answer = assistantMessage?.content || '';
   const sources = assistantMessage?.sources;
 
+  // 작성자 정보 (session.author 사용)
+  const authorInfo: AuthorInfo = session.author
+    ? {
+        name: session.author.name,
+        jobTitle: session.author.headline,
+        avatarUrl: session.author.image_url,
+        userId: String(session.author.id),
+      }
+    : {
+        name: '익명 사용자',
+        jobTitle: 'Careerly 회원',
+      };
+
+  // Engagement 통계 (session.shared_post 사용)
+  const engagementStats: EngagementStats = session.shared_post
+    ? {
+        likes: session.shared_post.like_count,
+        bookmarks: session.shared_post.save_count,
+        comments: session.shared_post.comment_count,
+      }
+    : {
+        likes: 0,
+        bookmarks: 0,
+        comments: 0,
+      };
+
+  // shared_post 존재 여부 (커뮤니티에 공유되었는지)
+  const hasSharedPost = !!session.shared_post;
+
+  // 본인 세션 여부 확인
+  const isOwner = currentUser && session.author && currentUser.id === session.author.id;
+
+  // 트렌딩 세션을 RelatedQuestion 형식으로 변환
+  const relatedQuestions: RelatedQuestion[] =
+    trendingData?.results?.map((trendingSession) => ({
+      id: trendingSession.id,
+      title: trendingSession.question,
+      viewCount: 0, // 트렌딩에는 viewCount 없음
+      likeCount: trendingSession.likeCount,
+    })) || [];
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Container */}
@@ -121,7 +134,7 @@ function SharePageContent() {
         <div className="lg:hidden space-y-6">
           {/* Author Profile */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-            <AuthorProfileCard author={MOCK_AUTHOR} createdAt={session.created_at} />
+            <AuthorProfileCard author={authorInfo} createdAt={session.created_at} />
           </div>
 
           {/* Question */}
@@ -131,13 +144,18 @@ function SharePageContent() {
           {answer && <AIAnswerSection answer={answer} sources={sources} />}
 
           {/* Engagement */}
-          <EngagementBar stats={MOCK_ENGAGEMENT} />
+          <EngagementBar
+            stats={engagementStats}
+            hasSharedPost={hasSharedPost}
+            isOwner={isOwner}
+            sessionId={sessionId}
+          />
 
           {/* CTA */}
           <CTACard />
 
           {/* Related Questions */}
-          <RelatedQuestionsCard questions={MOCK_RELATED_QUESTIONS} />
+          <RelatedQuestionsCard questions={relatedQuestions} />
         </div>
 
         {/* Desktop: Two Column Layout */}
@@ -146,7 +164,7 @@ function SharePageContent() {
           <div className="lg:col-span-8 space-y-6">
             {/* Author Profile */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-              <AuthorProfileCard author={MOCK_AUTHOR} createdAt={session.created_at} />
+              <AuthorProfileCard author={authorInfo} createdAt={session.created_at} />
             </div>
 
             {/* Question */}
@@ -156,7 +174,12 @@ function SharePageContent() {
             {answer && <AIAnswerSection answer={answer} sources={sources} />}
 
             {/* Engagement */}
-            <EngagementBar stats={MOCK_ENGAGEMENT} />
+            <EngagementBar
+              stats={engagementStats}
+              hasSharedPost={hasSharedPost}
+              isOwner={isOwner}
+              sessionId={sessionId}
+            />
           </div>
 
           {/* Sidebar - 4 columns */}
@@ -166,7 +189,7 @@ function SharePageContent() {
               <CTACard />
 
               {/* Related Questions */}
-              <RelatedQuestionsCard questions={MOCK_RELATED_QUESTIONS} />
+              <RelatedQuestionsCard questions={relatedQuestions} />
             </div>
           </div>
         </div>

@@ -3,8 +3,10 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Heart, Bookmark, MessageCircle, Share2 } from 'lucide-react';
+import { Heart, Bookmark, MessageCircle, Share2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
+import { useShareToCommunity } from '@/lib/api';
+import { useRouter } from 'next/navigation';
 
 export interface EngagementStats {
   likes: number;
@@ -19,6 +21,9 @@ export interface EngagementBarProps extends React.HTMLAttributes<HTMLDivElement>
   onLike?: () => void;
   onBookmark?: () => void;
   onShare?: () => void;
+  hasSharedPost?: boolean;
+  isOwner?: boolean;
+  sessionId?: string;
 }
 
 const EngagementBar = React.forwardRef<HTMLDivElement, EngagementBarProps>(
@@ -30,11 +35,17 @@ const EngagementBar = React.forwardRef<HTMLDivElement, EngagementBarProps>(
       onLike,
       onBookmark,
       onShare,
+      hasSharedPost = false,
+      isOwner = false,
+      sessionId,
       className,
       ...props
     },
     ref
   ) => {
+    const router = useRouter();
+    const shareSessionMutation = useShareToCommunity();
+
     const handleShare = () => {
       if (onShare) {
         onShare();
@@ -45,70 +56,107 @@ const EngagementBar = React.forwardRef<HTMLDivElement, EngagementBarProps>(
       }
     };
 
+    const handleShareToCommunity = async () => {
+      if (!sessionId) {
+        toast.error('세션 ID가 없습니다');
+        return;
+      }
+
+      try {
+        const result = await shareSessionMutation.mutateAsync({ sessionId });
+        toast.success('커뮤니티에 공유되었습니다');
+        // 생성된 포스트로 이동
+        router.push(`/post/${result.id}`);
+      } catch (error) {
+        // 에러는 자동으로 토스트에 표시됨 (전역 에러 처리)
+        console.error('커뮤니티 공유 실패:', error);
+      }
+    };
+
     return (
       <div
         ref={ref}
         className={cn(
-          'flex items-center justify-between gap-2 p-4 bg-white rounded-lg border border-slate-200',
+          'flex flex-col gap-3 p-4 bg-white rounded-lg border border-slate-200',
           className
         )}
         {...props}
       >
-        <div className="flex items-center gap-2">
-          {/* Like Button */}
+        {/* 커뮤니티에 공유하기 버튼 (본인 세션이고 아직 공유하지 않은 경우만 표시) */}
+        {isOwner && !hasSharedPost && (
           <Button
-            variant="ghost"
+            variant="solid"
             size="sm"
-            onClick={onLike}
-            className={cn(
-              'gap-2 hover:bg-red-50',
-              isLiked && 'text-red-600 hover:text-red-700'
-            )}
+            onClick={handleShareToCommunity}
+            disabled={shareSessionMutation.isPending}
+            className="gap-2 bg-teal-600 hover:bg-teal-700 text-white w-full"
           >
-            <Heart
-              className={cn('h-5 w-5', isLiked && 'fill-current')}
-            />
-            <span className="text-sm font-medium">{stats.likes}</span>
+            <Upload className="h-4 w-4" />
+            {shareSessionMutation.isPending ? '공유 중...' : '커뮤니티에 공유하기'}
           </Button>
+        )}
 
-          {/* Bookmark Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onBookmark}
-            className={cn(
-              'gap-2 hover:bg-amber-50',
-              isBookmarked && 'text-amber-600 hover:text-amber-700'
-            )}
-          >
-            <Bookmark
-              className={cn('h-5 w-5', isBookmarked && 'fill-current')}
-            />
-            <span className="text-sm font-medium">{stats.bookmarks}</span>
-          </Button>
+        {/* Engagement Buttons */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            {/* Like Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onLike}
+              disabled={!hasSharedPost}
+              className={cn(
+                'gap-2 hover:bg-red-50',
+                isLiked && 'text-red-600 hover:text-red-700',
+                !hasSharedPost && 'opacity-50 cursor-not-allowed'
+              )}
+            >
+              <Heart className={cn('h-5 w-5', isLiked && 'fill-current')} />
+              <span className="text-sm font-medium">{stats.likes}</span>
+            </Button>
 
-          {/* Comment Count */}
+            {/* Bookmark Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onBookmark}
+              disabled={!hasSharedPost}
+              className={cn(
+                'gap-2 hover:bg-amber-50',
+                isBookmarked && 'text-amber-600 hover:text-amber-700',
+                !hasSharedPost && 'opacity-50 cursor-not-allowed'
+              )}
+            >
+              <Bookmark className={cn('h-5 w-5', isBookmarked && 'fill-current')} />
+              <span className="text-sm font-medium">{stats.bookmarks}</span>
+            </Button>
+
+            {/* Comment Count */}
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!hasSharedPost}
+              className={cn(
+                'gap-2 hover:bg-slate-100 cursor-default',
+                !hasSharedPost && 'opacity-50'
+              )}
+            >
+              <MessageCircle className="h-5 w-5" />
+              <span className="text-sm font-medium">{stats.comments}</span>
+            </Button>
+          </div>
+
+          {/* Share Button */}
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            className="gap-2 hover:bg-slate-100 cursor-default"
-            disabled
+            onClick={handleShare}
+            className="gap-2 hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700"
           >
-            <MessageCircle className="h-5 w-5" />
-            <span className="text-sm font-medium">{stats.comments}</span>
+            <Share2 className="h-4 w-4" />
+            <span className="hidden sm:inline">공유</span>
           </Button>
         </div>
-
-        {/* Share Button */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleShare}
-          className="gap-2 hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700"
-        >
-          <Share2 className="h-4 w-4" />
-          <span className="hidden sm:inline">공유</span>
-        </Button>
       </div>
     );
   }

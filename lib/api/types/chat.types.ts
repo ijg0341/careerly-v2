@@ -278,6 +278,39 @@ export interface MessageFeedbackRequest {
 export type MessageFeedbackResponse = ChatSessionMessage;
 
 /**
+ * 세션 작성자 타입
+ */
+export interface SessionAuthor {
+  /** 작성자 ID */
+  id: number;
+  /** 작성자 이름 */
+  name: string;
+  /** 작성자 직무 */
+  headline?: string;
+  /** 작성자 프로필 이미지 URL */
+  image_url?: string;
+}
+
+/**
+ * 공유된 포스트 정보 타입
+ */
+export interface SharedPost {
+  /** 포스트 ID */
+  id: number;
+  /** 좋아요 수 */
+  like_count: number;
+  /** 댓글 수 */
+  comment_count: number;
+  /** 저장 수 */
+  save_count: number;
+}
+
+/**
+ * Chat 세션 상태 타입
+ */
+export type ChatSessionStatus = 'streaming' | 'complete' | 'failed';
+
+/**
  * Chat 세션 타입
  */
 export interface ChatSession {
@@ -297,6 +330,12 @@ export interface ChatSession {
   shared_post_id?: number;
   /** 세션 메시지 목록 */
   messages: ChatSessionMessage[];
+  /** 작성자 정보 (공개 세션 또는 타인의 세션 조회 시) */
+  author?: SessionAuthor;
+  /** 공유된 포스트 정보 (커뮤니티에 공유된 경우) */
+  shared_post?: SharedPost | null;
+  /** 세션 상태 (streaming: 스트리밍 중, complete: 완료, failed: 실패) */
+  status?: ChatSessionStatus;
 }
 
 /**
