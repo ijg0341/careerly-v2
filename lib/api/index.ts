@@ -50,6 +50,7 @@ export {
   getPublicChatSession,
   shareChatSession,
   shareSessionToCommunity,
+  getTrendingSessions,
 } from './services/chat.service';
 
 // User Service
@@ -340,6 +341,7 @@ export {
   usePublicChatSession,
   useChatSessionWithFallback,
   useSharePageSession,
+  useTrendingSessions,
 } from './hooks/queries/useSession';
 
 // ============================================================
@@ -506,6 +508,9 @@ export type {
   ChatSessionMessage,
   ShareSessionRequest,
   ShareToCommunityResponse,
+  TrendingSession,
+  TrendingSessionAuthor,
+  TrendingSessionsResponse,
   ApiVersion,
 
   // SSE Types

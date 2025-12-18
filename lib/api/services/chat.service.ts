@@ -456,6 +456,25 @@ export async function shareSessionToCommunity(
 }
 
 /**
+ * 트렌딩 세션 조회 (인증 불필요)
+ * @param limit - 조회할 세션 개수 (기본값: 4)
+ * @returns 트렌딩 세션 목록
+ */
+export async function getTrendingSessions(
+  limit: number = 4
+): Promise<import('../types/chat.types').TrendingSessionsResponse> {
+  try {
+    const response = await chatClient.get<import('../types/chat.types').TrendingSessionsResponse>(
+      '/sessions/trending/',
+      { params: { limit } }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
  * URL에서 제목 추출 (간단한 파싱)
  */
 function extractTitleFromUrl(url: string): string {

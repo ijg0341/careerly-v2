@@ -127,3 +127,38 @@ export function useSharePageSession(
     ...options,
   });
 }
+
+/**
+ * 트렌딩 세션 조회 훅 (인증 불필요)
+ * @param limit - 조회할 세션 개수 (기본값: 4)
+ * @param options - React Query 옵션
+ */
+export function useTrendingSessions(
+  limit: number = 4,
+  options?: Omit<
+    UseQueryOptions<
+      import('../../types/chat.types').TrendingSessionsResponse,
+      Error,
+      import('../../types/chat.types').TrendingSessionsResponse,
+      [string, number]
+    >,
+    'queryKey' | 'queryFn'
+  >
+) {
+  return useQuery<
+    import('../../types/chat.types').TrendingSessionsResponse,
+    Error,
+    import('../../types/chat.types').TrendingSessionsResponse,
+    [string, number]
+  >({
+    queryKey: ['trendingSessions', limit],
+    queryFn: async () => {
+      const { getTrendingSessions } = await import('../../services/chat.service');
+      return getTrendingSessions(limit);
+    },
+    staleTime: 1000 * 60 * 5, // 5분 동안 fresh 상태 유지
+    gcTime: 1000 * 60 * 10, // 10분 동안 캐시 유지
+    retry: 1,
+    ...options,
+  });
+}

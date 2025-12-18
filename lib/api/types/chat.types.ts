@@ -302,3 +302,51 @@ export interface ShareToCommunityResponse {
     messages: ChatSessionMessage[];
   };
 }
+
+/**
+ * 트렌딩 세션 작성자 타입
+ */
+export interface TrendingSessionAuthor {
+  /** 작성자 ID */
+  id: string;
+  /** 닉네임 */
+  nickname: string;
+  /** 직무 */
+  jobTitle?: string;
+  /** 익명 여부 */
+  isAnonymous: boolean;
+  /** 아바타 URL */
+  avatarUrl?: string;
+}
+
+/**
+ * 트렌딩 세션 타입 (GET /api/v1/sessions/trending/)
+ */
+export interface TrendingSession {
+  /** 세션 ID */
+  id: string;
+  /** 첫 번째 질문 */
+  question: string;
+  /** AI 답변 미리보기 */
+  answerPreview: string;
+  /** 좋아요 수 */
+  likeCount: number;
+  /** 댓글 수 */
+  commentCount: number;
+  /** 작성자 정보 */
+  author: TrendingSessionAuthor;
+  /** 태그 목록 */
+  tags: string[];
+  /** 생성 시간 (선택) */
+  createdAt?: string;
+}
+
+/**
+ * 트렌딩 세션 API 응답 타입
+ */
+export interface TrendingSessionsResponse {
+  /** 총 개수 */
+  count: number;
+  /** 트렌딩 세션 목록 */
+  results: TrendingSession[];
+}
