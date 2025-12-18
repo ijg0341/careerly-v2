@@ -13,7 +13,9 @@ import {
   shareChatSession,
   shareSessionToCommunity,
   submitMessageFeedback,
+  deleteChatSession,
 } from '../../services/chat.service';
+import { sessionKeys } from '../queries/useSession';
 import type {
   ChatRequest,
   ChatResponse,
@@ -182,6 +184,31 @@ export function useMessageFeedback(
       // 세션 캐시 무효화 (메시지가 업데이트되었으므로)
       queryClient.invalidateQueries({ queryKey: ['chatSession'] });
       queryClient.invalidateQueries({ queryKey: ['publicChatSession'] });
+    },
+    ...options,
+  });
+}
+
+/**
+ * 세션 삭제 훅
+ * 본인의 채팅 세션을 삭제
+ */
+export function useDeleteChatSession(
+  options?: Omit<
+    UseMutationOptions<void, Error, string>,
+    'mutationFn'
+  >
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: (sessionId: string) => deleteChatSession(sessionId),
+    onSuccess: (_data, sessionId) => {
+      // 세션 목록 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: sessionKeys.lists() });
+      // 해당 세션 캐시 제거
+      queryClient.removeQueries({ queryKey: ['chatSession', sessionId] });
+      queryClient.removeQueries({ queryKey: ['publicChatSession', sessionId] });
     },
     ...options,
   });

@@ -5,14 +5,27 @@
 
 'use client';
 
-import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, UseQueryOptions, UseInfiniteQueryOptions, InfiniteData } from '@tanstack/react-query';
 import {
   getChatSession,
   getPublicChatSession,
   getChatSessionWithFallback,
   getSharePageSession,
+  getChatSessions,
+  getTrendingSessions,
 } from '../../services/chat.service';
-import type { ChatSession } from '../../types/chat.types';
+import type { ChatSession, ChatSessionListResponse, ChatSessionListItem, TrendingSessionsResponse } from '../../types/chat.types';
+
+/**
+ * 세션 쿼리 키
+ */
+export const sessionKeys = {
+  all: ['chatSessions'] as const,
+  lists: () => [...sessionKeys.all, 'list'] as const,
+  list: (page: number, pageSize: number) => [...sessionKeys.lists(), { page, pageSize }] as const,
+  details: () => [...sessionKeys.all, 'detail'] as const,
+  detail: (id: string) => [...sessionKeys.details(), id] as const,
+};
 
 /**
  * 세션 조회 훅 (인증 필요, 본인 세션만)
@@ -136,28 +149,80 @@ export function useSharePageSession(
 export function useTrendingSessions(
   limit: number = 4,
   options?: Omit<
-    UseQueryOptions<
-      import('../../types/chat.types').TrendingSessionsResponse,
-      Error,
-      import('../../types/chat.types').TrendingSessionsResponse,
-      [string, number]
-    >,
+    UseQueryOptions<TrendingSessionsResponse, Error, TrendingSessionsResponse, [string, number]>,
     'queryKey' | 'queryFn'
   >
 ) {
-  return useQuery<
-    import('../../types/chat.types').TrendingSessionsResponse,
-    Error,
-    import('../../types/chat.types').TrendingSessionsResponse,
-    [string, number]
-  >({
+  return useQuery<TrendingSessionsResponse, Error, TrendingSessionsResponse, [string, number]>({
     queryKey: ['trendingSessions', limit],
-    queryFn: async () => {
-      const { getTrendingSessions } = await import('../../services/chat.service');
-      return getTrendingSessions(limit);
-    },
+    queryFn: () => getTrendingSessions(limit),
     staleTime: 1000 * 60 * 5, // 5분 동안 fresh 상태 유지
     gcTime: 1000 * 60 * 10, // 10분 동안 캐시 유지
+    retry: 1,
+    ...options,
+  });
+}
+
+/**
+ * 내 세션 목록 조회 훅 (인증 필요)
+ * @param page - 페이지 번호 (1부터 시작)
+ * @param pageSize - 페이지당 개수
+ * @param options - React Query 옵션
+ */
+export function useChatSessions(
+  page: number = 1,
+  pageSize: number = 20,
+  options?: Omit<
+    UseQueryOptions<ChatSessionListResponse, Error>,
+    'queryKey' | 'queryFn'
+  >
+) {
+  return useQuery<ChatSessionListResponse, Error>({
+    queryKey: sessionKeys.list(page, pageSize),
+    queryFn: () => getChatSessions(page, pageSize),
+    staleTime: 1000 * 60 * 2, // 2분 동안 fresh 상태 유지
+    gcTime: 1000 * 60 * 10, // 10분 동안 캐시 유지
+    retry: 1,
+    ...options,
+  });
+}
+
+/**
+ * 내 세션 목록 무한 스크롤 조회 훅 (인증 필요)
+ * @param pageSize - 페이지당 개수
+ * @param options - React Query 옵션
+ */
+export function useInfiniteChatSessions(
+  pageSize: number = 20,
+  options?: Omit<
+    UseInfiniteQueryOptions<
+      ChatSessionListResponse,
+      Error,
+      InfiniteData<ChatSessionListResponse>,
+      readonly unknown[],
+      number
+    >,
+    'queryKey' | 'queryFn' | 'initialPageParam' | 'getNextPageParam'
+  >
+) {
+  return useInfiniteQuery<
+    ChatSessionListResponse,
+    Error,
+    InfiniteData<ChatSessionListResponse>,
+    readonly unknown[],
+    number
+  >({
+    queryKey: ['chatSessions', 'list', { pageSize }] as const,
+    queryFn: ({ pageParam }) => getChatSessions(pageParam, pageSize),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.next) {
+        return allPages.length + 1;
+      }
+      return undefined;
+    },
+    staleTime: 1000 * 60 * 2,
+    gcTime: 1000 * 60 * 10,
     retry: 1,
     ...options,
   });

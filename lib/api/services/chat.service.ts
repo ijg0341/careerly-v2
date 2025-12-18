@@ -24,6 +24,7 @@ import type {
   ChatSession,
   ShareSessionRequest,
   ShareToCommunityResponse,
+  ChatSessionListResponse,
 } from '../types/chat.types';
 
 /**
@@ -475,6 +476,29 @@ export async function getTrendingSessions(
 }
 
 /**
+ * 내 세션 목록 조회 (인증 필요)
+ * @param page - 페이지 번호 (1부터 시작)
+ * @param pageSize - 페이지당 개수
+ * @returns 세션 목록
+ */
+export async function getChatSessions(
+  page: number = 1,
+  pageSize: number = 20
+): Promise<ChatSessionListResponse> {
+  try {
+    const response = await chatClient.get<ChatSessionListResponse>('/sessions/', {
+      params: {
+        page,
+        page_size: pageSize,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
  * 메시지 피드백 제출 (좋아요/싫어요)
  * @param messageId - 메시지 ID
  * @param isLiked - 좋아요(true) / 싫어요(false)
@@ -495,6 +519,18 @@ export async function submitMessageFeedback(
       }
     );
     return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 세션 삭제 (인증 필요, 본인 세션만)
+ * @param sessionId - 삭제할 세션 ID
+ */
+export async function deleteChatSession(sessionId: string): Promise<void> {
+  try {
+    await chatClient.delete(`/sessions/${sessionId}/`);
   } catch (error) {
     throw handleApiError(error);
   }

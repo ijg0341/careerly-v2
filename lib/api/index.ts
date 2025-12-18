@@ -48,6 +48,8 @@ export {
   streamChatMessage,
   getChatSession,
   getPublicChatSession,
+  getChatSessions,
+  deleteChatSession,
   shareChatSession,
   shareSessionToCommunity,
   getTrendingSessions,
@@ -343,6 +345,9 @@ export {
   useChatSessionWithFallback,
   useSharePageSession,
   useTrendingSessions,
+  useChatSessions,
+  useInfiniteChatSessions,
+  sessionKeys,
 } from './hooks/queries/useSession';
 
 // ============================================================
@@ -384,6 +389,7 @@ export {
   useShareSession,
   useShareToCommunity,
   useMessageFeedback,
+  useDeleteChatSession,
 } from './hooks/mutations/useChat';
 export type {
   UseChatMutationParams,
@@ -509,6 +515,8 @@ export type {
   ChatSources,
   ChatSession,
   ChatSessionMessage,
+  ChatSessionListItem,
+  ChatSessionListResponse,
   ShareSessionRequest,
   ShareToCommunityResponse,
   TrendingSession,

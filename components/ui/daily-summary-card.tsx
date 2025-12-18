@@ -238,34 +238,25 @@ export function DailySummaryCard({
         </div>
       )}
 
-      {/* Today's Stats Bar */}
-      <div className="px-5 py-3 bg-slate-50 border-t border-slate-100">
-        <div className="flex items-center justify-between">
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-slate-900">{totalJobs.toLocaleString()}</span>
-            <span className="text-sm text-slate-600">{unitLabel}</span>
-            <span className="text-slate-300 mx-1">·</span>
-            <span className="text-sm text-slate-500">{totalCompanies.toLocaleString()}{sourceLabel}</span>
-          </div>
-          {/* AI Stats */}
-          {aiStats && (
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm">🤖</span>
-                <span className="text-sm font-medium text-purple-700">{aiStats.aiCore}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm">🔧</span>
-                <span className="text-sm font-medium text-teal-700">{aiStats.aiEnabled}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm">📋</span>
-                <span className="text-sm font-medium text-slate-600">{aiStats.traditional}</span>
-              </div>
+      {/* AI Stats - only if present */}
+      {aiStats && (
+        <div className="px-5 py-3 bg-slate-50 border-t border-slate-100">
+          <div className="flex items-center justify-end gap-3">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm">🤖</span>
+              <span className="text-sm font-medium text-purple-700">{aiStats.aiCore}</span>
             </div>
-          )}
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm">🔧</span>
+              <span className="text-sm font-medium text-teal-700">{aiStats.aiEnabled}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm">📋</span>
+              <span className="text-sm font-medium text-slate-600">{aiStats.traditional}</span>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

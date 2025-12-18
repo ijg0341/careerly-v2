@@ -30,6 +30,8 @@ import {
   Check,
   Save,
   Camera,
+  Sparkles,
+  ChevronRight,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -79,6 +81,8 @@ import {
   useUpdateAnswer,
   useDeleteAnswer,
   CONTENT_TYPE,
+  useInfiniteChatSessions,
+  useDeleteChatSession,
 } from '@/lib/api';
 import type { Skill, FollowUser } from '@/lib/api';
 import { FollowersModal } from '@/components/ui/followers-modal';
@@ -97,7 +101,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils/date';
 
-type ContentTab = 'posts' | 'qna' | 'bookmarks';
+type ContentTab = 'posts' | 'qna' | 'bookmarks' | 'ai-chats';
 
 function ProfileSkeleton() {
   return (
@@ -224,6 +228,27 @@ export default function UserProfilePage({ params }: { params: { userId: string }
     hasNextPage: hasNextBookmarks,
     isFetchingNextPage: isFetchingNextBookmarks,
   } = useInfiniteMySavedPosts(isOwnProfileConfirmed);
+
+  // 내 AI 채팅 세션 목록 조회 (본인 프로필에서만)
+  const {
+    data: chatSessionsData,
+    isLoading: isLoadingChatSessions,
+    fetchNextPage: fetchNextChatSessions,
+    hasNextPage: hasNextChatSessions,
+    isFetchingNextPage: isFetchingNextChatSessions,
+  } = useInfiniteChatSessions(20, {
+    enabled: isOwnProfileConfirmed,
+  });
+
+  // AI 채팅 세션 삭제
+  const deleteChatSession = useDeleteChatSession({
+    onSuccess: () => {
+      toast.success('대화가 삭제되었습니다');
+    },
+    onError: () => {
+      toast.error('대화 삭제에 실패했습니다');
+    },
+  });
 
   // 팔로우 상태 조회 (로그인한 경우에만, 자기 자신이 아닐 때만)
   const { data: followStatus, isLoading: isLoadingFollowStatus } = useFollowStatus(
@@ -1770,6 +1795,22 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                   )}
                 </button>
               )}
+              {isOwnProfile && (
+                <button
+                  onClick={() => setActiveTab('ai-chats')}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                    activeTab === 'ai-chats'
+                      ? 'text-slate-900 border-slate-900'
+                      : 'text-slate-500 border-transparent hover:text-slate-700'
+                  }`}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  AI 대화
+                  {chatSessionsData?.pages?.[0]?.count !== undefined && chatSessionsData.pages[0].count > 0 && (
+                    <Badge tone="default" className="text-xs">{chatSessionsData.pages[0].count}</Badge>
+                  )}
+                </button>
+              )}
             </div>
 
             {/* 게시글 탭 */}
@@ -1987,6 +2028,111 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                       onLoadMore={fetchNextBookmarks}
                       loadMoreText="북마크 더보기"
                       endText="모든 북마크를 표시했습니다"
+                    />
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* AI 대화 탭 (본인 프로필에서만) */}
+            {activeTab === 'ai-chats' && isOwnProfile && (
+              <div className="space-y-3">
+                {isLoadingChatSessions ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                  </div>
+                ) : !chatSessionsData?.pages || chatSessionsData.pages.flatMap(page => page.results || []).length === 0 ? (
+                  <div className="text-center py-8">
+                    <Sparkles className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                    <p className="text-slate-500">AI 대화 기록이 없습니다.</p>
+                    <p className="text-sm text-slate-400 mt-1">커리어리 AI에게 질문해보세요!</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-4"
+                      onClick={() => router.push('/')}
+                    >
+                      <Sparkles className="h-4 w-4 mr-1" />
+                      AI에게 질문하기
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      {chatSessionsData.pages.flatMap(page => page.results || []).map((session) => (
+                        <div
+                          key={session.id}
+                          className="flex items-center justify-between p-4 rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-colors cursor-pointer group"
+                          onClick={() => router.push(`/share/${session.id}`)}
+                        >
+                          <div className="flex-1 min-w-0 mr-3">
+                            <h3 className="text-sm font-medium text-slate-900 truncate">
+                              {session.title || '제목 없음'}
+                            </h3>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-slate-400">
+                                {formatRelativeTime(session.created_at)}
+                              </span>
+                              <span className="text-xs text-slate-300">•</span>
+                              <span className="text-xs text-slate-400">
+                                {session.message_count}개 메시지
+                              </span>
+                              {session.is_public && (
+                                <>
+                                  <span className="text-xs text-slate-300">•</span>
+                                  <Badge tone="success" className="text-xs">공개</Badge>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  className="p-1.5 rounded-md hover:bg-slate-200 transition-colors opacity-0 group-hover:opacity-100"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreVertical className="h-4 w-4 text-slate-500" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const url = `${window.location.origin}/share/${session.id}`;
+                                    navigator.clipboard.writeText(url);
+                                    toast.success('링크가 복사되었습니다');
+                                  }}
+                                >
+                                  <LinkIcon className="h-4 w-4 mr-2" />
+                                  링크 복사
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-red-600"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm('이 대화를 삭제하시겠습니까?')) {
+                                      deleteChatSession.mutate(session.id);
+                                    }
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  삭제
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            <ChevronRight className="h-4 w-4 text-slate-400" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <LoadMore
+                      hasMore={!!hasNextChatSessions}
+                      loading={isFetchingNextChatSessions}
+                      onLoadMore={fetchNextChatSessions}
+                      loadMoreText="대화 더보기"
+                      endText="모든 대화를 표시했습니다"
                     />
                   </>
                 )}

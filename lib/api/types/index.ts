@@ -11,3 +11,4 @@ export * from './questions.types';
 export * from './profile.types';
 export * from './report.types';
 export * from './block.types';
+export * from './discover.types';

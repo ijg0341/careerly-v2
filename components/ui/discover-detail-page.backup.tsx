@@ -30,7 +30,7 @@ import {
   BookMetadata,
   CourseMetadata,
   JobRoleMetadata
-} from '@/lib/data/discover-mock';
+} from '@/lib/api/types/discover.types';
 import { DiscoverContentCard } from '@/components/ui/discover-content-card';
 import { ActionBar } from '@/components/ui/action-bar';
 import { MetaRow } from '@/components/ui/meta-row';

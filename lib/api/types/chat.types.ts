@@ -373,3 +373,37 @@ export interface TrendingSessionsResponse {
   /** 트렌딩 세션 목록 */
   results: TrendingSession[];
 }
+
+/**
+ * Chat 세션 목록 아이템 타입 (목록 조회용, 메시지 미포함)
+ */
+export interface ChatSessionListItem {
+  /** 세션 ID */
+  id: string;
+  /** 세션 제목 (첫 질문 기반) */
+  title: string;
+  /** 세션 생성 시간 */
+  created_at: string;
+  /** 세션 수정 시간 */
+  updated_at: string;
+  /** 메시지 개수 */
+  message_count: number;
+  /** 공개 여부 */
+  is_public: boolean;
+  /** 커뮤니티에 공유된 포스트 ID */
+  shared_post_id?: number;
+}
+
+/**
+ * Chat 세션 목록 응답 타입
+ */
+export interface ChatSessionListResponse {
+  /** 세션 목록 */
+  results: ChatSessionListItem[];
+  /** 전체 개수 */
+  count: number;
+  /** 다음 페이지 URL */
+  next: string | null;
+  /** 이전 페이지 URL */
+  previous: string | null;
+}

@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getDiscoverFeed } from '@/lib/api';
 import type { DiscoverFeed } from '@/lib/api';
-import type { DiscoverContentDetail } from '@/lib/data/discover-mock';
+import type { DiscoverContentDetail } from '@/lib/api/types/discover.types';
 import { DiscoverDetailPage } from '@/components/ui/discover-detail-page';
 
 interface DiscoverDetailPageProps {

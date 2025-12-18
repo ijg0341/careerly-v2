@@ -39,12 +39,8 @@ import type {
 import { useV2MainData, useRecruitsContents, useContentsRanking } from '@/lib/api/hooks/queries/useSomoonRecruits';
 import type { RecruitsV2CompanyJobsData, RecruitsContentType } from '@/lib/api/types/somoon-recruits.types';
 
-// Mock 데이터 (일부만 사용)
-import {
-  mockSourceStats,
-  mockAllCompanies,
-  COMPANY_REGISTRATION_FORM_URL,
-} from '@/lib/data/discover-mock';
+// 상수
+import { COMPANY_REGISTRATION_FORM_URL } from '@/lib/api/types/discover.types';
 
 type ContentType = 'jobs' | 'blogs' | 'books' | 'courses';
 
@@ -60,7 +56,10 @@ function apiDateToDisplayDate(apiDate: string): string {
 
 export default function DiscoverPage() {
   const [contentType, setContentType] = React.useState<ContentType>('jobs');
-  const [companySearchQuery, setCompanySearchQuery] = React.useState('');
+
+  // 국내/글로벌 탭 상태
+  type CompanyTypeTab = 'all' | 'domestic' | 'global';
+  const [companyTypeTab, setCompanyTypeTab] = React.useState<CompanyTypeTab>('all');
 
   // 회사 필터 상태 (all = 전체)
   const [selectedBlogCompany, setSelectedBlogCompany] = React.useState<string>('all');
@@ -146,17 +145,8 @@ export default function DiscoverPage() {
   // 선택된 날짜를 그대로 API 날짜로 사용 (UTC 기준)
   const apiDate = selectedDate;
 
-  // 기업 검색 결과 필터링
-  const filteredCompanies = React.useMemo(() => {
-    if (!companySearchQuery.trim()) return [];
-    const query = companySearchQuery.toLowerCase();
-    return mockAllCompanies
-      .filter(
-        (c) =>
-          c.name.toLowerCase().includes(query) || c.category.toLowerCase().includes(query)
-      )
-      .slice(0, 8);
-  }, [companySearchQuery]);
+  // 기업 검색 결과 필터링 (실제 API 데이터에서 검색)
+  // Note: companyFilterList가 설정된 후에 검색하도록 아래로 이동
 
   // 기업 필터 상태
   const [selectedCompanyFilter, setSelectedCompanyFilter] = React.useState<string | null>(null);
@@ -222,6 +212,12 @@ export default function DiscoverPage() {
     // 채용공고 수 기준 내림차순 정렬
     return [...domesticList, ...globalList].sort((a, b) => b.jobCount - a.jobCount);
   }, [v2MainData, apiDate]);
+
+  // 탭에 따라 필터링된 기업 목록
+  const filteredByTabCompanyList = React.useMemo(() => {
+    if (companyTypeTab === 'all') return companyFilterList;
+    return companyFilterList.filter(c => c.type === companyTypeTab);
+  }, [companyFilterList, companyTypeTab]);
 
   // 날짜 변경 시 기업 필터 초기화
   React.useEffect(() => {
@@ -405,16 +401,21 @@ export default function DiscoverPage() {
     }));
   }, [lecturesData]);
 
-  // 회사별 카테고리 목록 생성 (최근 업데이트순 정렬)
+  // 회사별 카테고리 목록 생성 (최근 업데이트순 정렬, 최신일자 콘텐츠 수 별도 계산)
   const blogCompanyCategories = React.useMemo(() => {
     if (!blogsData?.contents) return [];
-    const companyMap = new Map<string, { sign: string; name: string; logo: string; count: number; latestDate: string }>();
+    const companyMap = new Map<string, { sign: string; name: string; logo: string; count: number; latestDate: string; latestDateCount: number }>();
     blogsData.contents.forEach((item) => {
       const existing = companyMap.get(item.company_sign);
+      const itemDate = item.created_at.split('T')[0]; // YYYY-MM-DD 형식으로 비교
       if (existing) {
         existing.count++;
-        if (item.created_at > existing.latestDate) {
+        const existingDate = existing.latestDate.split('T')[0];
+        if (itemDate > existingDate) {
           existing.latestDate = item.created_at;
+          existing.latestDateCount = 1;
+        } else if (itemDate === existingDate) {
+          existing.latestDateCount++;
         }
       } else {
         companyMap.set(item.company_sign, {
@@ -423,6 +424,7 @@ export default function DiscoverPage() {
           logo: item.company_image,
           count: 1,
           latestDate: item.created_at,
+          latestDateCount: 1,
         });
       }
     });
@@ -431,13 +433,18 @@ export default function DiscoverPage() {
 
   const bookCompanyCategories = React.useMemo(() => {
     if (!booksData?.contents) return [];
-    const companyMap = new Map<string, { sign: string; name: string; logo: string; count: number; latestDate: string }>();
+    const companyMap = new Map<string, { sign: string; name: string; logo: string; count: number; latestDate: string; latestDateCount: number }>();
     booksData.contents.forEach((item) => {
       const existing = companyMap.get(item.company_sign);
+      const itemDate = item.created_at.split('T')[0];
       if (existing) {
         existing.count++;
-        if (item.created_at > existing.latestDate) {
+        const existingDate = existing.latestDate.split('T')[0];
+        if (itemDate > existingDate) {
           existing.latestDate = item.created_at;
+          existing.latestDateCount = 1;
+        } else if (itemDate === existingDate) {
+          existing.latestDateCount++;
         }
       } else {
         companyMap.set(item.company_sign, {
@@ -446,6 +453,7 @@ export default function DiscoverPage() {
           logo: item.company_image,
           count: 1,
           latestDate: item.created_at,
+          latestDateCount: 1,
         });
       }
     });
@@ -454,13 +462,18 @@ export default function DiscoverPage() {
 
   const courseCompanyCategories = React.useMemo(() => {
     if (!lecturesData?.contents) return [];
-    const companyMap = new Map<string, { sign: string; name: string; logo: string; count: number; latestDate: string }>();
+    const companyMap = new Map<string, { sign: string; name: string; logo: string; count: number; latestDate: string; latestDateCount: number }>();
     lecturesData.contents.forEach((item) => {
       const existing = companyMap.get(item.company_sign);
+      const itemDate = item.created_at.split('T')[0];
       if (existing) {
         existing.count++;
-        if (item.created_at > existing.latestDate) {
+        const existingDate = existing.latestDate.split('T')[0];
+        if (itemDate > existingDate) {
           existing.latestDate = item.created_at;
+          existing.latestDateCount = 1;
+        } else if (itemDate === existingDate) {
+          existing.latestDateCount++;
         }
       } else {
         companyMap.set(item.company_sign, {
@@ -469,6 +482,7 @@ export default function DiscoverPage() {
           logo: item.company_image,
           count: 1,
           latestDate: item.created_at,
+          latestDateCount: 1,
         });
       }
     });
@@ -594,41 +608,64 @@ export default function DiscoverPage() {
     return map;
   }, [lecturesData]);
 
-  // 랭킹 API 데이터를 SourceItemData로 변환 (로고 매핑 적용)
+  // 날짜 기반 업데이트 레이블 생성 함수
+  const getUpdateLabel = (dateString: string): string => {
+    const date = new Date(dateString);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const targetDate = new Date(date);
+    targetDate.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((today.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return '오늘';
+    if (diffDays === 1) return '어제';
+    return `${diffDays}일 전`;
+  };
+
+  // 최신 업데이트 여부 확인 함수 (어제 또는 오늘 - 전날 수집 데이터 표시 기준)
+  const isRecentUpdate = (dateString: string): boolean => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateStr = date.toDateString();
+    return dateStr === today.toDateString() || dateStr === yesterday.toDateString();
+  };
+
+  // 실제 콘텐츠 데이터 기반 SourceItemData 변환 (모든 회사 표시)
   const blogSourceItems: SourceItemData[] = React.useMemo(() => {
-    if (!blogRankingData?.rankings) return [];
-    return blogRankingData.rankings.slice(0, 10).map((item, idx) => ({
-      id: item.company_sign,
-      name: item.company_name,
-      logo: blogLogoMap[item.company_sign] || '',
-      updateLabel: idx < 3 ? '오늘' : idx < 5 ? '어제' : `${idx - 2}일 전`,
-      changeCount: item.count,
+    return blogCompanyCategories.map((company) => ({
+      id: company.sign,
+      name: company.name,
+      logo: company.logo || '',
+      updateLabel: getUpdateLabel(company.latestDate),
+      changeCount: company.latestDateCount,
+      isUpdatedToday: isRecentUpdate(company.latestDate),
     }));
-  }, [blogRankingData, blogLogoMap]);
+  }, [blogCompanyCategories]);
 
   const bookSourceItems: SourceItemData[] = React.useMemo(() => {
-    if (!bookRankingData?.rankings) return [];
-    return bookRankingData.rankings.slice(0, 10).map((item, idx) => ({
-      id: item.company_sign,
-      name: item.company_name,
-      logo: bookLogoMap[item.company_sign] || '',
-      updateLabel: idx < 3 ? '오늘' : idx < 5 ? '어제' : `${idx - 2}일 전`,
-      changeCount: item.count,
+    return bookCompanyCategories.map((company) => ({
+      id: company.sign,
+      name: company.name,
+      logo: company.logo || '',
+      updateLabel: getUpdateLabel(company.latestDate),
+      changeCount: company.latestDateCount,
+      isUpdatedToday: isRecentUpdate(company.latestDate),
     }));
-  }, [bookRankingData, bookLogoMap]);
+  }, [bookCompanyCategories]);
 
   const lectureSourceItems: SourceItemData[] = React.useMemo(() => {
-    if (!lectureRankingData?.rankings) return [];
-    return lectureRankingData.rankings.slice(0, 10).map((item, idx) => ({
-      id: item.company_sign,
-      name: item.company_name,
-      logo: lectureLogoMap[item.company_sign] || '',
-      updateLabel: idx < 3 ? '오늘' : idx < 5 ? '어제' : `${idx - 2}일 전`,
-      changeCount: item.count,
+    return courseCompanyCategories.map((company) => ({
+      id: company.sign,
+      name: company.name,
+      logo: company.logo || '',
+      updateLabel: getUpdateLabel(company.latestDate),
+      changeCount: company.latestDateCount,
+      isUpdatedToday: isRecentUpdate(company.latestDate),
     }));
-  }, [lectureRankingData, lectureLogoMap]);
+  }, [courseCompanyCategories]);
 
-  // 회사 필터 컴포넌트
+  // 회사 필터 컴포넌트 (Embla Carousel 기반)
   const CompanyFilter = ({
     companies,
     selected,
@@ -639,50 +676,384 @@ export default function DiscoverPage() {
     selected: string;
     onChange: (sign: string) => void;
     totalCount: number;
-  }) => (
-    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
-      <button
-        onClick={() => onChange('all')}
-        className={cn(
-          'flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border',
-          selected === 'all'
-            ? 'bg-slate-900 text-white border-slate-900'
-            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-        )}
-      >
-        전체
-        <span className={cn(
-          'text-xs px-1.5 py-0.5 rounded-full',
-          selected === 'all' ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-500'
+  }) => {
+    const [emblaRef, emblaApi] = useEmblaCarousel({
+      align: 'start',
+      containScroll: 'trimSnaps',
+      dragFree: true,
+    });
+
+    const [canScrollPrev, setCanScrollPrev] = React.useState(false);
+    const [canScrollNext, setCanScrollNext] = React.useState(false);
+
+    const scrollPrev = React.useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
+    const scrollNext = React.useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
+
+    const onSelect = React.useCallback(() => {
+      if (!emblaApi) return;
+      setCanScrollPrev(emblaApi.canScrollPrev());
+      setCanScrollNext(emblaApi.canScrollNext());
+    }, [emblaApi]);
+
+    React.useEffect(() => {
+      if (!emblaApi) return;
+      onSelect();
+      emblaApi.on('select', onSelect);
+      emblaApi.on('reInit', onSelect);
+      return () => {
+        emblaApi.off('select', onSelect);
+        emblaApi.off('reInit', onSelect);
+      };
+    }, [emblaApi, onSelect]);
+
+    return (
+      <div className="relative group">
+        {/* 좌측 그라데이션 & 버튼 */}
+        <div className={cn(
+          'absolute left-0 top-0 bottom-0 z-10 flex items-center transition-opacity duration-200',
+          canScrollPrev ? 'opacity-100' : 'opacity-0 pointer-events-none'
         )}>
-          {totalCount}
-        </span>
-      </button>
-      {companies.map((company) => (
-        <button
-          key={company.sign}
-          onClick={() => onChange(company.sign)}
-          className={cn(
-            'flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border max-w-[200px]',
-            selected === company.sign
-              ? 'bg-slate-900 text-white border-slate-900'
-              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-          )}
-        >
-          {company.logo && (
-            <img src={company.logo} alt="" className="w-4 h-4 rounded object-contain flex-shrink-0" />
-          )}
-          <span className="truncate">{company.name}</span>
-          <span className={cn(
-            'flex-shrink-0 text-xs px-1.5 py-0.5 rounded-full',
-            selected === company.sign ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-500'
-          )}>
-            {company.count}
-          </span>
-        </button>
-      ))}
-    </div>
-  );
+          <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-white to-transparent" />
+          <button
+            onClick={scrollPrev}
+            className="relative z-10 w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded-full shadow-sm hover:bg-slate-50 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4 text-slate-600" />
+          </button>
+        </div>
+
+        {/* 캐러셀 컨테이너 */}
+        <div className="overflow-hidden" ref={emblaRef}>
+          <div className="flex gap-2">
+            {/* 전체 버튼 */}
+            <button
+              onClick={() => onChange('all')}
+              className={cn(
+                'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm whitespace-nowrap transition-all duration-200 shrink-0 border',
+                selected === 'all'
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-md'
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+              )}
+            >
+              전체
+              <span className={cn(
+                'text-xs px-1.5 py-0.5 rounded-full font-medium',
+                selected === 'all'
+                  ? 'bg-slate-700 text-slate-200'
+                  : 'bg-slate-100 text-slate-500'
+              )}>
+                {totalCount}
+              </span>
+            </button>
+
+            {/* 회사 버튼들 */}
+            {companies.map((company) => (
+              <button
+                key={company.sign}
+                onClick={() => onChange(company.sign)}
+                className={cn(
+                  'flex items-center gap-1.5 px-2 py-1 rounded-full text-sm whitespace-nowrap transition-all duration-200 shrink-0 border',
+                  selected === company.sign
+                    ? 'bg-slate-900 text-white border-slate-900 shadow-md'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                )}
+              >
+                {company.logo && (
+                  <div className={cn(
+                    'w-7 h-7 rounded-full border-2 transition-colors flex-shrink-0 bg-white flex items-center justify-center overflow-hidden',
+                    selected === company.sign
+                      ? 'border-slate-700'
+                      : 'border-slate-200'
+                  )}>
+                    <img
+                      src={company.logo}
+                      alt={company.name}
+                      className="w-5 h-5 object-contain"
+                    />
+                  </div>
+                )}
+                <span className="max-w-[100px] truncate font-medium">{company.name}</span>
+                <span className={cn(
+                  'flex-shrink-0 text-xs px-1.5 py-0.5 rounded-full font-medium',
+                  selected === company.sign
+                    ? 'bg-slate-700 text-slate-200'
+                    : 'bg-slate-100 text-slate-500'
+                )}>
+                  {company.count}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 우측 그라데이션 & 버튼 */}
+        <div className={cn(
+          'absolute right-0 top-0 bottom-0 z-10 flex items-center transition-opacity duration-200',
+          canScrollNext ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        )}>
+          <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-white to-transparent" />
+          <button
+            onClick={scrollNext}
+            className="relative z-10 w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded-full shadow-sm hover:bg-slate-50 transition-colors"
+          >
+            <ChevronRight className="w-4 h-4 text-slate-600" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // 모바일용 수평 필터 칩 컴포넌트 (Embla Carousel)
+  const MobileSourceFilter = ({
+    sources,
+    selected,
+    onChange,
+    variant = 'purple',
+  }: {
+    sources: SourceItemData[];
+    selected: string;
+    onChange: (id: string) => void;
+    variant?: 'purple' | 'teal' | 'amber';
+  }) => {
+    const [emblaRef, emblaApi] = useEmblaCarousel({
+      align: 'start',
+      containScroll: 'trimSnaps',
+      dragFree: true,
+    });
+
+    const [canScrollPrev, setCanScrollPrev] = React.useState(false);
+    const [canScrollNext, setCanScrollNext] = React.useState(false);
+
+    const scrollPrev = React.useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
+    const scrollNext = React.useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
+
+    const onSelect = React.useCallback(() => {
+      if (!emblaApi) return;
+      setCanScrollPrev(emblaApi.canScrollPrev());
+      setCanScrollNext(emblaApi.canScrollNext());
+    }, [emblaApi]);
+
+    React.useEffect(() => {
+      if (!emblaApi) return;
+      onSelect();
+      emblaApi.on('select', onSelect);
+      emblaApi.on('reInit', onSelect);
+      return () => {
+        emblaApi.off('select', onSelect);
+        emblaApi.off('reInit', onSelect);
+      };
+    }, [emblaApi, onSelect]);
+
+    const variantStyles = {
+      purple: {
+        selected: 'bg-purple-600 text-white border-purple-600',
+        default: 'bg-white text-slate-700 border-slate-200 hover:border-purple-300',
+        badge: 'bg-purple-100 text-purple-700',
+        newBadge: 'bg-green-100 text-green-700',
+      },
+      teal: {
+        selected: 'bg-teal-600 text-white border-teal-600',
+        default: 'bg-white text-slate-700 border-slate-200 hover:border-teal-300',
+        badge: 'bg-teal-100 text-teal-700',
+        newBadge: 'bg-green-100 text-green-700',
+      },
+      amber: {
+        selected: 'bg-amber-600 text-white border-amber-600',
+        default: 'bg-white text-slate-700 border-slate-200 hover:border-amber-300',
+        badge: 'bg-amber-100 text-amber-700',
+        newBadge: 'bg-green-100 text-green-700',
+      },
+    };
+    const styles = variantStyles[variant];
+
+    return (
+      <div className="lg:hidden relative pb-2">
+        {/* 좌측 그라데이션 & 버튼 */}
+        <div className={cn(
+          'absolute left-0 top-0 bottom-2 z-10 flex items-center transition-opacity duration-200',
+          canScrollPrev ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        )}>
+          <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-white to-transparent" />
+          <button
+            onClick={scrollPrev}
+            className="relative z-10 w-6 h-6 flex items-center justify-center bg-white border border-slate-200 rounded-full shadow-sm hover:bg-slate-50 transition-colors"
+          >
+            <ChevronLeft className="w-3 h-3 text-slate-600" />
+          </button>
+        </div>
+
+        <div className="overflow-hidden" ref={emblaRef}>
+          <div className="flex items-center gap-2">
+            {/* 전체 버튼 */}
+            <button
+              onClick={() => onChange('all')}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0',
+                selected === 'all' ? styles.selected : styles.default
+              )}
+            >
+              전체
+            </button>
+            {/* 소스 버튼들 */}
+            {sources.map((source) => (
+              <button
+                key={source.id}
+                onClick={() => onChange(source.id)}
+                className={cn(
+                  'flex items-center gap-1.5 px-2 py-1 rounded-full border text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0',
+                  selected === source.id ? styles.selected : styles.default
+                )}
+              >
+                {source.logo && (
+                  <div className={cn(
+                    'w-5 h-5 rounded-full border bg-white flex items-center justify-center overflow-hidden flex-shrink-0',
+                    selected === source.id ? 'border-white/30' : 'border-slate-200'
+                  )}>
+                    <img
+                      src={source.logo}
+                      alt={source.name}
+                      className="w-4 h-4 object-contain"
+                    />
+                  </div>
+                )}
+                <span className="max-w-[80px] truncate">{source.name}</span>
+                {source.isUpdatedToday && selected !== source.id && (
+                  <span className={cn('text-[10px] px-1 py-0.5 rounded font-medium', styles.newBadge)}>
+                    NEW
+                  </span>
+                )}
+                {source.changeCount !== undefined && source.changeCount > 0 && (
+                  <span className={cn(
+                    'text-xs px-1.5 py-0.5 rounded-full font-medium',
+                    selected === source.id ? 'bg-white/20 text-white' : styles.badge
+                  )}>
+                    +{source.changeCount}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 우측 그라데이션 & 버튼 */}
+        <div className={cn(
+          'absolute right-0 top-0 bottom-2 z-10 flex items-center transition-opacity duration-200',
+          canScrollNext ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        )}>
+          <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent" />
+          <button
+            onClick={scrollNext}
+            className="relative z-10 w-6 h-6 flex items-center justify-center bg-white border border-slate-200 rounded-full shadow-sm hover:bg-slate-50 transition-colors"
+          >
+            <ChevronRight className="w-3 h-3 text-slate-600" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // 날짜 탭 캐러셀 컴포넌트
+  const DateTabsCarousel = ({
+    dates,
+    selected,
+    onChange,
+    dateStats,
+  }: {
+    dates: string[];
+    selected: string;
+    onChange: (date: string) => void;
+    dateStats: Record<string, number>;
+  }) => {
+    const [emblaRef, emblaApi] = useEmblaCarousel({
+      align: 'start',
+      containScroll: 'trimSnaps',
+      dragFree: true,
+    });
+
+    const [canScrollPrev, setCanScrollPrev] = React.useState(false);
+    const [canScrollNext, setCanScrollNext] = React.useState(false);
+
+    const scrollPrev = React.useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
+    const scrollNext = React.useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
+
+    const onSelect = React.useCallback(() => {
+      if (!emblaApi) return;
+      setCanScrollPrev(emblaApi.canScrollPrev());
+      setCanScrollNext(emblaApi.canScrollNext());
+    }, [emblaApi]);
+
+    React.useEffect(() => {
+      if (!emblaApi) return;
+      onSelect();
+      emblaApi.on('select', onSelect);
+      emblaApi.on('reInit', onSelect);
+      return () => {
+        emblaApi.off('select', onSelect);
+        emblaApi.off('reInit', onSelect);
+      };
+    }, [emblaApi, onSelect]);
+
+    return (
+      <div className="relative">
+        {/* 좌측 그라데이션 & 버튼 */}
+        <div className={cn(
+          'absolute left-0 top-0 bottom-0 z-10 flex items-center transition-opacity duration-200',
+          canScrollPrev ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        )}>
+          <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-white to-transparent" />
+          <button
+            onClick={scrollPrev}
+            className="relative z-10 w-6 h-6 flex items-center justify-center bg-white border border-slate-200 rounded-full shadow-sm hover:bg-slate-50 transition-colors"
+          >
+            <ChevronLeft className="w-3 h-3 text-slate-600" />
+          </button>
+        </div>
+
+        <div className="overflow-hidden" ref={emblaRef}>
+          <div className="flex items-center gap-2">
+            {dates.map((apiDate) => (
+              <button
+                key={apiDate}
+                onClick={() => onChange(apiDate)}
+                className={cn(
+                  'px-3 py-1.5 text-sm rounded-full whitespace-nowrap transition-colors flex items-center gap-1.5 flex-shrink-0',
+                  selected === apiDate
+                    ? 'bg-slate-900 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                )}
+              >
+                {formatDateTab(apiDateToDisplayDate(apiDate))}
+                {dateStats[apiDate] && (
+                  <span className={cn(
+                    'text-xs px-1.5 py-0.5 rounded-full',
+                    selected === apiDate
+                      ? 'bg-slate-700 text-slate-200'
+                      : 'bg-slate-200 text-slate-500'
+                  )}>
+                    {dateStats[apiDate].toLocaleString()}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 우측 그라데이션 & 버튼 */}
+        <div className={cn(
+          'absolute right-0 top-0 bottom-0 z-10 flex items-center transition-opacity duration-200',
+          canScrollNext ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        )}>
+          <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent" />
+          <button
+            onClick={scrollNext}
+            className="relative z-10 w-6 h-6 flex items-center justify-center bg-white border border-slate-200 rounded-full shadow-sm hover:bg-slate-50 transition-colors"
+          >
+            <ChevronRight className="w-3 h-3 text-slate-600" />
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-x-hidden">
@@ -720,34 +1091,14 @@ export default function DiscoverPage() {
             </div>
           </div>
 
-          {/* Date Tabs - 채용공고 탭 */}
+          {/* Date Tabs - 채용공고 탭 (Embla Carousel) */}
           {contentType === 'jobs' && (
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-              {availableDates.map((apiDate) => (
-                <button
-                  key={apiDate}
-                  onClick={() => setSelectedDate(apiDate)}
-                  className={cn(
-                    'px-3 py-1.5 text-sm rounded-full whitespace-nowrap transition-colors flex items-center gap-1.5',
-                    selectedDate === apiDate
-                      ? 'bg-slate-900 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  )}
-                >
-                  {formatDateTab(apiDateToDisplayDate(apiDate))}
-                  {dateStats[apiDate] && (
-                    <span className={cn(
-                      'text-xs px-1.5 py-0.5 rounded-full',
-                      selectedDate === apiDate
-                        ? 'bg-slate-700 text-slate-200'
-                        : 'bg-slate-200 text-slate-500'
-                    )}>
-                      {dateStats[apiDate].toLocaleString()}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
+            <DateTabsCarousel
+              dates={availableDates}
+              selected={selectedDate}
+              onChange={setSelectedDate}
+              dateStats={dateStats}
+            />
           )}
 
           {/* Daily Summary Cards */}
@@ -776,7 +1127,7 @@ export default function DiscoverPage() {
               summary=""
               totalJobs={blogCards.length}
               totalCompanies={blogRankingData?.rankings?.length || 0}
-              title="최근 1주일간의 블로그 현황"
+              title="최근 1달간의 블로그 현황"
               unitLabel="개 발행"
               sourceLabel="개 블로그"
               chartColor="purple"
@@ -788,7 +1139,7 @@ export default function DiscoverPage() {
               summary=""
               totalJobs={bookCards.length}
               totalCompanies={bookRankingData?.rankings?.length || 0}
-              title="최근 1주일간의 도서 현황"
+              title="최근 1달간의 도서 현황"
               unitLabel="권 등록"
               sourceLabel="개 출판사"
               chartColor="teal"
@@ -800,7 +1151,7 @@ export default function DiscoverPage() {
               summary=""
               totalJobs={courseCards.length}
               totalCompanies={lectureRankingData?.rankings?.length || 0}
-              title="최근 1주일간의 강의 현황"
+              title="최근 1달간의 강의 현황"
               unitLabel="개 등록"
               sourceLabel="개 플랫폼"
               chartColor="amber"
@@ -811,10 +1162,56 @@ export default function DiscoverPage() {
         {/* Content Feed */}
         {contentType === 'jobs' ? (
           <div className="space-y-4 mt-6">
-            {/* 기업 필터 - Embla Carousel */}
-            {companyFilterList.length > 0 && (
+            {/* 국내/글로벌 탭 - 기업 필터보다 상위 */}
+            <div className="flex items-center gap-2 border-b border-slate-200">
+              <button
+                onClick={() => {
+                  setCompanyTypeTab('all');
+                  setSelectedCompanyFilter(null);
+                }}
+                className={cn(
+                  'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
+                  companyTypeTab === 'all'
+                    ? 'text-slate-900 border-slate-900'
+                    : 'text-slate-500 border-transparent hover:text-slate-700'
+                )}
+              >
+                전체 <span className="text-xs text-slate-400">({totalJobCount})</span>
+              </button>
+              <button
+                onClick={() => {
+                  setCompanyTypeTab('domestic');
+                  setSelectedCompanyFilter(null);
+                }}
+                className={cn(
+                  'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
+                  companyTypeTab === 'domestic'
+                    ? 'text-slate-900 border-slate-900'
+                    : 'text-slate-500 border-transparent hover:text-slate-700'
+                )}
+              >
+                국내 <span className="text-xs text-slate-400">({domesticJobCount})</span>
+              </button>
+              <button
+                onClick={() => {
+                  setCompanyTypeTab('global');
+                  setSelectedCompanyFilter(null);
+                }}
+                className={cn(
+                  'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
+                  companyTypeTab === 'global'
+                    ? 'text-slate-900 border-slate-900'
+                    : 'text-slate-500 border-transparent hover:text-slate-700'
+                )}
+              >
+                글로벌 <span className="text-xs text-slate-400">({globalJobCount})</span>
+              </button>
+            </div>
+
+            {/* 기업 필터 - 탭에 따라 필터링된 기업만 표시 */}
+            {filteredByTabCompanyList.length > 0 && (
               <CompanyFilterCarousel
-                companies={companyFilterList}
+                companies={filteredByTabCompanyList}
                 selectedCompany={selectedCompanyFilter}
                 onSelectCompany={setSelectedCompanyFilter}
               />
@@ -825,14 +1222,16 @@ export default function DiscoverPage() {
                 <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
               </div>
             ) : selectedDateJobs.length > 0 ? (
-              <div className="space-y-4">
-                {/* 국내 기업 */}
-                {domesticJobs.length > 0 && (
+              <div className="space-y-2">
+                {/* 탭에 따른 채용공고 표시 */}
+                {(companyTypeTab === 'all' || companyTypeTab === 'domestic') && domesticJobs.length > 0 && (
                   <>
-                    <div className="flex items-center gap-2 pt-2">
-                      <span className="text-sm font-semibold text-slate-700">국내 기업</span>
-                      <span className="text-xs text-slate-400">{domesticJobs.length.toLocaleString()}건</span>
-                    </div>
+                    {companyTypeTab === 'all' && (
+                      <div className="flex items-center gap-2 pb-2">
+                        <span className="text-sm font-semibold text-slate-700">국내 기업</span>
+                        <span className="text-xs text-slate-400">{domesticJobs.length.toLocaleString()}건</span>
+                      </div>
+                    )}
                     <div className="space-y-2">
                       {domesticJobs.map((job) => (
                         <JobListItem
@@ -845,13 +1244,14 @@ export default function DiscoverPage() {
                   </>
                 )}
 
-                {/* 글로벌 기업 */}
-                {globalJobs.length > 0 && (
+                {(companyTypeTab === 'all' || companyTypeTab === 'global') && globalJobs.length > 0 && (
                   <>
-                    <div className="flex items-center gap-2 pt-4 border-t border-slate-200 mt-4">
-                      <span className="text-sm font-semibold text-slate-700">글로벌 기업</span>
-                      <span className="text-xs text-slate-400">{globalJobs.length.toLocaleString()}건</span>
-                    </div>
+                    {companyTypeTab === 'all' && domesticJobs.length > 0 && (
+                      <div className="flex items-center gap-2 pt-4 border-t border-slate-200 mt-4">
+                        <span className="text-sm font-semibold text-slate-700">글로벌 기업</span>
+                        <span className="text-xs text-slate-400">{globalJobs.length.toLocaleString()}건</span>
+                      </div>
+                    )}
                     <div className="space-y-2">
                       {globalJobs.map((job) => (
                         <JobListItem
@@ -863,6 +1263,14 @@ export default function DiscoverPage() {
                     </div>
                   </>
                 )}
+
+                {/* 선택한 탭에 데이터가 없을 때 */}
+                {companyTypeTab === 'domestic' && domesticJobs.length === 0 && (
+                  <EmptyState message="국내 기업 채용공고가 없습니다" description="다른 날짜나 탭을 선택해보세요." />
+                )}
+                {companyTypeTab === 'global' && globalJobs.length === 0 && (
+                  <EmptyState message="글로벌 기업 채용공고가 없습니다" description="다른 날짜나 탭을 선택해보세요." />
+                )}
               </div>
             ) : (
               <EmptyState message="채용공고가 없습니다" description="이 날짜에 수집된 채용공고가 없습니다." />
@@ -870,13 +1278,13 @@ export default function DiscoverPage() {
           </div>
         ) : contentType === 'blogs' ? (
           <div className="space-y-6 mt-6">
-            <CompanyFilter
-              companies={blogCompanyCategories}
+            {/* 모바일 필터 칩 */}
+            <MobileSourceFilter
+              sources={blogSourceItems}
               selected={selectedBlogCompany}
               onChange={setSelectedBlogCompany}
-              totalCount={blogCards.length}
+              variant="purple"
             />
-
             {isBlogsLoading ? (
               <div className="flex items-center justify-center py-16">
                 <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
@@ -905,13 +1313,13 @@ export default function DiscoverPage() {
           </div>
         ) : contentType === 'books' ? (
           <div className="space-y-6 mt-6">
-            <CompanyFilter
-              companies={bookCompanyCategories}
+            {/* 모바일 필터 칩 */}
+            <MobileSourceFilter
+              sources={bookSourceItems}
               selected={selectedBookCompany}
               onChange={setSelectedBookCompany}
-              totalCount={bookCards.length}
+              variant="teal"
             />
-
             {isBooksLoading ? (
               <div className="flex items-center justify-center py-16">
                 <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
@@ -939,13 +1347,13 @@ export default function DiscoverPage() {
           </div>
         ) : contentType === 'courses' ? (
           <div className="space-y-6 mt-6">
-            <CompanyFilter
-              companies={courseCompanyCategories}
+            {/* 모바일 필터 칩 */}
+            <MobileSourceFilter
+              sources={lectureSourceItems}
               selected={selectedCourseCompany}
               onChange={setSelectedCourseCompany}
-              totalCount={courseCards.length}
+              variant="amber"
             />
-
             {isLecturesLoading ? (
               <div className="flex items-center justify-center py-16">
                 <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
@@ -999,7 +1407,7 @@ export default function DiscoverPage() {
                contentType === 'books' ? '도서 출처' : '강의 출처'}
             </h3>
             <span className="text-xs text-slate-400">
-              {contentType === 'jobs' ? `${mockSourceStats.totalSources.toLocaleString()}개 소스` :
+              {contentType === 'jobs' ? `${companyFilterList.length}개 기업` :
                contentType === 'blogs' ? `${blogCompanyCategories.length}개 출처` :
                contentType === 'books' ? `${bookCompanyCategories.length}개 출처` :
                `${courseCompanyCategories.length}개 출처`}
@@ -1091,10 +1499,9 @@ export default function DiscoverPage() {
           {/* Jobs Sidebar */}
           {contentType === 'jobs' && (
             <JobsSidebar
-              companySearchQuery={companySearchQuery}
-              setCompanySearchQuery={setCompanySearchQuery}
-              filteredCompanies={filteredCompanies}
-              recentCompanies={companyFilterList}
+              recentCompanies={filteredByTabCompanyList}
+              selectedCompany={selectedCompanyFilter}
+              onSelectCompany={setSelectedCompanyFilter}
               formUrl={COMPANY_REGISTRATION_FORM_URL}
             />
           )}
@@ -1102,10 +1509,11 @@ export default function DiscoverPage() {
           {/* Blogs Sidebar */}
           {contentType === 'blogs' && (
             <SourceSidebar
-              title="블로그 랭킹"
+              title="블로그"
               sources={blogSourceItems}
               variant="purple"
-              searchPlaceholder="블로그 검색..."
+              selectedSource={selectedBlogCompany === 'all' ? null : selectedBlogCompany}
+              onSelectSource={(id) => setSelectedBlogCompany(id || 'all')}
               ctaLabel="블로그 수집 요청하기"
               ctaUrl={COMPANY_REGISTRATION_FORM_URL}
             />
@@ -1114,10 +1522,11 @@ export default function DiscoverPage() {
           {/* Books Sidebar */}
           {contentType === 'books' && (
             <SourceSidebar
-              title="출판사 랭킹"
+              title="출판사"
               sources={bookSourceItems}
               variant="teal"
-              searchPlaceholder="출판사 검색..."
+              selectedSource={selectedBookCompany === 'all' ? null : selectedBookCompany}
+              onSelectSource={(id) => setSelectedBookCompany(id || 'all')}
               ctaLabel="출판사 수집 요청하기"
               ctaUrl={COMPANY_REGISTRATION_FORM_URL}
             />
@@ -1126,10 +1535,11 @@ export default function DiscoverPage() {
           {/* Courses Sidebar */}
           {contentType === 'courses' && (
             <SourceSidebar
-              title="플랫폼 랭킹"
+              title="플랫폼"
               sources={lectureSourceItems}
               variant="amber"
-              searchPlaceholder="플랫폼 검색..."
+              selectedSource={selectedCourseCompany === 'all' ? null : selectedCourseCompany}
+              onSelectSource={(id) => setSelectedCourseCompany(id || 'all')}
               ctaLabel="플랫폼 수집 요청하기"
               ctaUrl={COMPANY_REGISTRATION_FORM_URL}
             />
@@ -1218,122 +1628,90 @@ interface RecentCompanyItem {
 }
 
 interface JobsSidebarProps {
-  companySearchQuery: string;
-  setCompanySearchQuery: (q: string) => void;
-  filteredCompanies: typeof mockAllCompanies;
   recentCompanies: RecentCompanyItem[];
+  selectedCompany: string | null;
+  onSelectCompany: (sign: string | null) => void;
   formUrl: string;
 }
 
 function JobsSidebar({
-  companySearchQuery,
-  setCompanySearchQuery,
-  filteredCompanies,
   recentCompanies,
+  selectedCompany,
+  onSelectCompany,
   formUrl,
 }: JobsSidebarProps) {
   return (
     <div className="space-y-4">
-      {/* 기업 검색창 */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-        <input
-          type="text"
-          placeholder="기업 검색..."
-          value={companySearchQuery}
-          onChange={(e) => setCompanySearchQuery(e.target.value)}
-          className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder:text-slate-400"
-        />
-      </div>
-
-      {/* 검색 결과 */}
-      {companySearchQuery.trim() && (
-        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
-          <div className="px-3 py-2 bg-slate-50 border-b border-slate-200">
-            <span className="text-xs font-medium text-slate-500">
-              검색 결과 ({filteredCompanies.length})
-            </span>
-          </div>
-          {filteredCompanies.length > 0 ? (
-            <div className="divide-y divide-slate-100">
-              {filteredCompanies.map((company) =>
-                company.isPremium ? (
-                  <Link
-                    key={company.id}
-                    href={`/company/${company.id}`}
-                    className="group flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 transition-colors"
-                  >
-                    <CompanyLogo company={company} showBadge />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-medium text-slate-900 group-hover:text-teal-700 transition-colors truncate">
-                          {company.name}
-                        </span>
-                        <span className="text-[10px] text-teal-600 font-medium">인증</span>
-                      </div>
-                      <span className="text-xs text-slate-400">
-                        {company.category} · {company.totalJobs}건
-                      </span>
-                    </div>
-                  </Link>
-                ) : (
-                  <div
-                    key={company.id}
-                    className="flex items-center gap-3 px-3 py-2.5 opacity-50 cursor-not-allowed"
-                  >
-                    <CompanyLogo company={company} grayscale />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-medium text-slate-500 truncate">
-                          {company.name}
-                        </span>
-                        <Lock className="w-3 h-3 text-slate-400" />
-                      </div>
-                      <span className="text-xs text-slate-400">
-                        {company.category} · {company.totalJobs}건
-                      </span>
-                    </div>
-                  </div>
-                )
-              )}
-            </div>
-          ) : (
-            <div className="px-3 py-4 text-center text-sm text-slate-400">검색 결과가 없습니다</div>
-          )}
-        </div>
-      )}
-
-      {/* 최근 업데이트 기업 */}
+      {/* 업데이트 기업 */}
       <div>
         <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-          최근 업데이트 기업
+          업데이트 기업 ({recentCompanies.length}개)
         </h4>
         <div className="space-y-2">
-          {recentCompanies.slice(0, 10).map((company) => (
-            <div
-              key={company.sign}
-              className="group block p-2.5 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100"
-            >
-              <div className="flex items-start gap-3">
-                <CompanyLogo company={{ name: company.name, logo: company.logo }} size="lg" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-medium text-slate-900 group-hover:text-teal-700 transition-colors truncate">
-                      {company.name}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
-                    <span className="text-teal-600 font-medium">+{company.jobCount}건</span>
-                    <span>·</span>
-                    <span className="text-slate-400">{company.type === 'domestic' ? '국내' : '글로벌'}</span>
-                    <span>·</span>
-                    <span className="text-slate-400">{company.updatedAt}</span>
-                  </div>
+          {/* 전체 옵션 */}
+          <div
+            onClick={() => onSelectCompany(null)}
+            className={cn(
+              'group block p-2.5 rounded-lg transition-colors border cursor-pointer',
+              !selectedCompany
+                ? 'bg-teal-50 border-teal-200'
+                : 'border-transparent hover:bg-slate-50 hover:border-slate-100'
+            )}
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
+                <span className="text-xs font-bold text-slate-500">All</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className={cn(
+                    'text-sm font-medium transition-colors truncate',
+                    !selectedCompany ? 'text-teal-700' : 'text-slate-900 group-hover:text-teal-700'
+                  )}>
+                    전체
+                  </span>
+                </div>
+                <div className="text-xs text-slate-400 mt-0.5">
+                  모든 기업 보기
                 </div>
               </div>
             </div>
-          ))}
+          </div>
+          {recentCompanies.map((company) => {
+            const isSelected = selectedCompany === company.sign;
+            return (
+              <div
+                key={company.sign}
+                onClick={() => onSelectCompany(isSelected ? null : company.sign)}
+                className={cn(
+                  'group block p-2.5 rounded-lg transition-colors border cursor-pointer',
+                  isSelected
+                    ? 'bg-teal-50 border-teal-200'
+                    : 'border-transparent hover:bg-slate-50 hover:border-slate-100'
+                )}
+              >
+                <div className="flex items-start gap-3">
+                  <CompanyLogo company={{ name: company.name, logo: company.logo }} size="lg" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className={cn(
+                        'text-sm font-medium transition-colors truncate',
+                        isSelected ? 'text-teal-700' : 'text-slate-900 group-hover:text-teal-700'
+                      )}>
+                        {company.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
+                      <span className="text-teal-600 font-medium">+{company.jobCount}건</span>
+                      <span>·</span>
+                      <span className="text-slate-400">{company.type === 'domestic' ? '국내' : '글로벌'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         <a
@@ -1354,7 +1732,8 @@ interface SourceSidebarProps {
   title: string;
   sources: SourceItemData[];
   variant: 'purple' | 'teal' | 'amber';
-  searchPlaceholder: string;
+  selectedSource: string | null;
+  onSelectSource: (id: string | null) => void;
   ctaLabel: string;
   ctaUrl: string;
 }
@@ -1363,27 +1742,25 @@ function SourceSidebar({
   title,
   sources,
   variant,
-  searchPlaceholder,
+  selectedSource,
+  onSelectSource,
   ctaLabel,
   ctaUrl,
 }: SourceSidebarProps) {
   const colorConfig = {
     purple: {
-      ring: 'focus:ring-purple-500',
       dot: 'bg-purple-500',
       ctaBg: 'bg-purple-50 hover:bg-purple-100',
       ctaBorder: 'border-purple-200',
       ctaText: 'text-purple-700 hover:text-purple-900',
     },
     teal: {
-      ring: 'focus:ring-teal-500',
       dot: 'bg-teal-500',
       ctaBg: 'bg-teal-50 hover:bg-teal-100',
       ctaBorder: 'border-teal-200',
       ctaText: 'text-teal-700 hover:text-teal-900',
     },
     amber: {
-      ring: 'focus:ring-amber-500',
       dot: 'bg-amber-500',
       ctaBg: 'bg-amber-50 hover:bg-amber-100',
       ctaBorder: 'border-amber-200',
@@ -1395,26 +1772,48 @@ function SourceSidebar({
 
   return (
     <div className="space-y-6">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-        <input
-          type="text"
-          placeholder={searchPlaceholder}
-          className={cn(
-            'w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent placeholder:text-slate-400',
-            config.ring
-          )}
-        />
-      </div>
-
       <div>
         <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
           <span className={cn('w-1.5 h-1.5 rounded-full', config.dot)}></span>
-          {title}
+          {title} ({sources.length}개)
         </h4>
         <div className="space-y-1">
+          {/* 전체 옵션 */}
+          <div
+            onClick={() => onSelectSource(null)}
+            className={cn(
+              'group flex items-center justify-between p-2.5 rounded-lg transition-colors cursor-pointer border',
+              !selectedSource
+                ? variant === 'purple' ? 'bg-purple-50 border-purple-200'
+                  : variant === 'teal' ? 'bg-teal-50 border-teal-200'
+                  : 'bg-amber-50 border-amber-200'
+                : 'border-transparent hover:bg-slate-50 hover:border-slate-100'
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
+                <span className="text-xs font-bold text-slate-500">All</span>
+              </div>
+              <span className={cn(
+                'text-sm font-medium transition-colors',
+                !selectedSource
+                  ? variant === 'purple' ? 'text-purple-700'
+                    : variant === 'teal' ? 'text-teal-700'
+                    : 'text-amber-700'
+                  : 'text-slate-700'
+              )}>
+                전체
+              </span>
+            </div>
+          </div>
           {sources.map((source) => (
-            <SourceListItem key={source.id} source={source} variant={variant} />
+            <SourceListItem
+              key={source.id}
+              source={source}
+              variant={variant}
+              isSelected={selectedSource === source.id}
+              onClick={() => onSelectSource(selectedSource === source.id ? null : source.id)}
+            />
           ))}
         </div>
 
