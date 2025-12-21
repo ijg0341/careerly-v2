@@ -5,6 +5,7 @@ import { Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { SidebarRail } from '@/components/ui/sidebar-rail';
 import { MobileNavOverlay } from '@/components/ui/mobile-nav-overlay';
+import { TopAlertBanner, TopAlertProvider, useTopAlert } from '@/components/ui/top-alert-banner';
 import { LoginModal, SignupModal } from '@/components/auth';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { MessageSquare, Sparkles, Users, Settings, LogIn, Menu } from 'lucide-react';
@@ -82,6 +83,31 @@ function AppLayoutContent({ children }: AppLayoutProps) {
     logout.mutate();
   };
 
+  // 커리어리 2.0 출시 알림 (localStorage로 영구 닫기 관리)
+  const ALERT_DISMISSED_KEY = 'careerly2_launch_dismissed';
+  const [showLaunchAlert, setShowLaunchAlert] = React.useState(false);
+
+  // 초기 로드 시 localStorage 확인
+  React.useEffect(() => {
+    if (isSharePage) return;
+    const isDismissed = localStorage.getItem(ALERT_DISMISSED_KEY) === 'true';
+    if (!isDismissed) {
+      setShowLaunchAlert(true);
+    }
+  }, [isSharePage]);
+
+  // 링크 클릭 시 영구 닫기
+  const handleLaunchAlertAction = () => {
+    localStorage.setItem(ALERT_DISMISSED_KEY, 'true');
+    setShowLaunchAlert(false);
+    window.location.href = '/community?post=123603';
+  };
+
+  // 닫기 버튼 클릭 시 일시 닫기 (다음 방문 시 다시 표시)
+  const handleLaunchAlertClose = () => {
+    setShowLaunchAlert(false);
+  };
+
   // share 페이지는 별도 레이아웃 사용 (사이드바, 모달 없음)
   if (isSharePage) {
     return <>{children}</>;
@@ -118,6 +144,19 @@ function AppLayoutContent({ children }: AppLayoutProps) {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* 커리어리 2.0 출시 알림 */}
+      {!isSharePage && (
+        <TopAlertBanner
+          isVisible={showLaunchAlert}
+          onClose={handleLaunchAlertClose}
+          variant="info"
+          message="🎉 커리어리 2.0을 시작합니다!"
+          actionText="자세히 보기"
+          onAction={handleLaunchAlertAction}
+          messageClickable
+        />
+      )}
+
       {/* Mobile Header - 모바일에서만 표시, 자체 헤더 페이지에서는 숨김 */}
       {!isDrawerMode && !hasOwnHeader && (
         <header className={cn(
