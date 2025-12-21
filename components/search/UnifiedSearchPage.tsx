@@ -1030,7 +1030,7 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
               {profileSummary && <ProfileSummaryBanner profile={profileSummary} />}
 
               {/* 스트리밍 중인 답변 또는 완료된 답변 */}
-              {streamingContent ? (
+              {isStreaming && streamingContent ? (
                 <div className="relative">
                   <Markdown
                     content={streamingContent}
