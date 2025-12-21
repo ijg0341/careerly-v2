@@ -199,7 +199,7 @@ export function ProfilePromptModal({
               className="min-h-[100px] resize-none"
             />
             <p className="text-xs text-slate-500">
-              위 프로필 정보와 함께 "나는 이런사람인데 {question}" 형식으로
+              위 프로필 정보와 함께 &quot;나는 이런사람인데 {question}&quot; 형식으로
               전달됩니다.
             </p>
           </div>

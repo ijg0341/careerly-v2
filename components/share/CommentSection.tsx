@@ -195,7 +195,7 @@ const CommentSection = React.forwardRef<HTMLDivElement, CommentSectionProps>(
                           </span>
                         )}
                         <span className="text-xs text-slate-400">
-                          {formatRelativeTime(comment.created_at)}
+                          {formatRelativeTime(comment.createdat)}
                         </span>
                       </div>
                       <p className="text-slate-700 whitespace-pre-wrap break-words">

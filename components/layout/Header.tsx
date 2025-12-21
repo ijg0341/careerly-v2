@@ -22,9 +22,9 @@ export function Header() {
         </Link>
 
         {/* Center Search CTA */}
-        {pathname !== '/' && (
+        {pathname !== '/chat' && (
           <Link
-            href="/"
+            href="/chat"
             className="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors"
           >
             <Search className="w-4 h-4 text-slate-500" />

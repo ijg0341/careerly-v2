@@ -18,8 +18,8 @@ interface ShareLayoutProps {
 export default function ShareLayout({ children }: ShareLayoutProps) {
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Simple Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
+      {/* Simple Header with safe area support for mobile apps */}
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 pt-[env(safe-area-inset-top)]">
         <div className="container mx-auto px-4 h-14 flex items-center justify-between max-w-7xl">
           <div className="flex items-center gap-4">
             <Link
@@ -41,7 +41,7 @@ export default function ShareLayout({ children }: ShareLayoutProps) {
             size="sm"
             asChild
           >
-            <Link href="/">질문하기</Link>
+            <Link href="/chat">질문하기</Link>
           </Button>
         </div>
       </header>

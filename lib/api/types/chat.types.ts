@@ -328,6 +328,12 @@ export interface SharedPost {
   comment_count: number;
   /** 저장 수 */
   save_count: number;
+  /** 조회 수 */
+  view_count?: number;
+  /** 현재 사용자 좋아요 여부 */
+  is_liked?: boolean;
+  /** 현재 사용자 저장 여부 */
+  is_saved?: boolean;
 }
 
 /**

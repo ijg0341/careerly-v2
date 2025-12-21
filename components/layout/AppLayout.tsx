@@ -90,7 +90,7 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   // 모바일 네비게이션 아이템 설정
   const navItems = {
     primary: [
-      { label: 'Chat', path: '/', icon: MessageSquare, badge: 'beta' },
+      { label: 'Chat', path: '/chat', icon: MessageSquare, badge: 'beta' },
       { label: 'Discover', path: '/discover', icon: Sparkles },
       { label: 'Community', path: '/community', icon: Users },
     ],
@@ -113,8 +113,8 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   // 자체 헤더를 가진 페이지들 (모바일 헤더 숨김)
   const hasOwnHeader = pathname?.startsWith('/settings') || pathname?.startsWith('/community/new') || pathname?.startsWith('/community/edit');
 
-  // 홈페이지는 전체화면 레이아웃 (헤더 없음, 중앙 정렬)
-  const isHomePage = pathname === '/';
+  // 채팅 페이지는 전체화면 레이아웃 (헤더 없음, 중앙 정렬)
+  const isChatPage = pathname === '/chat';
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -122,8 +122,8 @@ function AppLayoutContent({ children }: AppLayoutProps) {
       {!isDrawerMode && !hasOwnHeader && (
         <header className={cn(
           "fixed top-0 left-0 right-0 z-40 md:hidden",
-          // 홈페이지: 투명 배경, 햄버거 버튼만
-          isHomePage ? "bg-transparent safe-pt" : "bg-slate-50 safe-pt"
+          // 채팅 페이지: 투명 배경, 햄버거 버튼만
+          isChatPage ? "bg-transparent safe-pt" : "bg-slate-50 safe-pt"
         )}>
           <div className="h-14 flex items-center justify-between px-4">
             <button
@@ -134,8 +134,8 @@ function AppLayoutContent({ children }: AppLayoutProps) {
               <Menu className="h-6 w-6" />
             </button>
 
-            {/* 페이지 타이틀 - 홈페이지에서는 숨김 */}
-            {!isHomePage && (
+            {/* 페이지 타이틀 - 채팅 페이지에서는 숨김 */}
+            {!isChatPage && (
               <>
                 {pathname?.startsWith('/community') && (
                   <div className="flex items-center gap-2">
@@ -152,8 +152,8 @@ function AppLayoutContent({ children }: AppLayoutProps) {
               </>
             )}
 
-            {/* 우측 여백 균형용 - 홈페이지에서는 숨김 */}
-            {!isHomePage && <div className="w-10" />}
+            {/* 우측 여백 균형용 - 채팅 페이지에서는 숨김 */}
+            {!isChatPage && <div className="w-10" />}
           </div>
         </header>
       )}
@@ -181,14 +181,14 @@ function AppLayoutContent({ children }: AppLayoutProps) {
         className={cn(
           'min-h-screen',
           isDrawerMode ? '' : 'md:pl-20',
-          // 홈페이지: 전체화면 중앙 정렬
-          isHomePage && 'flex flex-col',
+          // 채팅 페이지: 전체화면 중앙 정렬
+          isChatPage && 'flex flex-col',
           // 자체 헤더가 있는 페이지는 모바일에서 상단 패딩 제거
           // safe-pt-14: safe area + 56px (헤더 높이)
-          !isDrawerMode && !hasOwnHeader && !isHomePage && 'safe-pt-14 md:pt-0'
+          !isDrawerMode && !hasOwnHeader && !isChatPage && 'safe-pt-14 md:pt-0'
         )}
       >
-        {isHomePage ? (
+        {isChatPage ? (
           children
         ) : pathname === '/community/new/post' || hasOwnHeader ? (
           children
