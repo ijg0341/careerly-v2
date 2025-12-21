@@ -58,8 +58,8 @@ export default function DiscoverPage() {
   const [contentType, setContentType] = React.useState<ContentType>('jobs');
 
   // 국내/글로벌 탭 상태
-  type CompanyTypeTab = 'all' | 'domestic' | 'global';
-  const [companyTypeTab, setCompanyTypeTab] = React.useState<CompanyTypeTab>('all');
+  type CompanyTypeTab = 'domestic' | 'global';
+  const [companyTypeTab, setCompanyTypeTab] = React.useState<CompanyTypeTab>('domestic');
 
   // 회사 필터 상태 (all = 전체)
   const [selectedBlogCompany, setSelectedBlogCompany] = React.useState<string>('all');
@@ -215,7 +215,6 @@ export default function DiscoverPage() {
 
   // 탭에 따라 필터링된 기업 목록
   const filteredByTabCompanyList = React.useMemo(() => {
-    if (companyTypeTab === 'all') return companyFilterList;
     return companyFilterList.filter(c => c.type === companyTypeTab);
   }, [companyFilterList, companyTypeTab]);
 
@@ -1153,20 +1152,6 @@ export default function DiscoverPage() {
             <div className="flex items-center gap-2 border-b border-slate-200">
               <button
                 onClick={() => {
-                  setCompanyTypeTab('all');
-                  setSelectedCompanyFilter(null);
-                }}
-                className={cn(
-                  'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
-                  companyTypeTab === 'all'
-                    ? 'text-slate-900 border-slate-900'
-                    : 'text-slate-500 border-transparent hover:text-slate-700'
-                )}
-              >
-                전체 <span className="text-xs text-slate-400">({totalJobCount})</span>
-              </button>
-              <button
-                onClick={() => {
                   setCompanyTypeTab('domestic');
                   setSelectedCompanyFilter(null);
                 }}
@@ -1208,47 +1193,31 @@ export default function DiscoverPage() {
               <div className="flex items-center justify-center py-16">
                 <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
               </div>
-            ) : selectedDateJobs.length > 0 ? (
+            ) : (
               <div className="space-y-2">
                 {/* 탭에 따른 채용공고 표시 */}
-                {(companyTypeTab === 'all' || companyTypeTab === 'domestic') && domesticJobs.length > 0 && (
-                  <>
-                    {companyTypeTab === 'all' && (
-                      <div className="flex items-center gap-2 pb-2">
-                        <span className="text-sm font-semibold text-slate-700">국내 기업</span>
-                        <span className="text-xs text-slate-400">{domesticJobs.length.toLocaleString()}건</span>
-                      </div>
-                    )}
-                    <div className="space-y-2">
-                      {domesticJobs.map((job) => (
-                        <JobListItem
-                          key={job.id}
-                          job={job}
-                          onClick={() => handleJobClick(job)}
-                        />
-                      ))}
-                    </div>
-                  </>
+                {companyTypeTab === 'domestic' && domesticJobs.length > 0 && (
+                  <div className="space-y-2">
+                    {domesticJobs.map((job) => (
+                      <JobListItem
+                        key={job.id}
+                        job={job}
+                        onClick={() => handleJobClick(job)}
+                      />
+                    ))}
+                  </div>
                 )}
 
-                {(companyTypeTab === 'all' || companyTypeTab === 'global') && globalJobs.length > 0 && (
-                  <>
-                    {companyTypeTab === 'all' && domesticJobs.length > 0 && (
-                      <div className="flex items-center gap-2 pt-4 border-t border-slate-200 mt-4">
-                        <span className="text-sm font-semibold text-slate-700">글로벌 기업</span>
-                        <span className="text-xs text-slate-400">{globalJobs.length.toLocaleString()}건</span>
-                      </div>
-                    )}
-                    <div className="space-y-2">
-                      {globalJobs.map((job) => (
-                        <JobListItem
-                          key={job.id}
-                          job={job}
-                          onClick={() => handleJobClick(job)}
-                        />
-                      ))}
-                    </div>
-                  </>
+                {companyTypeTab === 'global' && globalJobs.length > 0 && (
+                  <div className="space-y-2">
+                    {globalJobs.map((job) => (
+                      <JobListItem
+                        key={job.id}
+                        job={job}
+                        onClick={() => handleJobClick(job)}
+                      />
+                    ))}
+                  </div>
                 )}
 
                 {/* 선택한 탭에 데이터가 없을 때 */}
@@ -1259,8 +1228,6 @@ export default function DiscoverPage() {
                   <EmptyState message="글로벌 기업 채용공고가 없습니다" description="다른 날짜나 탭을 선택해보세요." />
                 )}
               </div>
-            ) : (
-              <EmptyState message="채용공고가 없습니다" description="이 날짜에 수집된 채용공고가 없습니다." />
             )}
           </div>
         ) : contentType === 'blogs' ? (
