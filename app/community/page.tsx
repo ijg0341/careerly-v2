@@ -370,6 +370,7 @@ function PostDetailDrawerContent({
         postId={postId}
         authorId={post.author?.id || post.userid}
         userProfile={userProfile}
+        title={post.title || undefined}
         content={post.description}
         contentHtml={post.descriptionhtml}
         createdAt={post.createdat}

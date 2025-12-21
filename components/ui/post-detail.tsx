@@ -71,6 +71,7 @@ export interface PostDetailProps extends React.HTMLAttributes<HTMLDivElement> {
   postId: string;
   authorId?: number;
   userProfile: UserProfile;
+  title?: string;
   content: string;
   contentHtml?: string;
   createdAt: string;
@@ -104,6 +105,7 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
       postId,
       authorId,
       userProfile,
+      title,
       content,
       contentHtml,
       createdAt,
@@ -282,6 +284,13 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
               </DropdownMenu>
             )}
           </div>
+
+          {/* Title */}
+          {title && (
+            <h1 className="text-xl font-bold text-slate-900 mb-3">
+              {title}
+            </h1>
+          )}
 
           {/* Content */}
           <div className="mb-3">
