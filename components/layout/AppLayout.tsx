@@ -100,7 +100,7 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   const handleLaunchAlertAction = () => {
     localStorage.setItem(ALERT_DISMISSED_KEY, 'true');
     setShowLaunchAlert(false);
-    window.location.href = '/community?post=123603';
+    window.location.href = '/community?post=123773';
   };
 
   // 닫기 버튼 클릭 시 일시 닫기 (다음 방문 시 다시 표시)
