@@ -29,7 +29,7 @@ export function useImpressionTracker() {
   }, []);
 
   const flush = useCallback(async () => {
-    if (pendingQueue.current.length === 0 || !isAuthenticatedRef.current) return;
+    if (pendingQueue.current.length === 0) return;
 
     const postIds = [...pendingQueue.current];
     pendingQueue.current = [];
@@ -60,8 +60,7 @@ export function useImpressionTracker() {
         trackQuestionImpression(String(postId), feedPositionRef.current);
       }
 
-      // 백엔드 API는 로그인한 사용자만
-      if (!isAuthenticatedRef.current) return;
+      // 백엔드 API 호출 (로그인/비로그인 모두)
       pendingQueue.current.push(postId);
 
       if (pendingQueue.current.length >= MAX_QUEUE_SIZE) {
@@ -72,8 +71,6 @@ export function useImpressionTracker() {
   );
 
   useEffect(() => {
-    if (!isAuthenticatedRef.current) return;
-
     flushTimeoutRef.current = setInterval(flush, FLUSH_INTERVAL);
     return () => {
       if (flushTimeoutRef.current) clearInterval(flushTimeoutRef.current);
@@ -82,7 +79,7 @@ export function useImpressionTracker() {
 
   useEffect(() => {
     const handleBeforeUnload = () => {
-      if (pendingQueue.current.length > 0 && isAuthenticatedRef.current) {
+      if (pendingQueue.current.length > 0) {
         navigator.sendBeacon(
           '/api/v1/posts/impressions/batch/',
           JSON.stringify({ post_ids: pendingQueue.current })

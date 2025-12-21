@@ -311,11 +311,11 @@ export async function uploadPostImage(file: File): Promise<ImageUploadResponse> 
 
 /**
  * 게시물 노출 수 일괄 기록
- * 인증 필요
+ * 인증 불필요 (로그인/비로그인 모두 가능)
  */
 export async function recordImpressionsBatch(postIds: number[]): Promise<void> {
   try {
-    await authClient.post('/api/v1/posts/impressions/batch/', { post_ids: postIds });
+    await publicClient.post('/api/v1/posts/impressions/batch/', { post_ids: postIds });
   } catch (error) {
     throw handleApiError(error);
   }
