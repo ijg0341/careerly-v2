@@ -7,7 +7,7 @@ import { SidebarRail } from '@/components/ui/sidebar-rail';
 import { MobileNavOverlay } from '@/components/ui/mobile-nav-overlay';
 import { LoginModal, SignupModal } from '@/components/auth';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { MessageSquare, Sparkles, Users, Settings, LogIn, LogOut, Menu } from 'lucide-react';
+import { MessageSquare, Sparkles, Users, Settings, LogIn, Menu } from 'lucide-react';
 import { useCurrentUser, useLogout } from '@/lib/api';
 import { useStore } from '@/hooks/useStore';
 import { cn } from '@/lib/utils';
@@ -107,7 +107,7 @@ function AppLayoutContent({ children }: AppLayoutProps) {
       : undefined,
     ctas: !currentUser
       ? [{ label: '로그인', icon: LogIn, variant: 'coral' as const, onClick: openLoginModal }]
-      : [{ label: '로그아웃', icon: LogOut, variant: 'outline' as const, onClick: handleLogout }],
+      : [],
   };
 
   // 자체 헤더를 가진 페이지들 (모바일 헤더 숨김)
