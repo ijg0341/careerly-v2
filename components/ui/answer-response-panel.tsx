@@ -20,6 +20,8 @@ export interface AnswerResponsePanelProps extends React.HTMLAttributes<HTMLDivEl
   currentFeedback?: boolean | null;
   /** 피드백 표시 여부 */
   showFeedback?: boolean;
+  /** 피드백 강조 모드 (베타 피드백 수집용) */
+  emphasizedFeedback?: boolean;
 }
 
 const AnswerResponsePanel = React.forwardRef<HTMLDivElement, AnswerResponsePanelProps>(
@@ -32,6 +34,7 @@ const AnswerResponsePanel = React.forwardRef<HTMLDivElement, AnswerResponsePanel
       messageId,
       currentFeedback,
       showFeedback = true,
+      emphasizedFeedback = false,
       className,
       ...props
     },
@@ -79,17 +82,27 @@ const AnswerResponsePanel = React.forwardRef<HTMLDivElement, AnswerResponsePanel
 
             {/* 피드백 UI */}
             {showFeedback && messageId && (
-              <div className="mt-6 pt-4 border-t border-slate-100">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">
-                    이 답변이 도움이 되었나요?
-                  </span>
+              emphasizedFeedback ? (
+                <div className="mt-6 pt-4 border-t border-slate-100">
                   <MessageFeedback
                     messageId={messageId}
                     currentFeedback={currentFeedback}
+                    emphasized={true}
                   />
                 </div>
-              </div>
+              ) : (
+                <div className="mt-6 pt-4 border-t border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      이 답변이 도움이 되었나요?
+                    </span>
+                    <MessageFeedback
+                      messageId={messageId}
+                      currentFeedback={currentFeedback}
+                    />
+                  </div>
+                </div>
+              )
             )}
           </>
         )}

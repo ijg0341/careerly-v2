@@ -3,7 +3,7 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Loader2, Search, Sparkles, Database, Globe, FileText, CheckCircle2, LogIn, User, Wrench, Brain, Cpu, XCircle, Clock, AlertCircle } from 'lucide-react';
-import { streamChatMessage } from '@/lib/api/services/chat.service';
+import { streamChatMessage, getChatSession } from '@/lib/api/services/chat.service';
 import type { SSEStatusStep, SSECompleteEvent, SSEAgentProgressEvent, SSEProfileSummaryEvent, AgentProgressStatus } from '@/lib/api';
 import { useChatSessionWithFallback } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -531,29 +531,47 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
         setStreamingSources(sources);
       },
       onComplete: (metadata: SSECompleteEvent) => {
-        // 최종 답변 저장
+        // 최종 답변 저장 - 현재 streamingContent를 직접 참조하여 배칭 최적화
         // 1. streamingContent가 있으면 그것을 사용 (token 스트리밍 방식)
         // 2. 없으면 metadata.answer 사용 (complete에서 전체 답변 전송 방식)
         setStreamingContent((currentContent) => {
+          // 최종 답변 결정
           const finalAnswer = currentContent || metadata.answer || '';
+
+          // 모든 완료 관련 상태를 한 번에 업데이트 (다음 틱에서 배칭됨)
+          // setTimeout을 사용하지 않고 React의 배칭 활용
           if (finalAnswer) {
             setCompletedAnswer(finalAnswer);
           }
+          setCompletedSources(streamingSources);
+          setCompletedMetadata(metadata);
+
+          // 메시지 ID 저장 (피드백용)
+          if (metadata.message_id) {
+            setCompletedMessageId(metadata.message_id);
+          }
+
+          // 세션 ID 업데이트
+          if (metadata.session_id) {
+            setSessionId(metadata.session_id);
+
+            // message_id가 없으면 세션 조회해서 가져오기 (백엔드에서 complete에 message_id 안 보내는 경우 대응)
+            if (!metadata.message_id) {
+              getChatSession(metadata.session_id)
+                .then((session) => {
+                  const assistantMessage = session.messages.find(m => m.role === 'assistant');
+                  if (assistantMessage) {
+                    setCompletedMessageId(assistantMessage.id);
+                  }
+                })
+                .catch((err) => {
+                  console.error('Failed to fetch session for messageId:', err);
+                });
+            }
+          }
+
           return '';
         });
-
-        setCompletedSources(streamingSources);
-        setCompletedMetadata(metadata);
-
-        // 메시지 ID 저장 (피드백용)
-        if (metadata.message_id) {
-          setCompletedMessageId(metadata.message_id);
-        }
-
-        // 세션 ID 업데이트
-        if (metadata.session_id) {
-          setSessionId(metadata.session_id);
-        }
 
         // GA4: ai_search_complete 이벤트 트래킹
         const responseTime = Date.now() - searchStartTimeRef.current;
@@ -994,6 +1012,7 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
                   messageId={displayMessageId}
                   currentFeedback={displayCurrentFeedback}
                   showFeedback={true}
+                  emphasizedFeedback={true}
                 />
               ) : isLoading ? (
                 <div className="py-6">
