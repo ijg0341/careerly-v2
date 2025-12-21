@@ -66,7 +66,7 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   // 모바일 네비게이션 아이템 설정
   const navItems = {
     primary: [
-      { label: 'Chat', path: '/', icon: MessageSquare },
+      { label: 'Chat', path: '/', icon: MessageSquare, badge: 'beta' },
       { label: 'Discover', path: '/discover', icon: Sparkles },
       { label: 'Community', path: '/community', icon: Users },
     ],

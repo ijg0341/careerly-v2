@@ -6,6 +6,7 @@ import { Toaster } from 'sonner';
 import {
   GoogleTagManager,
   GoogleTagManagerNoScript,
+  GoogleAnalytics,
 } from '@/components/analytics';
 
 export const viewport: Viewport = {
@@ -105,6 +106,7 @@ export default function RootLayout({
     <html lang="ko">
       <head>
         <GoogleTagManager />
+        <GoogleAnalytics />
       </head>
       <body className="antialiased">
         <GoogleTagManagerNoScript />

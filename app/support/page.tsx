@@ -61,7 +61,7 @@ export default function SupportPage() {
 
             <div className="space-y-3">
               <a
-                href="mailto:support@careerly.co.kr"
+                href="mailto:careerly@careerly.co.kr"
                 className="flex items-center gap-4 p-4 rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-white transition-colors"
               >
                 <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
@@ -69,7 +69,7 @@ export default function SupportPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-900">이메일 문의</p>
-                  <p className="text-sm text-slate-500">support@careerly.co.kr</p>
+                  <p className="text-sm text-slate-500">careerly@careerly.co.kr</p>
                 </div>
               </a>
 

@@ -266,7 +266,7 @@ const NavItemButton = React.forwardRef<HTMLButtonElement, NavItemButtonProps>(
       <>
         {Icon && <Icon className="h-6 w-6 shrink-0" />}
         {badge && (
-          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-slate-700 text-[10px] font-bold text-white">
+          <span className="absolute bottom-0 right-0.5 text-[10px] font-medium text-slate-400">
             {badge}
           </span>
         )}

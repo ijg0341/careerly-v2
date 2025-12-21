@@ -80,11 +80,16 @@ export {
   getDiscoverFeedsByCategory,
   getTrendingFeeds,
   getRecommendedFeeds,
-  likeFeed,
-  unlikeFeed,
-  bookmarkFeed,
-  unbookmarkFeed,
   getBookmarkedFeeds,
+  createDiscoverBookmark,
+  deleteDiscoverBookmark,
+  isDiscoverBookmarked,
+  checkDiscoverBookmarks,
+} from './services/discover.service';
+export type {
+  DiscoverBookmarkData,
+  DiscoverBookmark,
+  DiscoverBookmarkListResponse,
 } from './services/discover.service';
 
 // Posts Service
@@ -255,6 +260,7 @@ export {
   useTrendingFeeds,
   useRecommendedFeeds,
   useBookmarkedFeeds,
+  useCheckDiscoverBookmarks,
   discoverKeys,
 } from './hooks/queries/useDiscover';
 
@@ -381,10 +387,9 @@ export {
 
 // Discover Mutations
 export {
-  useLikeFeed,
-  useUnlikeFeed,
-  useBookmarkFeed,
-  useUnbookmarkFeed,
+  useCreateDiscoverBookmark,
+  useDeleteDiscoverBookmark,
+  useToggleDiscoverBookmark,
 } from './hooks/mutations/useDiscoverMutations';
 
 // Chat Mutations

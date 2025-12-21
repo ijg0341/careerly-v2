@@ -8,8 +8,6 @@ export interface CourseCardData {
   imageUrl?: string;
   platformName: string;
   platformLogo?: string;
-  views: number;
-  likes: number;
   url?: string;
 }
 

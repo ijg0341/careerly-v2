@@ -12,6 +12,8 @@ import {
   getTrendingFeeds,
   getRecommendedFeeds,
   getBookmarkedFeeds,
+  checkDiscoverBookmarks,
+  DiscoverBookmarkListResponse,
 } from '../../services/discover.service';
 import type {
   DiscoverFeed,
@@ -119,13 +121,29 @@ export function useRecommendedFeeds(
  * 북마크한 피드 목록 조회 훅
  */
 export function useBookmarkedFeeds(
-  params?: PaginationParams,
-  options?: Omit<UseQueryOptions<DiscoverFeedResponse, Error>, 'queryKey' | 'queryFn'>
+  params?: { content_type?: string; page?: number; page_size?: number },
+  options?: Omit<UseQueryOptions<DiscoverBookmarkListResponse, Error>, 'queryKey' | 'queryFn'>
 ) {
-  return useQuery<DiscoverFeedResponse, Error>({
+  return useQuery<DiscoverBookmarkListResponse, Error>({
     queryKey: discoverKeys.bookmarks(params),
     queryFn: () => getBookmarkedFeeds(params),
     staleTime: 2 * 60 * 1000, // 2분
+    ...options,
+  });
+}
+
+/**
+ * 여러 콘텐츠의 북마크 여부 조회 훅
+ */
+export function useCheckDiscoverBookmarks(
+  externalIds: string[],
+  options?: Omit<UseQueryOptions<Record<string, boolean>, Error>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery<Record<string, boolean>, Error>({
+    queryKey: [...discoverKeys.all, 'check', externalIds] as const,
+    queryFn: () => checkDiscoverBookmarks(externalIds),
+    enabled: externalIds.length > 0,
+    staleTime: 1 * 60 * 1000, // 1분
     ...options,
   });
 }

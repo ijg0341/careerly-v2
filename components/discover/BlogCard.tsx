@@ -13,8 +13,6 @@ export interface BlogCardData {
   blogMetaImage?: string;
   publishedAt?: string;
   aiCategory?: BlogAICategory;
-  views: number;
-  likes: number;
   url?: string;
 }
 

@@ -1,9 +1,13 @@
 'use client';
 
 import * as React from 'react';
-import { X, Heart, ExternalLink, Bookmark } from 'lucide-react';
+import { X, ExternalLink, Bookmark, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useCurrentUser } from '@/lib/api/hooks/queries/useUser';
+import { useToggleDiscoverBookmark } from '@/lib/api/hooks/mutations/useDiscoverMutations';
+import { toast } from 'sonner';
+import Link from 'next/link';
 
 export type ContentType = 'jobs' | 'blogs' | 'books' | 'courses';
 
@@ -15,10 +19,7 @@ export interface ContentDetailData {
   imageUrl?: string;
   companyName?: string;
   companyLogo?: string;
-  isLiked: boolean;
   isBookmarked: boolean;
-  views: number;
-  likes: number;
 }
 
 export interface ContentDetailDrawerProps {
@@ -29,6 +30,17 @@ export interface ContentDetailDrawerProps {
   onContentChange: (content: ContentDetailData | null) => void;
 }
 
+// ContentType을 API content_type으로 변환
+function toApiContentType(contentType: ContentType): 'job' | 'blog' | 'book' | 'course' {
+  const map: Record<ContentType, 'job' | 'blog' | 'book' | 'course'> = {
+    jobs: 'job',
+    blogs: 'blog',
+    books: 'book',
+    courses: 'course',
+  };
+  return map[contentType];
+}
+
 export function ContentDetailDrawer({
   open,
   content,
@@ -36,21 +48,48 @@ export function ContentDetailDrawer({
   onClose,
   onContentChange,
 }: ContentDetailDrawerProps) {
-  const handleLikeContent = () => {
-    if (!content) return;
-    onContentChange({
-      ...content,
-      isLiked: !content.isLiked,
-      likes: content.isLiked ? content.likes - 1 : content.likes + 1,
-    });
-  };
+  const { data: currentUser } = useCurrentUser();
+  const { toggle: toggleBookmark, isLoading: isBookmarkLoading } = useToggleDiscoverBookmark();
 
-  const handleBookmarkContent = () => {
+  const handleBookmarkContent = async () => {
     if (!content) return;
-    onContentChange({
-      ...content,
-      isBookmarked: !content.isBookmarked,
-    });
+
+    // 로그인 체크
+    if (!currentUser) {
+      toast.error('로그인이 필요합니다.', {
+        action: {
+          label: '로그인',
+          onClick: () => {
+            window.location.href = '/login';
+          },
+        },
+      });
+      return;
+    }
+
+    try {
+      const newBookmarkState = await toggleBookmark(
+        {
+          content_type: toApiContentType(contentType),
+          external_id: content.id,
+          url: content.externalUrl || '',
+          title: content.title,
+          summary: content.summary,
+          image_url: content.imageUrl,
+          company_name: content.companyName,
+          company_logo: content.companyLogo,
+        },
+        content.isBookmarked
+      );
+
+      // 로컬 상태 업데이트
+      onContentChange({
+        ...content,
+        isBookmarked: newBookmarkState,
+      });
+    } catch {
+      // 에러는 useToggleDiscoverBookmark에서 처리
+    }
   };
 
   // 콘텐츠 타입별 버튼 텍스트
@@ -129,29 +168,21 @@ export function ContentDetailDrawer({
                     size="icon"
                     className={cn(
                       'border-slate-200',
-                      content.isLiked && 'bg-red-50 border-red-200'
-                    )}
-                    onClick={handleLikeContent}
-                  >
-                    <Heart
-                      className={cn('h-4 w-4', content.isLiked && 'fill-red-500 text-red-500')}
-                    />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className={cn(
-                      'border-slate-200',
                       content.isBookmarked && 'bg-teal-50 border-teal-200'
                     )}
                     onClick={handleBookmarkContent}
+                    disabled={isBookmarkLoading}
                   >
-                    <Bookmark
-                      className={cn(
-                        'h-4 w-4',
-                        content.isBookmarked && 'fill-teal-500 text-teal-500'
-                      )}
-                    />
+                    {isBookmarkLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Bookmark
+                        className={cn(
+                          'h-4 w-4',
+                          content.isBookmarked && 'fill-teal-500 text-teal-500'
+                        )}
+                      />
+                    )}
                   </Button>
                 </div>
               </div>

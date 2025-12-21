@@ -349,7 +349,7 @@ export default function DiscoverPage() {
           new Date(b.created_at || 0).getTime() -
           new Date(a.created_at || 0).getTime()
       )
-      .map((blog, idx) => ({
+      .map((blog) => ({
         id: `blog-${blog.id}`,
         title: blog.title,
         summary: blog.summary || '',
@@ -359,8 +359,6 @@ export default function DiscoverPage() {
         blogMetaImage: blog.additional_info?.image_url || undefined,
         author: blog.additional_info?.author || undefined,
         publishedAt: blog.created_at,
-        views: 500 + idx * 250,
-        likes: 50 + idx * 15,
         url: blog.url,
       }));
   }, [blogsData]);
@@ -385,7 +383,7 @@ export default function DiscoverPage() {
   // 강의 데이터 변환 (API 데이터 사용)
   const courseCards = React.useMemo(() => {
     if (!lecturesData?.contents) return [];
-    return lecturesData.contents.map((course, idx) => ({
+    return lecturesData.contents.map((course) => ({
       id: `course-${course.id}`,
       title: course.title,
       summary: course.summary || '',
@@ -394,8 +392,6 @@ export default function DiscoverPage() {
       platformName: course.company_title,
       platformLogo: course.company_image,
       companySign: course.company_sign,
-      views: 600 + idx * 300,
-      likes: 60 + idx * 20,
       url: course.url,
       createdAt: course.created_at,
     }));
@@ -526,10 +522,7 @@ export default function DiscoverPage() {
       externalUrl: job.url,
       companyName: job.companyName,
       companyLogo: job.companyLogo,
-      isLiked: false,
       isBookmarked: false,
-      views: job.views || 0,
-      likes: job.likes || 0,
     });
     setDrawerOpen(true);
   };
@@ -544,10 +537,7 @@ export default function DiscoverPage() {
       externalUrl: blog.url,
       companyName: blog.companyName,
       companyLogo: blog.companyLogo,
-      isLiked: false,
       isBookmarked: false,
-      views: blog.views,
-      likes: blog.likes,
     });
     setDrawerOpen(true);
   };
@@ -566,10 +556,7 @@ export default function DiscoverPage() {
       externalUrl: (item as any).url,
       companyName: isBook ? bookItem.publisherName : courseItem.platformName,
       companyLogo: isBook ? bookItem.publisherLogo : courseItem.platformLogo,
-      isLiked: false,
       isBookmarked: false,
-      views: isBook ? 800 : courseItem.views,
-      likes: isBook ? 80 : courseItem.likes,
     });
     setDrawerOpen(true);
   };
