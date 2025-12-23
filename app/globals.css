@@ -31,8 +31,13 @@
     @apply border-slate-200;
   }
 
+  html {
+    background-color: #f8fafc;
+  }
+
   body {
-    @apply bg-white text-slate-900;
+    background-color: #f8fafc;
+    @apply text-slate-900;
     font-family:
       'Pretendard Variable',
       Pretendard,

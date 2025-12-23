@@ -3,9 +3,11 @@
 import * as React from 'react';
 import { Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { SidebarRail } from '@/components/ui/sidebar-rail';
 import { MobileNavOverlay } from '@/components/ui/mobile-nav-overlay';
 import { TopAlertBanner, TopAlertProvider, useTopAlert } from '@/components/ui/top-alert-banner';
+import { PullToRefresh } from '@/components/ui/pull-to-refresh';
 import { LoginModal, SignupModal } from '@/components/auth';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { MessageSquare, Sparkles, Users, Settings, LogIn, Menu } from 'lucide-react';
@@ -27,6 +29,7 @@ interface AppLayoutProps {
 function AppLayoutContent({ children }: AppLayoutProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const isDrawerMode = searchParams.get('drawer') === 'true';
 
   // share 페이지는 별도 레이아웃 사용 (인증 체크 안함)
@@ -142,6 +145,16 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   // 채팅 페이지는 전체화면 레이아웃 (헤더 없음, 중앙 정렬)
   const isChatPage = pathname === '/chat';
 
+  // Pull to Refresh 핸들러
+  const handleRefresh = React.useCallback(async () => {
+    // 모든 React Query 캐시 무효화 및 refetch
+    await queryClient.invalidateQueries();
+  }, [queryClient]);
+
+  // Pull to Refresh 비활성화 조건
+  // - 드로어 모드에서는 비활성화
+  const isPullToRefreshDisabled = isDrawerMode;
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* 커리어리 2.0 출시 알림 */}
@@ -214,27 +227,33 @@ function AppLayoutContent({ children }: AppLayoutProps) {
       )}
 
       {/* Main Content - With left padding for sidebar (removed in drawer mode) */}
-      <main
-        className={cn(
-          'min-h-screen',
-          isDrawerMode ? '' : 'md:pl-20',
-          // 채팅 페이지: 전체화면 중앙 정렬
-          isChatPage && 'flex flex-col',
-          // 자체 헤더가 있는 페이지는 모바일에서 상단 패딩 제거
-          // safe-pt-14: safe area + 56px (헤더 높이)
-          !isDrawerMode && !hasOwnHeader && !isChatPage && 'safe-pt-14 md:pt-0'
-        )}
+      <PullToRefresh
+        onRefresh={handleRefresh}
+        disabled={isPullToRefreshDisabled}
+        topOffset={56}
       >
-        {isChatPage ? (
-          children
-        ) : pathname === '/community/new/post' || hasOwnHeader ? (
-          children
-        ) : (
-          <div className="container mx-auto px-4 py-4 md:py-6 max-w-[1280px]">
-            {children}
-          </div>
-        )}
-      </main>
+        <main
+          className={cn(
+            'min-h-screen',
+            isDrawerMode ? '' : 'md:pl-20',
+            // 채팅 페이지: 전체화면 중앙 정렬
+            isChatPage && 'flex flex-col',
+            // 자체 헤더가 있는 페이지는 모바일에서 상단 패딩 제거
+            // safe-pt-14: safe area + 56px (헤더 높이)
+            !isDrawerMode && !hasOwnHeader && !isChatPage && 'safe-pt-14 md:pt-0'
+          )}
+        >
+          {isChatPage ? (
+            children
+          ) : pathname === '/community/new/post' || hasOwnHeader ? (
+            children
+          ) : (
+            <div className="container mx-auto px-4 py-4 md:py-6 max-w-[1280px]">
+              {children}
+            </div>
+          )}
+        </main>
+      </PullToRefresh>
 
       {/* Auth Modals */}
       <LoginModal

@@ -103,12 +103,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko">
+    <html lang="ko" className="bg-slate-50" style={{ backgroundColor: '#f8fafc' }}>
       <head>
+        <meta name="theme-color" content="#f8fafc" />
         <GoogleTagManager />
         <GoogleAnalytics />
       </head>
-      <body className="antialiased">
+      <body className="antialiased bg-slate-50" style={{ backgroundColor: '#f8fafc' }}>
         <GoogleTagManagerNoScript />
         <ReactQueryProvider>
           <AppLayout>{children}</AppLayout>
