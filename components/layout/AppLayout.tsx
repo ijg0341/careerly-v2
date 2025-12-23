@@ -160,9 +160,7 @@ function AppLayoutContent({ children }: AppLayoutProps) {
       {/* Mobile Header - 모바일에서만 표시, 자체 헤더 페이지에서는 숨김 */}
       {!isDrawerMode && !hasOwnHeader && (
         <header className={cn(
-          "fixed top-0 left-0 right-0 z-40 md:hidden",
-          // 채팅 페이지: 투명 배경, 햄버거 버튼만
-          isChatPage ? "bg-transparent safe-pt" : "bg-slate-50 safe-pt"
+          "fixed top-0 left-0 right-0 z-40 md:hidden bg-slate-50 safe-pt"
         )}>
           <div className="h-14 flex items-center justify-between px-4">
             <button

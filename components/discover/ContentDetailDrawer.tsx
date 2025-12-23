@@ -175,7 +175,7 @@ export function ContentDetailDrawer({
         {content && (
           <div className="h-full flex flex-col">
             {/* Header */}
-            <div className="sticky top-[env(safe-area-inset-top)] z-10 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+            <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {content.companyLogo && (
                   <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 overflow-hidden">
