@@ -11,6 +11,17 @@ let isRefreshing = false;
 let refreshSubscribers: Array<(token: string) => void> = [];
 let refreshRejectSubscribers: Array<(error: Error) => void> = [];
 let sessionExpiredNotified = false;
+let isLoggingOut = false;
+
+/**
+ * 로그아웃 시작 시 호출 - refresh 시도 방지
+ */
+export function setLoggingOut(value: boolean): void {
+  isLoggingOut = value;
+  if (value) {
+    sessionExpiredNotified = true;
+  }
+}
 
 /**
  * 토큰 갱신 대기 중인 요청들을 등록
@@ -83,8 +94,8 @@ export function setupAuthInterceptor(axiosInstance: AxiosInstance): void {
         return Promise.reject(error);
       }
 
-      // 이미 세션이 만료된 상태면 refresh 시도하지 않음
-      if (sessionExpiredNotified) {
+      // 이미 세션이 만료된 상태거나 로그아웃 중이면 refresh 시도하지 않음
+      if (sessionExpiredNotified || isLoggingOut) {
         return Promise.reject(error);
       }
 

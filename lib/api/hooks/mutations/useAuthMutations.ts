@@ -17,6 +17,7 @@ import {
   verifyPasswordReset as verifyPasswordResetService,
 } from '../../services/auth.service';
 import { setMemoryToken, clearMemoryToken } from '../../auth/token.client';
+import { setLoggingOut, resetSessionExpired } from '../../auth/interceptor';
 import type {
   LoginRequest,
   LoginResponse,
@@ -38,6 +39,9 @@ export function useLogin(
   return useMutation<LoginResponse, Error, LoginRequest>({
     mutationFn: loginService,
     onSuccess: (data) => {
+      // 세션 만료 상태 리셋
+      resetSessionExpired();
+
       // 메모리 토큰 저장 (SSE 등에서 사용)
       setMemoryToken(data.tokens.access);
 
@@ -66,11 +70,17 @@ export function useLogout(
   const router = useRouter();
 
   const mutation = useMutation<void, Error, void>({
-    mutationFn: logoutService,
+    mutationFn: async () => {
+      // 로그아웃 시작 전에 플래그 설정 - 이후 401 에러에서 토큰 갱신 시도 방지
+      setLoggingOut(true);
+      return logoutService();
+    },
     onSettled: () => {
       // 성공/실패 관계없이 항상 로컬 상태 정리
       clearMemoryToken();
       queryClient.clear();
+      // 로그아웃 완료 후 플래그 리셋 (다음 로그인을 위해)
+      setLoggingOut(false);
       router.push('/');
     },
     onSuccess: () => {
@@ -98,6 +108,9 @@ export function useSignup(
   return useMutation<LoginResponse, Error, RegisterRequest>({
     mutationFn: signupService,
     onSuccess: (data) => {
+      // 세션 만료 상태 리셋
+      resetSessionExpired();
+
       // 메모리 토큰 저장
       setMemoryToken(data.tokens.access);
 
@@ -155,6 +168,9 @@ export function useOAuthCallback(
   return useMutation<LoginResponse, Error, OAuthCallbackRequest>({
     mutationFn: handleOAuthCallbackService,
     onSuccess: (data) => {
+      // 세션 만료 상태 리셋
+      resetSessionExpired();
+
       // 메모리 토큰 저장
       setMemoryToken(data.tokens.access);
 
