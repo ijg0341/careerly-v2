@@ -111,6 +111,12 @@ function AppLayoutContent({ children }: AppLayoutProps) {
     setShowLaunchAlert(false);
   };
 
+  // Pull to Refresh 핸들러 (early return 전에 선언해야 hooks 개수 일치)
+  const handleRefresh = React.useCallback(async () => {
+    // 모든 React Query 캐시 무효화 및 refetch
+    await queryClient.invalidateQueries();
+  }, [queryClient]);
+
   // share 페이지는 별도 레이아웃 사용 (사이드바, 모달 없음)
   if (isSharePage) {
     return <>{children}</>;
@@ -142,14 +148,11 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   // 자체 헤더를 가진 페이지들 (모바일 헤더 숨김)
   const hasOwnHeader = pathname?.startsWith('/settings') || pathname?.startsWith('/community/new') || pathname?.startsWith('/community/edit') || pathname?.startsWith('/profile/');
 
+  // community 페이지에서 drawer가 열린 상태 (post 또는 qna 파라미터가 있을 때)
+  const isCommunityDrawerOpen = pathname === '/community' && (searchParams.has('post') || searchParams.has('qna'));
+
   // 채팅 페이지는 전체화면 레이아웃 (헤더 없음, 중앙 정렬)
   const isChatPage = pathname === '/chat';
-
-  // Pull to Refresh 핸들러
-  const handleRefresh = React.useCallback(async () => {
-    // 모든 React Query 캐시 무효화 및 refetch
-    await queryClient.invalidateQueries();
-  }, [queryClient]);
 
   // Pull to Refresh 비활성화 조건
   // - 드로어 모드에서는 비활성화
@@ -170,8 +173,8 @@ function AppLayoutContent({ children }: AppLayoutProps) {
         />
       )}
 
-      {/* Mobile Header - 모바일에서만 표시, 자체 헤더 페이지에서는 숨김 */}
-      {!isDrawerMode && !hasOwnHeader && (
+      {/* Mobile Header - 모바일에서만 표시, 자체 헤더 페이지 및 community drawer에서는 숨김 */}
+      {!isDrawerMode && !hasOwnHeader && !isCommunityDrawerOpen && (
         <header className={cn(
           "fixed top-0 left-0 right-0 z-40 md:hidden bg-slate-50 safe-pt"
         )}>
@@ -283,10 +286,22 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   );
 }
 
+function AppLayoutWrapper({ children }: AppLayoutProps) {
+  const pathname = usePathname();
+  const isSharePage = pathname?.startsWith('/share');
+
+  // share 페이지와 일반 페이지 간 전환 시 컴포넌트 remount (hooks 일관성 유지)
+  return (
+    <AppLayoutContent key={isSharePage ? 'share' : 'main'}>
+      {children}
+    </AppLayoutContent>
+  );
+}
+
 export function AppLayout({ children }: AppLayoutProps) {
   return (
     <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
-      <AppLayoutContent>{children}</AppLayoutContent>
+      <AppLayoutWrapper>{children}</AppLayoutWrapper>
     </Suspense>
   );
 }

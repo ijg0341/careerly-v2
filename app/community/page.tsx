@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import Masonry from 'react-masonry-css';
 import { CommunityFeedCard } from '@/components/ui/community-feed-card';
 import { AIChatPostCard } from '@/components/ui/ai-chat-post-card';
@@ -687,15 +688,18 @@ function CommunityPageContent() {
   // Impression tracking
   const { trackImpression } = useImpressionTracker();
 
-  // Drawer 열릴 때 body 스크롤 막기
+  // Drawer 열릴 때 body 스크롤 막기 및 drawer 상태 표시
   React.useEffect(() => {
     if (drawerOpen) {
       document.body.style.overflow = 'hidden';
+      document.body.dataset.drawerOpen = 'true';
     } else {
       document.body.style.overflow = '';
+      delete document.body.dataset.drawerOpen;
     }
     return () => {
       document.body.style.overflow = '';
+      delete document.body.dataset.drawerOpen;
     };
   }, [drawerOpen]);
 
@@ -785,12 +789,22 @@ function CommunityPageContent() {
   }, [currentTab]);
 
   // URL 파라미터로 drawer 열기
+  // 이미 같은 콘텐츠가 선택되어 있으면 userProfile을 보존하기 위해 덮어쓰지 않음
   React.useEffect(() => {
     if (postIdFromUrl) {
+      // 이미 같은 post가 선택되어 있으면 selectedContent를 덮어쓰지 않음 (userProfile 보존)
+      if (selectedContent?.type === 'post' && selectedContent?.id === postIdFromUrl) {
+        if (!drawerOpen) setDrawerOpen(true);
+        return;
+      }
       setSelectedContent({ type: 'post', id: postIdFromUrl });
       setDrawerOpen(true);
     } else if (qnaIdFromUrl) {
-      // QnA의 경우 questionData가 필요하므로 별도 처리 필요
+      // 이미 같은 qna가 선택되어 있으면 selectedContent를 덮어쓰지 않음 (questionData 보존)
+      if (selectedContent?.type === 'qna' && selectedContent?.id === qnaIdFromUrl) {
+        if (!drawerOpen) setDrawerOpen(true);
+        return;
+      }
       setSelectedContent({ type: 'qna', id: qnaIdFromUrl });
       setDrawerOpen(true);
     }
@@ -1737,51 +1751,20 @@ function CommunityPageContent() {
         </div>
       </aside>
 
-      {/* Right Drawer */}
+      {/* Right Drawer - z-index를 높여서 pull-to-refresh 스피너(z-50) 위에 표시 */}
       <div
         className={cn(
-          "fixed inset-y-0 right-0 z-50 w-full md:w-[600px] lg:w-[700px] bg-white shadow-2xl transform transition-transform duration-300 ease-in-out overflow-y-auto",
+          "fixed -top-20 bottom-0 right-0 z-[60] w-full md:w-[600px] lg:w-[700px] bg-white shadow-2xl transform transition-transform duration-300 ease-in-out overflow-y-auto pt-[calc(5rem+env(safe-area-inset-top))]",
           drawerOpen ? "translate-x-0" : "translate-x-full"
         )}
       >
         {selectedContent && (
           <div className="h-full flex flex-col">
             {/* Drawer Header */}
-            <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between safe-pt">
-              {selectedContent.type === 'post' && selectedContent.userProfile ? (
-                <div className="flex items-center gap-3 flex-1">
-                  <button
-                    onClick={() => window.open(`/profile/${selectedContent.userProfile?.profile_id || selectedContent.userProfile?.id}`, '_blank')}
-                    className="flex items-center gap-3 hover:opacity-80 transition-opacity group"
-                    aria-label="프로필 보기"
-                  >
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage
-                        src={selectedContent.userProfile.small_image_url || selectedContent.userProfile.image_url}
-                        alt={selectedContent.userProfile.name}
-                      />
-                      <AvatarFallback>
-                        {selectedContent.userProfile.name.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-semibold text-slate-900">
-                          {selectedContent.userProfile.name}
-                        </span>
-                        <ExternalLink className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600" />
-                      </div>
-                      <span className="text-xs text-slate-600">
-                        {selectedContent.userProfile.headline}
-                      </span>
-                    </div>
-                  </button>
-                </div>
-              ) : (
-                <h2 className="text-lg font-semibold text-slate-900">
-                  {selectedContent.type === 'post' ? '게시글' : '질문'}
-                </h2>
-              )}
+            <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-900">
+                {selectedContent.type === 'post' ? '게시글' : '질문'}
+              </h2>
               <button
                 onClick={handleCloseDrawer}
                 className="p-2 hover:bg-slate-100 rounded-full transition-colors"
@@ -1827,7 +1810,7 @@ function CommunityPageContent() {
       {/* Backdrop */}
       {drawerOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-300"
+          className="fixed inset-0 bg-black/50 z-[55] transition-opacity duration-300"
           onClick={handleCloseDrawer}
         />
       )}
