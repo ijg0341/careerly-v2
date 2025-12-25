@@ -22,12 +22,17 @@ export function NativeAuthHandler() {
     // 앱에서 호출하는 네이티브 애플 로그인 핸들러
     window.handleNativeAppleAuth = async (authData: AppleAuthData) => {
       console.log('[NativeAuthHandler] handleNativeAppleAuth called:', authData);
+      console.log('[NativeAuthHandler] authData type:', typeof authData);
+      console.log('[NativeAuthHandler] identityToken:', authData?.identityToken?.substring(0, 50) + '...');
       try {
-        await nativeAppleAuth(authData);
+        console.log('[NativeAuthHandler] Calling nativeAppleAuth API...');
+        const result = await nativeAppleAuth(authData);
+        console.log('[NativeAuthHandler] API success:', result);
         toast.success('로그인되었습니다.');
         window.location.reload();
       } catch (error) {
         console.error('[NativeAuthHandler] Native Apple auth failed:', error);
+        console.error('[NativeAuthHandler] Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
         toast.error('애플 로그인에 실패했습니다.');
       }
     };
@@ -35,12 +40,17 @@ export function NativeAuthHandler() {
     // 앱에서 호출하는 네이티브 카카오 로그인 핸들러
     window.handleNativeKakaoAuth = async (authData: KakaoAuthData) => {
       console.log('[NativeAuthHandler] handleNativeKakaoAuth called:', authData);
+      console.log('[NativeAuthHandler] authData type:', typeof authData);
+      console.log('[NativeAuthHandler] accessToken:', authData?.accessToken?.substring(0, 20) + '...');
       try {
-        await nativeKakaoAuth(authData);
+        console.log('[NativeAuthHandler] Calling nativeKakaoAuth API...');
+        const result = await nativeKakaoAuth(authData);
+        console.log('[NativeAuthHandler] API success:', result);
         toast.success('로그인되었습니다.');
         window.location.reload();
       } catch (error) {
         console.error('[NativeAuthHandler] Native Kakao auth failed:', error);
+        console.error('[NativeAuthHandler] Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
         toast.error('카카오 로그인에 실패했습니다.');
       }
     };
