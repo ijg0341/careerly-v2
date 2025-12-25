@@ -18,7 +18,6 @@ import {
 } from '../../services/auth.service';
 import { setMemoryToken, clearMemoryToken } from '../../auth/token.client';
 import { setLoggingOut, resetSessionExpired } from '../../auth/interceptor';
-import { postMessageToApp } from '@/lib/utils';
 import type {
   LoginRequest,
   LoginResponse,
@@ -84,7 +83,9 @@ export function useLogout(
       setLoggingOut(false);
 
       // 앱 WebView 환경이면 앱에 로그아웃 메시지 전송 (앱에서 쿠키 정리)
-      postMessageToApp({ type: 'logout' });
+      if (typeof window !== 'undefined' && window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'logout' }));
+      }
 
       router.push('/');
     },
