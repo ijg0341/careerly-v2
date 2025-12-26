@@ -220,7 +220,7 @@ export default function QnaDetailPage() {
           createdAt={qnaData.createdat}
           updatedAt={qnaData.updatedat}
           hashTagNames=""
-          viewCount={0}
+          viewCount={(qnaData as any).view_count || 0}
           status={qnaData.status}
           isPublic={qnaData.ispublic}
           answers={qnaData.answers.map(answer => ({

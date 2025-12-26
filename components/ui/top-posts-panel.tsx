@@ -14,10 +14,6 @@ export interface TopPostsPanelProps extends React.HTMLAttributes<HTMLDivElement>
   compact?: boolean;
 }
 
-const periodLabels: Record<'weekly' | 'monthly', string> = {
-  weekly: '주간',
-  monthly: '월간',
-};
 
 // 등수 배지 색상
 const getRankStyle = (rank: number) => {
@@ -46,7 +42,7 @@ export const TopPostsPanel = React.forwardRef<HTMLDivElement, TopPostsPanelProps
     },
     ref
   ) => {
-    const [selectedPeriod, setSelectedPeriod] = React.useState<TopPostsPeriod>('weekly');
+    const [selectedPeriod, setSelectedPeriod] = React.useState<TopPostsPeriod>('monthly');
     const [isExpanded, setIsExpanded] = React.useState(false);
     const initialCount = compact ? maxItems : 5;
 
@@ -104,23 +100,6 @@ export const TopPostsPanel = React.forwardRef<HTMLDivElement, TopPostsPanelProps
             <h3 className="text-lg font-semibold text-slate-900">인기글</h3>
           </div>
 
-          {/* Period Tabs */}
-          <div className="flex gap-1">
-            {(['weekly', 'monthly'] as const).map((period) => (
-              <button
-                key={period}
-                onClick={() => setSelectedPeriod(period)}
-                className={cn(
-                  'px-3 py-1 text-xs font-medium rounded-full transition-colors',
-                  selectedPeriod === period
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                )}
-              >
-                {periodLabels[period]}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Loading State */}

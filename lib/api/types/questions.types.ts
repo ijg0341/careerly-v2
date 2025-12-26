@@ -63,6 +63,7 @@ export interface QuestionListItem {
   is_liked: boolean;
   status: number;
   answer_count: number;
+  view_count: number;
   ispublic: number;
   createdat: string;
   updatedat: string;

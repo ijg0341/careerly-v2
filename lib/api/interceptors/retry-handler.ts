@@ -15,6 +15,16 @@ interface RetryConfig extends InternalAxiosRequestConfig {
  * 재시도 가능한 에러인지 확인
  */
 function isRetryableError(error: AxiosError): boolean {
+  // abort된 요청은 재시도하지 않음 (사용자/컴포넌트가 의도적으로 취소한 경우)
+  if (error.code === 'ERR_CANCELED' || error.message === 'canceled') {
+    return false;
+  }
+
+  // 타임아웃 에러는 재시도하지 않음 (대용량 응답으로 인한 타임아웃은 재시도해도 동일)
+  if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+    return false;
+  }
+
   // 네트워크 에러는 재시도
   if (!error.response) {
     return true;

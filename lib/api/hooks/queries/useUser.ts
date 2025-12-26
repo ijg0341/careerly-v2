@@ -45,16 +45,28 @@ export const userKeys = {
 
 /**
  * 현재 사용자 정보 조회 훅
+ * 비로그인 상태에서는 null 반환 (에러를 throw하지 않음)
  */
 export function useCurrentUser(
-  options?: Omit<UseQueryOptions<User, Error>, 'queryKey' | 'queryFn'>
+  options?: Omit<UseQueryOptions<User | null, Error>, 'queryKey' | 'queryFn'>
 ) {
-  return useQuery<User, Error>({
+  return useQuery<User | null, Error>({
     queryKey: userKeys.me(),
-    queryFn: getCurrentUser,
+    queryFn: async () => {
+      try {
+        return await getCurrentUser();
+      } catch (error: any) {
+        // 401 에러는 비로그인 상태이므로 조용히 null 반환
+        // 다른 요청들이 abort되는 것을 방지
+        if (error?.response?.status === 401 || error?.status === 401) {
+          return null;
+        }
+        throw error;
+      }
+    },
     staleTime: 5 * 60 * 1000, // 5분
     gcTime: 30 * 60 * 1000, // 30분
-    retry: 1, // 인증 에러 시 한 번만 재시도
+    retry: false, // 401 에러는 재시도하지 않음
     ...options,
   });
 }
