@@ -657,7 +657,7 @@ function QnaDetailDrawerContent({
         createdAt={question.createdat}
         updatedAt={question.updatedat}
         hashTagNames=""
-        viewCount={0}
+        viewCount={(question as any).view_count || 0}
         status={question.status}
         isPublic={question.ispublic}
         answers={transformedAnswers}
@@ -742,7 +742,7 @@ function CommunityPageContent() {
     fetchNextPage: fetchNextRecommendedPosts,
     hasNextPage: hasNextRecommendedPosts,
     isFetchingNextPage: isFetchingNextRecommendedPosts
-  } = useInfiniteRecommendedPosts();
+  } = useInfiniteRecommendedPosts(undefined, { enabled: !!user });
 
   const {
     data: questionsData,
@@ -764,12 +764,12 @@ function CommunityPageContent() {
     enabled: !!user?.id,
   });
 
-  // Following Posts (팔로잉하는 사람의 포스트)
+  // Following Posts (팔로잉하는 사람의 포스트) - 로그인 사용자만
   const {
     data: followingPostsData,
     isLoading: isLoadingFollowingPosts,
     error: followingPostsError,
-  } = useFollowingPosts(1);
+  } = useFollowingPosts(1, { enabled: !!user });
 
   // Mutations
   const likePost = useLikePost();
@@ -1445,7 +1445,7 @@ function CommunityPageContent() {
                         isPublic={question.ispublic}
                         answerCount={question.answer_count || 0}
                         commentCount={0}
-                        viewCount={0}
+                        viewCount={question.view_count || 0}
                         hashTagNames=""
                         qnaId={question.id}
                         onClick={() => handleOpenQna(question.id.toString(), question)}
@@ -1584,7 +1584,7 @@ function CommunityPageContent() {
                         isPublic={question.ispublic}
                         answerCount={question.answer_count || 0}
                         commentCount={0}
-                        viewCount={0}
+                        viewCount={question.view_count || 0}
                         hashTagNames=""
                         qnaId={question.id}
                         onClick={() => handleOpenQna(question.id.toString(), question)}
@@ -1704,7 +1704,7 @@ function CommunityPageContent() {
                             isPublic={question.ispublic}
                             answerCount={question.answer_count || 0}
                             commentCount={0}
-                            viewCount={0}
+                            viewCount={question.view_count || 0}
                             hashTagNames=""
                             qnaId={question.id}
                             onClick={() => handleOpenQna(question.id.toString(), question)}

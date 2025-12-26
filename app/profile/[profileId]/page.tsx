@@ -1983,7 +1983,7 @@ export default function UserProfilePage({ params }: { params: { profileId: strin
                             isPublic={question.ispublic}
                             answerCount={question.answer_count || 0}
                             commentCount={0}
-                            viewCount={0}
+                            viewCount={question.view_count || 0}
                             hashTagNames=""
                             onClick={() => handleOpenQna(question.id)}
                             onEdit={isOwnProfile ? () => router.push(`/community/edit/qna/${question.id}`) : undefined}
@@ -2369,7 +2369,7 @@ export default function UserProfilePage({ params }: { params: { profileId: strin
                         createdAt={selectedQuestion.createdat}
                         updatedAt={selectedQuestion.updatedat}
                         hashTagNames=""
-                        viewCount={0}
+                        viewCount={(selectedQuestion as any).view_count || 0}
                         status={selectedQuestion.status}
                         isPublic={selectedQuestion.ispublic}
                         answers={transformedAnswers}

@@ -102,6 +102,31 @@ export function setupAuthInterceptor(axiosInstance: AxiosInstance): void {
       // 재시도 플래그 설정
       originalRequest._retry = true;
 
+      // 메모리 토큰이 없으면 처음부터 비로그인 상태
+      // refresh 시도 없이 바로 에러 반환 (불필요한 네트워크 요청 방지)
+      const token = getMemoryToken();
+      if (!token) {
+        // /users/me/ 엔드포인트는 useCurrentUser에서 조용히 처리하므로 모달 열지 않음
+        // 다른 엔드포인트에서만 모달 열기 (다른 pending 요청 abort 방지)
+        const url = originalRequest.url || '';
+        const isUserMeEndpoint = url.includes('/users/me');
+
+        if (!isUserMeEndpoint) {
+          const publicOnlyPaths = ['/forgot-password', '/signup', '/login'];
+          const isPublicOnlyPage = typeof window !== 'undefined' &&
+            publicOnlyPaths.some(path => window.location.pathname.startsWith(path));
+
+          if (!sessionExpiredNotified && !isPublicOnlyPage) {
+            sessionExpiredNotified = true;
+            // 현재 렌더링 사이클 이후에 모달 열기 (다른 pending 요청 abort 방지)
+            setTimeout(() => {
+              useStore.getState().openLoginModal();
+            }, 0);
+          }
+        }
+        return Promise.reject(error);
+      }
+
       // 이미 토큰 갱신 중인 경우 - 대기열에 등록
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -177,7 +202,10 @@ export function setupAuthInterceptor(axiosInstance: AxiosInstance): void {
 
         if (!sessionExpiredNotified && !isPublicOnlyPage) {
           sessionExpiredNotified = true;
-          useStore.getState().openLoginModal();
+          // 현재 렌더링 사이클 이후에 모달 열기 (다른 pending 요청 abort 방지)
+          setTimeout(() => {
+            useStore.getState().openLoginModal();
+          }, 0);
         }
 
         return Promise.reject(error);
