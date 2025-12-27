@@ -312,3 +312,15 @@ export async function uploadAnswerImage(file: File): Promise<QuestionImageUpload
     throw handleApiError(error);
   }
 }
+
+/**
+ * Q&A 노출 수 일괄 기록
+ * 인증 불필요 (로그인/비로그인 모두 가능)
+ */
+export async function recordQuestionImpressionsBatch(questionIds: number[]): Promise<void> {
+  try {
+    await publicClient.post('/api/v1/questions/impressions/batch/', { question_ids: questionIds });
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}

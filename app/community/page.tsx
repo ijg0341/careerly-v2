@@ -1424,7 +1424,7 @@ function CommunityPageContent() {
                   } else if (item.type === 'qna') {
                     const question = item.data;
                     // Track impression for Q&A
-                    trackImpression(question.id);
+                    trackImpression(question.id, { type: 'question' });
                     const author = {
                       id: question.user_id,
                       profile_id: (question as any).author_profile_id,
@@ -1563,7 +1563,7 @@ function CommunityPageContent() {
                   } else if (item.type === 'qna') {
                     const question = item.data;
                     // Track impression for Q&A
-                    trackImpression(question.id);
+                    trackImpression(question.id, { type: 'question' });
                     const author = {
                       id: question.user_id,
                       profile_id: (question as any).author_profile_id,
@@ -1683,7 +1683,7 @@ function CommunityPageContent() {
                     } else if (item.type === 'qna') {
                       const question = item.data;
                       // Track impression for Q&A
-                      trackImpression(question.id);
+                      trackImpression(question.id, { type: 'question' });
                       const author = {
                         id: question.user_id,
                         profile_id: (question as any).author_profile_id,
