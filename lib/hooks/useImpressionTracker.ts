@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { checkAuth } from '../api/auth/token.client';
 import { recordImpressionsBatch } from '../api/services/posts.service';
+import { recordQuestionImpressionsBatch } from '../api/services/questions.service';
 import { trackPostImpression, trackQuestionImpression } from '../analytics';
 
 const FLUSH_INTERVAL = 3000;
@@ -17,8 +18,9 @@ interface ImpressionData {
 
 export function useImpressionTracker() {
   const isAuthenticatedRef = useRef<boolean>(false);
-  const impressedIds = useRef<Set<number>>(new Set());
-  const pendingQueue = useRef<number[]>([]);
+  const impressedIds = useRef<Set<string>>(new Set()); // type:id 형식으로 저장
+  const pendingPostQueue = useRef<number[]>([]);
+  const pendingQuestionQueue = useRef<number[]>([]);
   const flushTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const feedPositionRef = useRef<number>(0);
 
@@ -29,41 +31,55 @@ export function useImpressionTracker() {
   }, []);
 
   const flush = useCallback(async () => {
-    if (pendingQueue.current.length === 0) return;
+    // Post impressions
+    if (pendingPostQueue.current.length > 0) {
+      const postIds = [...pendingPostQueue.current];
+      pendingPostQueue.current = [];
+      try {
+        await recordImpressionsBatch(postIds);
+      } catch (error) {
+        console.error('Failed to record post impressions:', error);
+      }
+    }
 
-    const postIds = [...pendingQueue.current];
-    pendingQueue.current = [];
-
-    try {
-      await recordImpressionsBatch(postIds);
-    } catch (error) {
-      console.error('Failed to record impressions:', error);
+    // Question impressions
+    if (pendingQuestionQueue.current.length > 0) {
+      const questionIds = [...pendingQuestionQueue.current];
+      pendingQuestionQueue.current = [];
+      try {
+        await recordQuestionImpressionsBatch(questionIds);
+      } catch (error) {
+        console.error('Failed to record question impressions:', error);
+      }
     }
   }, []);
 
   const trackImpression = useCallback(
-    (postId: number, options?: { type?: 'post' | 'question'; authorId?: string }) => {
-      if (impressedIds.current.has(postId)) return;
+    (id: number, options?: { type?: 'post' | 'question'; authorId?: string }) => {
+      const type = options?.type || 'post';
+      const key = `${type}:${id}`;
 
-      impressedIds.current.add(postId);
+      if (impressedIds.current.has(key)) return;
+
+      impressedIds.current.add(key);
       feedPositionRef.current += 1;
 
       // GA4 이벤트 트래킹 (로그인 여부와 관계없이)
-      const type = options?.type || 'post';
       if (type === 'post') {
         trackPostImpression(
-          String(postId),
+          String(id),
           options?.authorId || '',
           feedPositionRef.current
         );
+        pendingPostQueue.current.push(id);
       } else {
-        trackQuestionImpression(String(postId), feedPositionRef.current);
+        trackQuestionImpression(String(id), feedPositionRef.current);
+        pendingQuestionQueue.current.push(id);
       }
 
-      // 백엔드 API 호출 (로그인/비로그인 모두)
-      pendingQueue.current.push(postId);
-
-      if (pendingQueue.current.length >= MAX_QUEUE_SIZE) {
+      // 큐가 차면 flush
+      const totalPending = pendingPostQueue.current.length + pendingQuestionQueue.current.length;
+      if (totalPending >= MAX_QUEUE_SIZE) {
         flush();
       }
     },
@@ -79,10 +95,18 @@ export function useImpressionTracker() {
 
   useEffect(() => {
     const handleBeforeUnload = () => {
-      if (pendingQueue.current.length > 0) {
+      // Post impressions
+      if (pendingPostQueue.current.length > 0) {
         navigator.sendBeacon(
           '/api/v1/posts/impressions/batch/',
-          JSON.stringify({ post_ids: pendingQueue.current })
+          JSON.stringify({ post_ids: pendingPostQueue.current })
+        );
+      }
+      // Question impressions
+      if (pendingQuestionQueue.current.length > 0) {
+        navigator.sendBeacon(
+          '/api/v1/questions/impressions/batch/',
+          JSON.stringify({ question_ids: pendingQuestionQueue.current })
         );
       }
     };
